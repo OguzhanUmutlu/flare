@@ -1,0 +1,7 @@
+def function(file: str, fn):
+    append function file:
+        fn()
+
+
+def run(cmd: str):
+    raw cmd

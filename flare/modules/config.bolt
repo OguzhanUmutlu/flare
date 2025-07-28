@@ -1,0 +1,7 @@
+class Config:
+    LIBRARY_NAME = "flare"
+    GLOBAL_DIR = f"OguzhanUmutlu:{LIBRARY_NAME}"
+    LOCAL_DIR = generate_path(f"OguzhanUmutlu/{LIBRARY_NAME}")
+    SCOREBOARD_ROOT = f"OguzhanUmutlu.{LIBRARY_NAME}"
+    STORAGE_ROOT = f"OguzhanUmutlu:{LIBRARY_NAME}"
+    TAG_ROOT = f"OguzhanUmutlu.{LIBRARY_NAME}"
