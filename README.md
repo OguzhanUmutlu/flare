@@ -252,14 +252,19 @@ Selectors act as powerful proxy objects in Flare. You can call arbitrary Minecra
 @s.teleport(10, 20, 30)
 ```
 
-Furthermore, any attribute accessed on a selector that is *not* called as a method automatically evaluates as an NBT data path on that entity! This allows you to effortlessly interact with entity NBT natively. Flare natively supports multi-level subscripting and inline type-casting.
+Furthermore, any attribute accessed on a selector that is *not* called as a method automatically evaluates as an NBT data path on that entity! This allows you to effortlessly interact with entity NBT natively. Flare natively supports multi-level subscripting.
+
+Thanks to the built-in NBT Schema parser, Flare **automatically infers the correct datatypes** for standard entity paths! You don't need to manually typecast properties like `Count` or `Pos`.
 
 ```python
 # Evaluates as NBT path 'Inventory' on entity '@s'
 inv = @s.Inventory
 
-# Flare natively supports assigning to NBT subscripts via typecasting!
-@s.Inventory[0].Count[int] = 10
+# Flare automatically infers that 'Count' is a Byte! No typecasting required!
+@s.Inventory[0].Count = 10
+@s.Pos[1] = 20.5
+
+# For arbitrary storage or custom NBT, you can still use inline typecasting:
 storage.my_data.test[int] = 10
 ```
 
