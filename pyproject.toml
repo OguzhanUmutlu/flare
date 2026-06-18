@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flaremc"
+version = "0.1.0"
+description = "Flare datapack compiler framework"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcemu",
+    "watchdog"
+]
+
+[project.scripts]
+flare = "flare.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["flare*"]

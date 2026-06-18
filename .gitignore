@@ -1,0 +1,12 @@
+node_modules
+.vscode
+.idea
+package-lock.json
+out
+.old
+docs
+__pycache__
+venv
+dist
+build
+flaremc.egg-info
