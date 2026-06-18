@@ -11,7 +11,7 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 from flare import context
-from flare.preprocessor import FlareTransformer, preprocess_minecraft_commands
+from flare.preprocessor import FlareTransformer, CallGraphAnalyzer, preprocess_minecraft_commands
 
 
 def init_project(path: str):
@@ -71,13 +71,19 @@ def build_datapack(file_path: str):
         source = preprocess_minecraft_commands(source)
 
         tree = ast.parse(source, abs_path)
+
+        analyzer = CallGraphAnalyzer()
+        analyzer.visit(tree)
+        context._recursive_functions = analyzer.get_recursive_functions()
+
         transformer = FlareTransformer()
         tree = transformer.visit(tree)
         ast.fix_missing_locations(tree)
 
         global_env = {"__name__": "__main__", "__file__": abs_path}
-        exec("from flare import _flare_assign, _flare_if, _flare_while, _flare_for, _flare_with, runcommand",
-             global_env)
+        exec(
+            "from flare import _flare_assign, _flare_if, _flare_while, _flare_for, _flare_with, runcommand, _flare_return",
+            global_env)
 
         exec(compile(tree, abs_path, "exec"), global_env)
         sys.path.pop(0)

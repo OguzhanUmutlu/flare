@@ -360,3 +360,45 @@ Flare uses standard Python assignment (`=`) heavily, but it treats new and exist
 
 - **`__icopy__` (New Variables)**: If you type `y = x` and `y` hasn't been used yet, Flare dynamically creates a completely new Minecraft variable for `y` and emits commands to physically copy the data from `x`'s address to `y`. This safely isolates the two variables.
 - **`__iset__` (Existing Variables)**: If `y` is an *already existing* Flare variable and you want to update its value, you shouldn't use `y = x` (as this would try to create a new `y` and potentially overwrite the Python reference, losing track of your NBT structure or scoreboard address). Instead, use `y[:] = x` (or call `y.__iset__(x)` directly). This tells Flare to emit commands to update the *existing* address of `y` with the value from `x`!
+
+---
+
+## Exporting Functions & Recursion (`@export`)
+
+Flare allows you to write actual Python functions and export them as standalone `.mcfunction` files in your datapack. 
+
+To export a function, use the `@export` decorator. You can pass arguments and return values seamlessly using type annotations!
+
+```python
+from flare import export, score
+
+@export
+def add_scores(a: score, b: score) -> score:
+    return a + b
+
+# You can call this from anywhere else in your datapack!
+x = score(10)
+y = score(20)
+z = add_scores(x, y)  # Behind the scenes, Flare sets the arguments, runs the function, and grabs the return value!
+```
+
+### Supported Argument Types
+You can pass `score` or any `nbt` type as arguments to an exported function. Flare automatically creates a static memory address for these arguments (`flare_add_scores_a`, etc.) so calling the function is highly optimized.
+
+### Recursion & NBT Stacks
+Flare features a fully-fledged static Call Graph Analyzer that automatically detects if your function is recursive. 
+
+If a function calls itself (or is part of a mutually recursive loop), Flare **automatically allocates all arguments and local variables to an NBT Stack** (`storage flare:args` and `storage flare:vars`) instead of standard static addresses! This allows deep recursion without variable pollution.
+
+*Note: Because scoreboard objectives cannot be stacked, all arguments and local variables in a recursive function MUST be typed as `nbt`! You cannot use `score` inside a recursive function's local scope.*
+
+```python
+from flare import export, nbt
+
+# Calculates a factorial entirely in Minecraft using an NBT recursion stack!
+@export
+def factorial(n: nbt[int]) -> nbt[int]:
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)
+```

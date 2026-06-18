@@ -5,6 +5,50 @@ import re
 import tokenize
 
 
+class CallGraphAnalyzer(ast.NodeVisitor):
+    def __init__(self):
+        self.call_graph = {}
+        self.current_func = None
+        self.exported_funcs = set()
+
+    def visit_FunctionDef(self, node):
+        is_exported = any(
+            isinstance(dec, ast.Name) and dec.id == 'export' or isinstance(dec, ast.Call) and getattr(dec.func, 'id',
+                                                                                                      '') == 'export'
+            for dec in node.decorator_list)
+        if is_exported:
+            self.exported_funcs.add(node.name)
+
+        prev = self.current_func
+        self.current_func = node.name
+        self.call_graph[node.name] = set()
+        self.generic_visit(node)
+        self.current_func = prev
+
+    def visit_Call(self, node):
+        if self.current_func and isinstance(node.func, ast.Name):
+            self.call_graph[self.current_func].add(node.func.id)
+        self.generic_visit(node)
+
+    def get_recursive_functions(self):
+        recursive = set()
+        for func in self.exported_funcs:
+            visited = set()
+            stack = [func]
+            while stack:
+                curr = stack.pop()
+                if curr in visited:
+                    continue
+                visited.add(curr)
+                if func in self.call_graph.get(curr, set()):
+                    recursive.add(func)
+                    break
+                for neighbor in self.call_graph.get(curr, set()):
+                    if neighbor not in visited:
+                        stack.append(neighbor)
+        return recursive
+
+
 class FlareTransformer(ast.NodeTransformer):
     def __init__(self):
         super().__init__()
@@ -140,6 +184,20 @@ class FlareTransformer(ast.NodeTransformer):
                 return expr
         return node
 
+    def visit_Return(self, node):
+        self.generic_visit(node)
+
+        value = node.value if node.value is not None else ast.Constant(value=None)
+
+        call_expr = ast.Expr(
+            value=ast.Call(func=ast.Name(id="_flare_return", ctx=ast.Load()), args=[value], keywords=[]))
+        ast.copy_location(call_expr, node)
+
+        new_return = ast.Return(value=None)
+        ast.copy_location(new_return, node)
+
+        return [call_expr, new_return]
+
     def visit_With(self, node):
         self.generic_visit(node)
 
@@ -164,7 +222,7 @@ class FlareTransformer(ast.NodeTransformer):
         return [body_func, call_expr]
 
 
-COMMAND_KEYWORDS = "advancement|attribute|ban|ban-ip|banlist|bossbar|clear|clone|damage|data|datapack|debug|defaultgamemode|deop|dialog|difficulty|effect|enchant|execute|experience|fetchprofile|fill|fillbiome|forceload|function|gamemode|gamerule|give|help|item|jfr|kick|kill|list|locate|loot|me|msg|op|pardon|pardon-ip|particle|perf|place|playsound|publish|random|recipe|reload|return|ride|rotate|save-all|save-off|save-on|say|schedule|scoreboard|seed|setblock|setidletimeout|setworldspawn|spawnpoint|spectate|spreadplayers|stop|stopsound|stopwatch|summon|swing|tag|team|teammsg|teleport|tell|tellraw|test|tick|time|title|tm|tp|transfer|trigger|unpublish|version|w|waypoint|weather|whitelist|worldborder|xp"
+COMMAND_KEYWORDS = "advancement|attribute|ban|ban-ip|banlist|bossbar|clear|clone|damage|data|datapack|debug|defaultgamemode|deop|dialog|difficulty|effect|enchant|execute|experience|fetchprofile|fill|fillbiome|forceload|function|gamemode|gamerule|give|help|item|jfr|kick|kill|list|locate|loot|me|msg|op|pardon|pardon-ip|particle|perf|place|playsound|publish|random|recipe|reload|ride|rotate|save-all|save-off|save-on|say|schedule|scoreboard|seed|setblock|setidletimeout|setworldspawn|spawnpoint|spectate|spreadplayers|stop|stopsound|stopwatch|summon|swing|tag|team|teammsg|teleport|tell|tellraw|test|tick|time|title|tm|tp|transfer|trigger|unpublish|version|w|waypoint|weather|whitelist|worldborder|xp"
 
 COMMAND_RE = re.compile(r"^(\s*)(/?(?:" + COMMAND_KEYWORDS + r")\b|/\S*)(.*)$")
 

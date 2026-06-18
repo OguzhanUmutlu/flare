@@ -1,4 +1,4 @@
-from flare import namespace, score, nbtintarray, fixed, dbg
+from flare import namespace, score, nbtintarray, fixed, dbg, export, nbt
 
 namespace("pack")
 
@@ -14,8 +14,18 @@ for x in myarray:
     if x > 3:
         print("bigger than 3")
 
-a = fixed[5](1.5)
-b = fixed[5](2.0)
+a = fixed[4](1.5)
+b = fixed[4](2.0)
 c = a * b
+print(score(addr=a.addr))
+print(score(addr=b.addr))
 print(c)
 dbg(c)
+
+@export
+def factorial(n: nbt[int]) -> nbt[int]:
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)
+
+print(factorial(64))

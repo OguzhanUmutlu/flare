@@ -1,0 +1,391 @@
+from __future__ import annotations
+
+from .core import UnsupportedOperandError, BinaryOp
+from .. import context as ctx
+from ..context import runcommand, temp_obj
+
+
+def _get_score():
+    from .score import score
+    return score
+
+
+def _get_nbt():
+    from .nbt import nbt
+    return nbt
+
+
+BASE = 10000
+
+
+class bigscore:
+    _size = 2
+    _multiplier = 1.0
+    _base = BASE
+
+    def __init__(self, value: int | float | None = None, *, addr: str = None, size: int = None,
+                 multiplier: float = None):
+        if size is not None:
+            self.size = size
+        else:
+            self.size = self.__class__._size
+
+        if multiplier is not None:
+            self.multiplier = multiplier
+        else:
+            self.multiplier = self.__class__._multiplier
+
+        self.value_to_set = value
+        self.addr = None
+        self.target = ""
+        self.objective = ""
+
+        if addr is not None:
+            self._parse_addr(addr)
+            if self.value_to_set is not None:
+                self.__iset__(self.value_to_set)
+
+    @classmethod
+    def __class_getitem__(cls, item):
+        if isinstance(item, tuple):
+            s, m = item
+            if isinstance(m, int) and m > 0:
+                m = 10 ** -m
+        else:
+            s = item
+            m = cls._multiplier
+
+        class _TypedBigScore(cls):
+            _size = s
+            _multiplier = m
+
+        return _TypedBigScore
+
+    def _parse_addr(self, addr: str):
+        parts = addr.rsplit(" ", 1)
+        if len(parts) > 1:
+            self.target = parts[0]
+            self.objective = parts[1]
+        else:
+            self.target = addr
+            self.objective = temp_obj
+        self.addr = f"{self.target} {self.objective}"
+
+    def _check_addr(self):
+        if self.addr is None:
+            self._parse_addr(f"!big{ctx._temp_id}")
+            ctx._temp_id += 1
+            if self.value_to_set is not None:
+                self.__iset__(self.value_to_set)
+
+    def _get_limb(self, i):
+        return f"{self.target}_{i} {self.objective}"
+
+    def __iset__(self, other):
+        self._check_addr()
+        if isinstance(other, (int, float)):
+            val = int(round(other * self.multiplier))
+            if val < 0:
+                val += self._base ** self.size
+            for i in range(self.size):
+                limb_val = val % self._base
+                runcommand(f"scoreboard players set {self._get_limb(i)} {limb_val}")
+                val //= self._base
+            return self
+        if isinstance(other, bigscore):
+            other._check_addr()
+            if self.size != other.size:
+                raise ValueError("Cannot assign bigscores of different sizes")
+            if self._base != other._base:
+                raise ValueError("Cannot assign bigscores of different bases")
+            if self.multiplier != other.multiplier:
+                pass
+            for i in range(self.size):
+                runcommand(f"scoreboard players operation {self._get_limb(i)} = {other._get_limb(i)}")
+            return self
+        if isinstance(other, _get_score()()):
+            other._check_addr()
+            runcommand(f"scoreboard players operation {self._get_limb(0)} = {other.addr}")
+
+            runcommand(f"scoreboard players set !carry temp 0")
+            runcommand(f"execute if score {self._get_limb(0)} matches ..-1 run scoreboard players remove !carry temp 1")
+            runcommand(
+                f"execute if score {self._get_limb(0)} matches ..-1 run scoreboard players add {self._get_limb(0)} {self._base}")
+
+            for i in range(1, self.size):
+                runcommand(f"scoreboard players operation {self._get_limb(i)} = !carry temp")
+                runcommand(
+                    f"execute if score {self._get_limb(i)} matches ..-1 run scoreboard players add {self._get_limb(i)} {self._base}")
+            return self
+
+        raise UnsupportedOperandError(self, "=", other)
+
+    def __iadd__(self, other):
+        self._check_addr()
+        if isinstance(other, (int, float)):
+            t = self.__class__(other)
+            return self.__iadd__(t)
+
+        if isinstance(other, bigscore):
+            other._check_addr()
+            if self.size != other.size:
+                raise ValueError("Cannot add bigscores of different sizes")
+            if self._base != other._base:
+                raise ValueError("Cannot add bigscores of different bases")
+
+            runcommand("scoreboard players set !carry temp 0")
+            for i in range(self.size):
+                runcommand(f"scoreboard players operation {self._get_limb(i)} += {other._get_limb(i)}")
+                runcommand(f"scoreboard players operation {self._get_limb(i)} += !carry temp")
+
+                runcommand(f"scoreboard players operation !carry temp = {self._get_limb(i)}")
+                runcommand(f"scoreboard players operation !carry temp /= !BASE_{self._base} temp")
+                ctx.ensure_constant(f"!BASE_{self._base}", "temp", self._base)
+
+                runcommand(f"scoreboard players operation {self._get_limb(i)} %= !BASE_{self._base} temp")
+                runcommand(
+                    f"execute if score {self._get_limb(i)} matches ..-1 run scoreboard players remove !carry temp 1")
+                runcommand(
+                    f"execute if score {self._get_limb(i)} matches ..-1 run scoreboard players add {self._get_limb(i)} {self._base}")
+            return self
+        raise UnsupportedOperandError(self, "+", other)
+
+    def __isub__(self, other):
+        self._check_addr()
+        if isinstance(other, (int, float)):
+            t = self.__class__(other)
+            return self.__isub__(t)
+
+        if isinstance(other, bigscore):
+            other._check_addr()
+            if self.size != other.size:
+                raise ValueError("Cannot subtract bigscores of different sizes")
+            if self._base != other._base:
+                raise ValueError("Cannot subtract bigscores of different bases")
+
+            runcommand("scoreboard players set !borrow temp 0")
+            for i in range(self.size):
+                runcommand(f"scoreboard players operation {self._get_limb(i)} -= {other._get_limb(i)}")
+                runcommand(f"scoreboard players operation {self._get_limb(i)} -= !borrow temp")
+
+                runcommand("scoreboard players set !borrow temp 0")
+                runcommand(
+                    f"execute if score {self._get_limb(i)} matches ..-1 run scoreboard players set !borrow temp 1")
+                runcommand(
+                    f"execute if score {self._get_limb(i)} matches ..-1 run scoreboard players add {self._get_limb(i)} {self._base}")
+            return self
+        raise UnsupportedOperandError(self, "-", other)
+
+    def __imul__(self, other):
+        self._check_addr()
+        if isinstance(other, (int, float)):
+            t = self.__class__(other)
+            return self.__imul__(t)
+
+        if isinstance(other, bigscore):
+            other._check_addr()
+            if self.size != other.size:
+                raise ValueError("Cannot multiply bigscores of different sizes")
+            if self._base != other._base:
+                raise ValueError("Cannot multiply bigscores of different bases")
+
+            temp_C = [f"!C_{i} temp" for i in range(self.size * 2)]
+            for i in range(self.size * 2):
+                runcommand(f"scoreboard players set {temp_C[i]} 0")
+
+            for i in range(self.size):
+                for j in range(self.size):
+                    if i + j < self.size:
+                        pass
+
+            ctx.ensure_constant(f"!BASE_{self._base}", "temp", self._base)
+            for i in range(self.size):
+                for j in range(self.size):
+                    runcommand(f"scoreboard players operation !mul temp = {self._get_limb(i)}")
+                    runcommand(f"scoreboard players operation !mul temp *= {other._get_limb(j)}")
+                    runcommand(f"scoreboard players operation {temp_C[i + j]} += !mul temp")
+
+            runcommand("scoreboard players set !carry temp 0")
+            for i in range(self.size * 2):
+                runcommand(f"scoreboard players operation {temp_C[i]} += !carry temp")
+                runcommand(f"scoreboard players operation !carry temp = {temp_C[i]}")
+                runcommand(f"scoreboard players operation !carry temp /= !BASE_{self._base} temp")
+                runcommand(f"scoreboard players operation {temp_C[i]} %= !BASE_{self._base} temp")
+
+            M = int(round(self.multiplier))
+            if M > 1:
+                runcommand("scoreboard players set !rem temp 0")
+                ctx.ensure_constant("!M", "temp", M)
+                for i in reversed(range(self.size)):
+                    runcommand(f"scoreboard players operation !val temp = !rem temp")
+                    runcommand(f"scoreboard players operation !val temp *= !BASE_{self._base} temp")
+                    pass
+                for i in reversed(range(self.size * 2)):
+                    runcommand(f"scoreboard players operation !val temp = !rem temp")
+                    runcommand(f"scoreboard players operation !val temp *= !BASE_{self._base} temp")
+                    runcommand(f"scoreboard players operation !val temp += {temp_C[i]}")
+
+                    runcommand(f"scoreboard players operation {temp_C[i]} = !val temp")
+                    runcommand(f"scoreboard players operation {temp_C[i]} /= !M temp")
+
+                    runcommand(f"scoreboard players operation !rem temp = !val temp")
+                    runcommand(f"scoreboard players operation !rem temp %= !M temp")
+
+            for i in range(self.size):
+                runcommand(f"scoreboard players operation {self._get_limb(i)} = {temp_C[i]}")
+
+            return self
+        raise UnsupportedOperandError(self, "*", other)
+
+    def __icopy__(self, varid: str, is_recursive: bool = False):
+        from ..context import vars_obj
+        if is_recursive:
+            raise TypeError("Local variable needs a stack in recursive context, but it's a bigscore")
+        if self.addr is None:
+            self.objective = vars_obj
+            self.name = f"{varid}"
+            self.addr = f"{self.name} {self.objective}"
+            ctx.ensure_objective(self.objective)
+            if self.value_to_set is not None:
+                self.__iset__(self.value_to_set)
+        else:
+            dest = self.__class__(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self.multiplier)
+            dest.__iset__(self)
+            return dest
+        return self
+
+    def __truediv__(self, other):
+        return BinaryOp(self, other, "truediv")
+
+    def __rtruediv__(self, other):
+        return BinaryOp(other, self, "truediv")
+
+    def __mod__(self, other):
+        return BinaryOp(self, other, "mod")
+
+    def __rmod__(self, other):
+        return BinaryOp(other, self, "mod")
+
+    def __neg__(self):
+        return UnaryOp(self, "neg")
+
+    def __pos__(self):
+        return self
+
+    def __eq__(self, other):
+        return BinaryOp(self, other, "eq")
+
+    def __ne__(self, other):
+        return BinaryOp(self, other, "ne")
+
+    def __lt__(self, other):
+        return BinaryOp(self, other, "lt")
+
+    def __le__(self, other):
+        return BinaryOp(self, other, "le")
+
+    def __gt__(self, other):
+        return BinaryOp(self, other, "gt")
+
+    def __ge__(self, other):
+        return BinaryOp(self, other, "ge")
+
+    def __and__(self, other):
+        return BinaryOp(self, other, "and")
+
+    def __or__(self, other):
+        return BinaryOp(self, other, "or")
+
+    def __invert__(self):
+        return UnaryOp(self, "not")
+
+    def __idiv__(self, other):
+        self._check_addr()
+        if isinstance(other, (int, float)):
+            M = int(round(other))
+            if M == 0:
+                raise ZeroDivisionError("Division by zero")
+            if M < 0:
+                raise NotImplementedError("Division by negative scalar not implemented")
+            runcommand("scoreboard players set !rem temp 0")
+            ctx.ensure_constant("!M", "temp", M)
+            for i in reversed(range(self.size)):
+                runcommand(f"scoreboard players operation !val temp = !rem temp")
+                runcommand(f"scoreboard players operation !val temp *= !BASE_{self._base} temp")
+                runcommand(f"scoreboard players operation !val temp += {self._get_limb(i)}")
+                runcommand(f"scoreboard players operation {self._get_limb(i)} = !val temp")
+                runcommand(f"scoreboard players operation {self._get_limb(i)} /= !M temp")
+                runcommand(f"scoreboard players operation !rem temp = !val temp")
+                runcommand(f"scoreboard players operation !rem temp %= !M temp")
+            return self
+        raise NotImplementedError("Long division of bigscores is currently unsupported")
+
+    def __itruediv__(self, other):
+        return self.__idiv__(other)
+
+    def __imod__(self, other):
+        self._check_addr()
+        if isinstance(other, (int, float)):
+            M = int(round(other))
+            if M == 0:
+                raise ZeroDivisionError("Modulo by zero")
+            if M < 0:
+                raise NotImplementedError("Modulo by negative scalar not implemented")
+            runcommand("scoreboard players set !rem temp 0")
+            ctx.ensure_constant("!M", "temp", M)
+            for i in reversed(range(self.size)):
+                runcommand(f"scoreboard players operation !val temp = !rem temp")
+                runcommand(f"scoreboard players operation !val temp *= !BASE_{self._base} temp")
+                runcommand(f"scoreboard players operation !val temp += {self._get_limb(i)}")
+                runcommand(f"scoreboard players operation !rem temp = !val temp")
+                runcommand(f"scoreboard players operation !rem temp %= !M temp")
+            for i in range(1, self.size):
+                runcommand(f"scoreboard players set {self._get_limb(i)} 0")
+            runcommand(f"scoreboard players operation {self._get_limb(0)} = !rem temp")
+            return self
+        raise NotImplementedError("Modulo by bigscore is currently unsupported")
+
+    def __add__(self, other):
+        return BinaryOp(self, other, "add")
+
+    def __radd__(self, other):
+        return BinaryOp(other, self, "add")
+
+    def __sub__(self, other):
+        return BinaryOp(self, other, "sub")
+
+    def __rsub__(self, other):
+        return BinaryOp(other, self, "sub")
+
+    def __mul__(self, other):
+        return BinaryOp(self, other, "mul")
+
+    def __rmul__(self, other):
+        return BinaryOp(other, self, "mul")
+
+    def __imax__(self, other):
+        raise NotImplementedError("max() for bigscore is currently unsupported")
+
+    def __imin__(self, other):
+        raise NotImplementedError("min() for bigscore is currently unsupported")
+
+    def __swap__(self, other):
+        raise NotImplementedError("swap (><) for bigscore is currently unsupported")
+
+
+class bigfixed(bigscore):
+
+    @classmethod
+    def __class_getitem__(cls, item):
+        if isinstance(item, tuple):
+            s, m = item
+            m = 10 ** m
+        else:
+            s = 2
+            m = 10 ** item
+
+        class _TypedBigFixed(cls):
+            _size = s
+            _multiplier = m
+
+        return _TypedBigFixed

@@ -1,3 +1,4 @@
+import inspect
 import json
 
 files = {"main": []}
@@ -12,6 +13,10 @@ _temp_id = 0
 _func_id = 0
 _objective_offset = 0
 _constant_offset = 0
+_recursive_functions = set()
+_in_recursive_context = False
+return_types = {}
+_logical_func = None
 
 
 def reset_context():
@@ -25,6 +30,10 @@ def reset_context():
     _func_id = 0
     _objective_offset = 0
     _constant_offset = 0
+    _recursive_functions = set()
+    _in_recursive_context = False
+    return_types = {}
+    _logical_func = None
 
 
 def ensure_objective(obj: str):
@@ -157,10 +166,115 @@ def export(func=None, *, append=False):
     if func_name in files and not append:
         raise ValueError(f"Function {func_name} already exists. Use @export(append=True) to append.")
 
-    with push_context(func_name):
-        func()
+    is_recursive = func.__name__ in _recursive_functions
+    sig = inspect.signature(func)
 
-    return func
+    from .variables import score, nbt
+    kwargs = {}
+
+    for name, param in sig.parameters.items():
+        anno = param.annotation
+
+        if hasattr(anno, '__name__') and anno.__name__ in ('score', 'fixed', '_PrecisionScore'):
+            if is_recursive:
+                raise TypeError(
+                    f"Recursive function '{func.__name__}' argument '{name}' needs a stack but it's a score.")
+            if anno.__name__ == '_PrecisionScore' or anno.__name__ == 'fixed':
+                kwargs[name] = anno(addr=f"{func.__name__}_{name} {vars_obj}")
+            else:
+                kwargs[name] = score(addr=f"{func.__name__}_{name} {vars_obj}")
+        elif hasattr(anno, '__name__') and anno.__name__ in ('nbt', '_TypedNBT'):
+            if is_recursive:
+                kwargs[name] = anno(addr=f"storage flare:args {func.__name__}_{name}[-1]")
+            else:
+                kwargs[name] = anno(addr=f"storage flare:args {func.__name__}_{name}")
+        elif anno is not inspect.Signature.empty:
+            raise TypeError(f"Argument '{name}' must be typed as score or nbt, not {anno}")
+        else:
+            kwargs[name] = score(addr=f"{func.__name__}_{name} {vars_obj}")
+
+    if sig.return_annotation is not inspect.Signature.empty:
+        return_types[func_name] = sig.return_annotation
+    else:
+        return_types[func_name] = None
+
+    global _in_recursive_context, _logical_func
+    prev_recursive = _in_recursive_context
+    _in_recursive_context = is_recursive
+
+    prev_logical = _logical_func
+    _logical_func = func_name
+
+    class ProxyFunction:
+        def __call__(self, *args, **call_kwargs):
+            global _temp_id
+            bound = sig.bind(*args, **call_kwargs)
+            bound.apply_defaults()
+            for arg_name, arg_val in bound.arguments.items():
+                target = kwargs[arg_name]
+
+                if is_recursive and isinstance(target, nbt):
+                    base_addr = f"storage flare:args {func.__name__}_{arg_name}"
+                    if isinstance(arg_val, (int, float, str)):
+                        import json
+                        runcommand(f"data modify {base_addr} append value {json.dumps(arg_val)}")
+                    elif isinstance(arg_val, nbt):
+                        runcommand(f"data modify {base_addr} append from {arg_val.addr}")
+                    elif isinstance(arg_val, score):
+                        runcommand(f"data modify {base_addr} append value 0")
+                        runcommand(
+                            f"execute store result {base_addr}[-1] int {1 / arg_val.multiplier} run scoreboard players get {arg_val.addr}")
+                    elif hasattr(type(arg_val), "_eval_into"):
+                        temp = nbt(addr=f"storage flare:temp !t{_temp_id}", datatype=target.type)
+                        _temp_id += 1
+                        arg_val._eval_into(temp)
+                        runcommand(f"data modify {base_addr} append from {temp.addr}")
+                else:
+                    target.__iset__(arg_val)
+
+            runcommand(f"function {func_name}")
+
+            if is_recursive:
+                for arg_name in bound.arguments.keys():
+                    if isinstance(kwargs[arg_name], nbt):
+                        base_addr = f"storage flare:args {func.__name__}_{arg_name}"
+                        runcommand(f"data remove {base_addr}[-1]")
+
+            ret_anno = sig.return_annotation
+            if ret_anno is not inspect.Signature.empty:
+                if hasattr(ret_anno, '__name__') and ret_anno.__name__ in ('score', 'fixed', '_PrecisionScore'):
+                    temp_ret = score(addr=f"!ret{_temp_id} {temp_obj}")
+                    _temp_id += 1
+                    runcommand(
+                        f"scoreboard players operation {temp_ret.addr} = {func_name.replace(':', '_')}_ret {vars_obj}")
+                    if ret_anno.__name__ in ('fixed', '_PrecisionScore'):
+                        pass
+                    return temp_ret
+                else:
+                    temp_ret = nbt(addr=f"storage flare:temp !ret{_temp_id}")
+                    _temp_id += 1
+                    runcommand(
+                        f"data modify {temp_ret.addr} set from storage flare:returns {func_name.replace(':', '_')}")
+                    return temp_ret
+
+    proxy = ProxyFunction()
+
+    func_globals = getattr(func, '__globals__', {})
+    prev_func = func_globals.get(func.__name__)
+    func_globals[func.__name__] = proxy
+
+    with push_context(func_name):
+        func(**kwargs)
+
+    _in_recursive_context = prev_recursive
+    _logical_func = prev_logical
+
+    if prev_func is not None:
+        func_globals[func.__name__] = prev_func
+    else:
+        func_globals.pop(func.__name__, None)
+
+    return proxy
 
 
 def _flare_assign(var_name, value, local_env, global_env):
@@ -176,9 +290,42 @@ def _flare_assign(var_name, value, local_env, global_env):
         return target
 
     if target is None and hasattr(value, "__icopy__"):
+        import inspect
+        if "is_recursive" in inspect.signature(value.__icopy__).parameters:
+            return value.__icopy__(varid=f"{_current_namespace}_{var_name}", is_recursive=_in_recursive_context)
         return value.__icopy__(varid=f"{_current_namespace}_{var_name}")
 
     return value
+
+
+def _flare_return(value):
+    func_name = _logical_func
+    if func_name is None:
+        raise Exception("Return outside of exported function")
+    ret_anno = return_types.get(func_name, None)
+
+    if ret_anno is None:
+        if value is not None:
+            raise TypeError(f"Function {func_name} returned a value but has no return type annotation")
+        return
+
+    if hasattr(ret_anno, '__name__') and ret_anno.__name__ in ('score', 'fixed', '_PrecisionScore'):
+        from .variables import score
+        target = score(addr=f"{func_name.replace(':', '_')}_ret {vars_obj}")
+        target.__iset__(value)
+    else:
+        from .variables import nbt
+        import inspect
+        if inspect.isclass(ret_anno) and issubclass(ret_anno, nbt):
+            target = ret_anno(addr=f"storage flare:returns {func_name.replace(':', '_')}")
+        else:
+            datatype = None
+            if hasattr(ret_anno, '__origin__') or isinstance(ret_anno, type):
+                datatype = getattr(ret_anno, '__origin__', ret_anno)
+            target = nbt(addr=f"storage flare:returns {func_name.replace(':', '_')}", datatype=datatype)
+        target.__iset__(value)
+
+    runcommand("return 1")
 
 
 def tick(func=None):

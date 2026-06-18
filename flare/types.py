@@ -35,3 +35,15 @@ class long:
 
 class double:
     def __init__(self): raise Exception("Use nbt[double] instead of double")
+
+
+class array:
+    def __init__(self): raise Exception("Use nbt[array[...]] instead of array")
+
+    @classmethod
+    def __class_getitem__(cls, item):
+        class _TypedArray:
+            __origin__ = cls
+            __args__ = (item,)
+
+        return _TypedArray
