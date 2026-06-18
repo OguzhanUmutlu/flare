@@ -87,12 +87,15 @@ def __float_prec(x: float) -> int:
 def runcommand(command: str):
     files[current_file].append(command)
 
+
 import builtins
+
 
 def dbg(*args):
     processed_str = " ".join(str(arg) for arg in args)
     builtins.print(processed_str)
-    _flare_print(processed_str)
+    _flare_print(*args)
+
 
 def _flare_print(*args):
     from .variables import score, nbt  # to avoid circular import

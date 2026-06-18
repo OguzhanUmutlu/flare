@@ -135,5 +135,48 @@ def _flare_for(iterable, body_func):
         runcommand(f"execute if score {length_score.addr} matches 1.. run function {func_name}")
 
     else:
-        for item in iterable:
-            body_func(item)
+        from .variables import selector
+        if isinstance(iterable, selector):
+            _flare_with(iterable, lambda: body_func(selector("@s")))
+        else:
+            for item in iterable:
+                body_func(item)
+
+
+def _flare_with(*args):
+    from .execute_modifiers import ExecuteChain, _as
+    from .variables import selector
+
+    body_func = args[-1]
+    chains = args[:-1]
+
+    combined_fragments = ["execute"]
+    for chain in chains:
+        if isinstance(chain, selector):
+            chain = _as(chain)
+        if isinstance(chain, ExecuteChain):
+            if chain.fragments and chain.fragments[0] == "execute":
+                combined_fragments.extend(chain.fragments[1:])
+            else:
+                combined_fragments.extend(chain.fragments)
+        elif isinstance(chain, str):
+            combined_fragments.append(chain)
+
+    prefix = " ".join(combined_fragments)
+
+    func_name = f"{ctx._current_namespace}:with_{ctx._func_id}"
+    ctx._func_id += 1
+
+    with push_context(func_name):
+        body_func()
+
+    if ctx.files.get(func_name):
+        if len(ctx.files[func_name]) == 1:
+            cmd = ctx.files[func_name][0]
+            del ctx.files[func_name]
+            if cmd.startswith("execute "):
+                runcommand(f"{prefix} {cmd[8:]}")
+            else:
+                runcommand(f"{prefix} run {cmd}")
+        else:
+            runcommand(f"{prefix} run function {func_name}")

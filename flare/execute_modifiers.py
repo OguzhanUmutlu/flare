@@ -1,0 +1,157 @@
+from __future__ import annotations
+
+from typing import Union, Any
+
+from .variables import score, nbt, selector
+
+
+class ExecuteChain:
+    def __init__(self, prefix: str = "execute"):
+        self.fragments = [prefix] if prefix else []
+
+    def _add(self, frag: str) -> ExecuteChain:
+        self.fragments.append(frag)
+        return self
+
+    def _as(self, target: Union[str, selector]) -> ExecuteChain:
+        return self._add(f"as {target}")
+
+    def at(self, target: Union[str, selector]) -> ExecuteChain:
+        return self._add(f"at {target}")
+
+    def positioned(self, pos: Union[str, tuple, list, selector]) -> ExecuteChain:
+        if isinstance(pos, selector) or (isinstance(pos, str) and pos.startswith("@")):
+            return self._add(f"positioned as {pos}")
+        if isinstance(pos, (tuple, list)):
+            pos = " ".join(str(p) for p in pos)
+        return self._add(f"positioned {pos}")
+
+    def aligned(self, axes: str) -> ExecuteChain:
+        return self._add(f"aligned {axes}")
+
+    def facing(self, target_or_pos: Union[str, tuple, list, selector]) -> ExecuteChain:
+        if isinstance(target_or_pos, selector) or (isinstance(target_or_pos, str) and target_or_pos.startswith("@")):
+            return self._add(f"facing entity {target_or_pos}")
+        if isinstance(target_or_pos, (tuple, list)):
+            target_or_pos = " ".join(str(p) for p in target_or_pos)
+        return self._add(f"facing {target_or_pos}")
+
+    def anchor(self, anchor: str) -> ExecuteChain:
+        return self._add(f"anchored {anchor}")
+
+    def rotated(self, rot: Union[str, tuple, list, selector], *args) -> ExecuteChain:
+        if isinstance(rot, selector) or (isinstance(rot, str) and rot.startswith("@")):
+            return self._add(f"rotated as {rot}")
+        if args:
+            rot = f"{rot} {args[0]}"
+        elif isinstance(rot, (tuple, list)):
+            rot = " ".join(str(p) for p in rot)
+        return self._add(f"rotated {rot}")
+
+    def dimension(self, dim: str) -> ExecuteChain:
+        return self._add(f"in {dim}")
+
+    def applyon(self, relation: str) -> ExecuteChain:
+        return self._add(f"on {relation}")
+
+    def on(self, relation: str) -> ExecuteChain:
+        return self._add(f"on {relation}")
+
+    def summon(self, entity: str) -> ExecuteChain:
+        return self._add(f"summon {entity}")
+
+    def store(self, target: Union[score, nbt, str]) -> ExecuteChain:
+        if isinstance(target, score):
+            target._check_addr()
+            return self._add(f"store result score {target.addr}")
+        elif isinstance(target, nbt):
+            target._check_addr()
+            return StoreExecuteChain(self.fragments.copy(), target)
+        return self._add(f"store result {target}")
+
+    def __str__(self):
+        return " ".join(self.fragments)
+
+
+class StoreExecuteChain(ExecuteChain):
+    def __init__(self, fragments: list[str], target: nbt):
+        super().__init__("")
+        self.fragments = fragments
+        self.target = target
+        self._datatype = target.type.name.lower() if target.type else "double"
+        self._multiplier = 1.0
+        self._update_frag()
+
+    def _update_frag(self):
+        frag = f"store result storage {self.target.target} {self.target.path} {self._datatype} {self._multiplier}"
+        if self.fragments and self.fragments[-1].startswith("store result "):
+            self.fragments[-1] = frag
+        else:
+            self.fragments.append(frag)
+
+    def datatype(self, dtype: Any) -> StoreExecuteChain:
+        if hasattr(dtype, "name"):
+            self._datatype = dtype.name.lower()
+        elif hasattr(dtype, "__name__"):
+            self._datatype = dtype.__name__.lower()
+        else:
+            self._datatype = str(dtype)
+        self._update_frag()
+        return self
+
+    def multiplier(self, mult: float) -> StoreExecuteChain:
+        self._multiplier = mult
+        self._update_frag()
+        return self
+
+
+def _as(target: Union[str, selector]) -> ExecuteChain:
+    return ExecuteChain()._as(target)
+
+
+def at(target: Union[str, selector]) -> ExecuteChain:
+    return ExecuteChain().at(target)
+
+
+def positioned(pos: Union[str, tuple, list, selector], *args) -> ExecuteChain:
+    if args:
+        pos = (pos,) + args
+    return ExecuteChain().positioned(pos)
+
+
+def aligned(axes: str) -> ExecuteChain:
+    return ExecuteChain().aligned(axes)
+
+
+def facing(target_or_pos: Union[str, tuple, list, selector], *args) -> ExecuteChain:
+    if args:
+        target_or_pos = (target_or_pos,) + args
+    return ExecuteChain().facing(target_or_pos)
+
+
+def anchored(anchor: str) -> ExecuteChain:
+    return ExecuteChain().anchor(anchor)
+
+
+def rotated(rot: Union[str, tuple, list, selector], *args) -> ExecuteChain:
+    return ExecuteChain().rotated(rot, *args)
+
+
+def dimension(dim: str) -> ExecuteChain:
+    return ExecuteChain().dimension(dim)
+
+
+def applyon(relation: str) -> ExecuteChain:
+    return ExecuteChain().applyon(relation)
+
+
+def on(relation: str) -> ExecuteChain:
+    return ExecuteChain().on(relation)
+
+
+def summon(entity: str) -> ExecuteChain:
+    return ExecuteChain().summon(entity)
+
+
+def store(target: Union[score, nbt, str]) -> ExecuteChain:
+    return ExecuteChain().store(target)

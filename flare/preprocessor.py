@@ -1,4 +1,8 @@
 import ast
+import io
+import keyword
+import re
+import tokenize
 
 
 class FlareTransformer(ast.NodeTransformer):
@@ -16,9 +20,9 @@ class FlareTransformer(ast.NodeTransformer):
         name_body = self.gen_name()
         name_orelse = self.gen_name()
 
-        body_func = ast.FunctionDef(name=name_body,
-            args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
-            body=node.body if node.body else [ast.Pass()], decorator_list=[])
+        body_func = ast.FunctionDef(name=name_body, body=node.body if node.body else [ast.Pass()], decorator_list=[],
+                                    args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
+                                                       defaults=[]))
         ast.copy_location(body_func, node)
 
         lambda_cond = ast.Lambda(
@@ -31,8 +35,8 @@ class FlareTransformer(ast.NodeTransformer):
         if node.orelse:
             name_orelse = self.gen_name()
             orelse_func = ast.FunctionDef(name=name_orelse,
-                args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
-                body=node.orelse, decorator_list=[])
+                                          args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
+                                                             defaults=[]), body=node.orelse, decorator_list=[])
             ast.copy_location(orelse_func, node)
             funcs.append(orelse_func)
             call_args.append(ast.Constant(value=None))
@@ -56,17 +60,20 @@ class FlareTransformer(ast.NodeTransformer):
         name_body = self.gen_name()
 
         cond_func = ast.FunctionDef(name=name_cond,
-            args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
-            body=[ast.Return(value=node.test)], decorator_list=[])
+                                    args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
+                                                       defaults=[]), body=[ast.Return(value=node.test)],
+                                    decorator_list=[])
         ast.copy_location(cond_func, node)
 
         body_func = ast.FunctionDef(name=name_body,
-            args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
-            body=node.body if node.body else [ast.Pass()], decorator_list=[])
+                                    args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
+                                                       defaults=[]), body=node.body if node.body else [ast.Pass()],
+                                    decorator_list=[])
         ast.copy_location(body_func, node)
 
         call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_while", ctx=ast.Load()),
-            args=[ast.Name(id=name_cond, ctx=ast.Load()), ast.Name(id=name_body, ctx=ast.Load())], keywords=[]))
+                                            args=[ast.Name(id=name_cond, ctx=ast.Load()),
+                                                  ast.Name(id=name_body, ctx=ast.Load())], keywords=[]))
         ast.copy_location(call_expr, node)
 
         return [cond_func, body_func, call_expr]
@@ -89,12 +96,13 @@ class FlareTransformer(ast.NodeTransformer):
             args = [ast.arg(arg=arg_name)]
 
         body_func = ast.FunctionDef(name=name_body,
-            args=ast.arguments(posonlyargs=[], args=args, kwonlyargs=[], kw_defaults=[], defaults=[]),
-            body=node.body if node.body else [ast.Pass()], decorator_list=[])
+                                    args=ast.arguments(posonlyargs=[], args=args, kwonlyargs=[], kw_defaults=[],
+                                                       defaults=[]), body=node.body if node.body else [ast.Pass()],
+                                    decorator_list=[])
         ast.copy_location(body_func, node)
 
         call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_for", ctx=ast.Load()),
-            args=[node.iter, ast.Name(id=name_body, ctx=ast.Load())], keywords=[]))
+                                            args=[node.iter, ast.Name(id=name_body, ctx=ast.Load())], keywords=[]))
         ast.copy_location(call_expr, node)
 
         return [body_func, call_expr]
@@ -105,9 +113,10 @@ class FlareTransformer(ast.NodeTransformer):
             var_name = node.targets[0].id
 
             call_expr = ast.Call(func=ast.Name(id="_flare_assign", ctx=ast.Load()),
-                args=[ast.Constant(value=var_name), node.value,
-                    ast.Call(func=ast.Name(id="locals", ctx=ast.Load()), args=[], keywords=[]),
-                    ast.Call(func=ast.Name(id="globals", ctx=ast.Load()), args=[], keywords=[])], keywords=[])
+                                 args=[ast.Constant(value=var_name), node.value,
+                                       ast.Call(func=ast.Name(id="locals", ctx=ast.Load()), args=[], keywords=[]),
+                                       ast.Call(func=ast.Name(id="globals", ctx=ast.Load()), args=[], keywords=[])],
+                                 keywords=[])
 
             new_assign = ast.Assign(targets=[ast.Name(id=var_name, ctx=ast.Store())], value=call_expr)
             ast.copy_location(new_assign, node)
@@ -119,8 +128,8 @@ class FlareTransformer(ast.NodeTransformer):
         self.generic_visit(node)
         if isinstance(node.target, ast.Name):
             var_name = node.target.id
-            op_map = {ast.Add: '__iadd__', ast.Sub: '__isub__', ast.Mult: '__imul__', ast.Div: '__itruediv__',
-                ast.Mod: '__imod__'}
+            op_map = {ast.Add: "__iadd__", ast.Sub: "__isub__", ast.Mult: "__imul__", ast.Div: "__itruediv__",
+                      ast.Mod: "__imod__"}
             if type(node.op) in op_map:
                 method = op_map[type(node.op)]
                 call_expr = ast.Call(
@@ -131,10 +140,29 @@ class FlareTransformer(ast.NodeTransformer):
                 return expr
         return node
 
+    def visit_With(self, node):
+        self.generic_visit(node)
 
-import tokenize
-import io
-import re
+        name_body = self.gen_name()
+
+        body_func = ast.FunctionDef(name=name_body,
+                                    args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
+                                                       defaults=[]), body=node.body if node.body else [ast.Pass()],
+                                    decorator_list=[])
+        ast.copy_location(body_func, node)
+
+        call_args = []
+        for item in node.items:
+            call_args.append(item.context_expr)
+
+        call_args.append(ast.Name(id=name_body, ctx=ast.Load()))
+
+        call_expr = ast.Expr(
+            value=ast.Call(func=ast.Name(id="_flare_with", ctx=ast.Load()), args=call_args, keywords=[]))
+        ast.copy_location(call_expr, node)
+
+        return [body_func, call_expr]
+
 
 COMMAND_KEYWORDS = "advancement|attribute|ban|ban-ip|banlist|bossbar|clear|clone|damage|data|datapack|debug|defaultgamemode|deop|dialog|difficulty|effect|enchant|execute|experience|fetchprofile|fill|fillbiome|forceload|function|gamemode|gamerule|give|help|item|jfr|kick|kill|list|locate|loot|me|msg|op|pardon|pardon-ip|particle|perf|place|playsound|publish|random|recipe|reload|return|ride|rotate|save-all|save-off|save-on|say|schedule|scoreboard|seed|setblock|setidletimeout|setworldspawn|spawnpoint|spectate|spreadplayers|stop|stopsound|stopwatch|summon|swing|tag|team|teammsg|teleport|tell|tellraw|test|tick|time|title|tm|tp|transfer|trigger|unpublish|version|w|waypoint|weather|whitelist|worldborder|xp"
 
@@ -142,7 +170,7 @@ COMMAND_RE = re.compile(r"^(\s*)(/?(?:" + COMMAND_KEYWORDS + r")\b|/\S*)(.*)$")
 
 
 def preprocess_minecraft_commands(source: str) -> str:
-    source = "from flare import _flare_print as print\n" + source
+    source = "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\n" + source
     lines = source.split("\n")
 
     skip_lines = set()
@@ -176,4 +204,90 @@ def preprocess_minecraft_commands(source: str) -> str:
             else:
                 lines[i] = f'{indent}runcommand(f"""{cmd}""")'
 
-    return "\n".join(lines)
+    intermediate_source = "\n".join(lines)
+
+    try:
+        tokens = list(tokenize.generate_tokens(io.StringIO(intermediate_source).readline))
+    except (tokenize.TokenError, IndentationError):
+        return intermediate_source
+
+    out_tokens = []
+    i = 0
+    while i < len(tokens):
+        tok = tokens[i]
+
+        if tok.type == tokenize.NAME and tok.string == 'as':
+            is_func_or_attr = False
+            if i + 1 < len(tokens) and tokens[i + 1].type == tokenize.OP and tokens[i + 1].string == '(':
+                is_func_or_attr = True
+            elif i > 0 and tokens[i - 1].type == tokenize.OP and tokens[i - 1].string == '.':
+                is_func_or_attr = True
+
+            if is_func_or_attr:
+                out_tokens.append((tokenize.NAME, '_as'))
+                i += 1
+                continue
+
+        if tok.type == tokenize.OP and tok.string == "@":
+            prev_tok = None
+            for j in range(i - 1, -1, -1):
+                if tokens[j].type not in (tokenize.NL, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT,
+                                          tokenize.COMMENT):
+                    prev_tok = tokens[j]
+                    break
+
+            is_matrix_mult = False
+            is_decorator = False
+
+            if prev_tok is None:
+                is_decorator = True
+            elif prev_tok.type in (tokenize.NAME, tokenize.NUMBER, tokenize.STRING) and prev_tok.string not in ("True",
+                                                                                                                "False",
+                                                                                                                "None"):
+                if prev_tok.type == tokenize.NAME and keyword.iskeyword(prev_tok.string):
+                    is_matrix_mult = False
+                else:
+                    is_matrix_mult = True
+            elif prev_tok.type == tokenize.OP and prev_tok.string in ")]}":
+                is_matrix_mult = True
+
+            if i + 1 < len(tokens) and tokens[i + 1].type == tokenize.NAME:
+                name_tok = tokens[i + 1]
+                if name_tok.string in ('a', 'e', 'p', 'r', 's', 'n', 'c'):
+                    is_decorator = False
+                    is_matrix_mult = False
+
+            if not is_matrix_mult and not is_decorator:
+                if i + 1 < len(tokens) and tokens[i + 1].type == tokenize.NAME:
+                    name_tok = tokens[i + 1]
+                    selector_str = "@" + name_tok.string
+                    i += 2
+
+                    if i < len(tokens) and tokens[i].type == tokenize.OP and tokens[i].string == "[":
+                        bracket_count = 1
+                        selector_str += "["
+                        i += 1
+                        while i < len(tokens) and bracket_count > 0:
+                            tok2 = tokens[i]
+                            if tok2.type == tokenize.STRING:
+                                selector_str += tok2.string
+                            else:
+                                selector_str += tok2.string
+                            if tok2.type == tokenize.OP:
+                                if tok2.string == "[":
+                                    bracket_count += 1
+                                elif tok2.string == "]":
+                                    bracket_count -= 1
+                            i += 1
+
+                    out_tokens.append((tokenize.NAME, "selector"))
+                    out_tokens.append((tokenize.OP, "("))
+                    escaped = selector_str.replace('"', '\\"')
+                    out_tokens.append((tokenize.STRING, f'"{escaped}"'))
+                    out_tokens.append((tokenize.OP, ")"))
+                    continue
+
+        out_tokens.append((tok.type, tok.string))
+        i += 1
+
+    return tokenize.untokenize(out_tokens)

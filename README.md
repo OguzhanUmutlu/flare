@@ -206,6 +206,104 @@ print(x, y, z)  # Output in game will be: 20 20 10
 
 ---
 
+## Execute Modifiers and Context Managers
+
+Flare provides a powerful, stackable context manager system that allows you to intuitively build `execute` command chains natively in Python using the `with` statement! 
+
+```python
+# 1. Native Execute Contexts
+with as(@a):
+    say Hi everyone!
+
+# 2. You can use standard Python selectors as context managers directly!
+with @a:
+    say Hello again!
+
+# 3. Stack modifiers cleanly using method chaining
+with as(@a).at(@s).rotated(@s):
+    say I'm looking at you!
+
+# 4. You can even chain off selectors directly
+with @s.as().at(@s):
+    pass
+    
+# 5. Multiple contexts merge seamlessly
+with as(@a), at(@s), rotated(10, 20):
+    pass
+```
+
+### Iterating Selectors (`for` loops)
+You can loop through a selector natively to execute commands dynamically on each target. The loop variable acts as a proxy for `@s`, allowing you to execute terminal commands on it directly!
+
+```python
+for s in @a:
+    s.kill()
+    s.tp("@p")
+```
+*Note: This generates an optimized execute block similar to `with as(@a):`*
+
+### Selector Proxy & Dynamic NBT
+
+Selectors act as powerful proxy objects in Flare. You can call arbitrary Minecraft commands directly on any selector as a method, and Flare will automatically pass the target to the command!
+
+```python
+# Terminal commands
+@a[distance="..10"].kill()
+@s.teleport(10, 20, 30)
+```
+
+Furthermore, any attribute accessed on a selector that is *not* called as a method automatically evaluates as an NBT data path on that entity! This allows you to effortlessly interact with entity NBT natively. Flare natively supports multi-level subscripting and inline type-casting.
+
+```python
+# Evaluates as NBT path 'Inventory' on entity '@s'
+inv = @s.Inventory
+
+# Flare natively supports assigning to NBT subscripts via typecasting!
+@s.Inventory[0].Count[int] = 10
+storage.my_data.test[int] = 10
+```
+
+### Storing Results (`store()`)
+
+You can effortlessly execute commands and store their results back into Flare variables by chaining `.store()` onto any `score` or `nbt` variable!
+
+```python
+x = score(10)
+y = nbt[int](20)
+
+# Executes: store result score ...
+with x.store():
+    say Storing into x!
+    
+# Executes: store result storage ... double 0.02
+with y.store().datatype(double).multiplier(0.02):
+    say Storing into y with a custom datatype and multiplier!
+```
+
+### Automatic Inlining
+Flare is smart. If your `with` block only contains a **single command**, Flare will intelligently inline the `execute` chain directly onto the command line instead of spawning an unnecessary `.mcfunction` file!
+
+```python
+with as(@a):
+    kill @s
+# Compiles seamlessly into: execute as @a run kill @s
+```
+
+### Supported Modifiers
+- `as(target)` or `@selector.as()` (supports string targets like `as("@a")`)
+- `at(target)` or `@selector.at()` (supports string targets like `at("@s")`)
+- `positioned(x, y, z)` or `positioned(target)` or `@selector.positioned()` (supports strings `positioned("~ ~ ~")`, `positioned("@a")`)
+- `aligned("axes")` (e.g. `aligned("xyz")`)
+- `facing(target)` or `facing(x, y, z)` or `@selector.facing()` (supports strings `facing("@a")`, `facing("~ ~ ~")`)
+- `anchored("anchor")` (e.g. `anchored("eyes")`)
+- `rotated(y, x)` or `rotated(target)` or `@selector.rotated()` (supports strings `rotated("~ ~")`, `rotated("@a")`)
+- `dimension("dim")` (e.g. `dimension("overworld")`)
+- `on("relation")` or `applyon("relation")` or `@selector.<relation>()` (e.g. `on("attacker")` or `@s.attacker()`)
+- `summon("entity")` (e.g. `summon("zombie")`)
+- `store(variable)` or `variable.store()`
+
+---
+
 ## Control Flow (If, For, While)
 
 Flare seamlessly translates standard Python control flow into `execute` logic and dynamically generated `mcfunction` blocks! 

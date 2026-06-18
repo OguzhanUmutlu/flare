@@ -76,7 +76,8 @@ def build_datapack(file_path: str):
         ast.fix_missing_locations(tree)
 
         global_env = {"__name__": "__main__", "__file__": abs_path}
-        exec("from flare import _flare_assign, _flare_if, _flare_while, _flare_for, runcommand", global_env)
+        exec("from flare import _flare_assign, _flare_if, _flare_while, _flare_for, _flare_with, runcommand",
+             global_env)
 
         exec(compile(tree, abs_path, "exec"), global_env)
         sys.path.pop(0)

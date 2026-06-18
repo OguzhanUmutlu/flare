@@ -284,6 +284,10 @@ class score:
             return dest
         return self
 
+    def store(self):
+        from .execute_modifiers import store
+        return store(self)
+
     def _check_addr(self):
         if self.addr is None:
             self.objective = temp_obj
@@ -618,6 +622,9 @@ class nbt:
             if self.value_to_set is not None:
                 self.__iset__(self.value_to_set)
 
+    def __str__(self):
+        return f"[NBT {self.addr}]"
+
     def __icopy__(self, varid: str):
         if self.addr is None:
             self._parse_addr(f"flare:vars {varid}")
@@ -629,18 +636,38 @@ class nbt:
             return dest
         return self
 
+    def store(self):
+        from .execute_modifiers import store
+        return store(self)
+
     def __getattr__(self, name):
         if self.is_number():
             raise AttributeError("Cannot chain path on NBT numbers")
         new_path = f"{self.path}.{name}" if self.path else name
         return nbt(addr=f"{self.target_type} {self.target} {new_path}", datatype=None)
 
+    def __setattr__(self, name, value):
+        if name in ("value", "addr", "type", "target_type", "target", "path", "value_to_set", "_target", "_name"):
+            super().__setattr__(name, value)
+        else:
+            target = getattr(self, name)
+            target.__iset__(value)
+
     def __getitem__(self, item):
         if isinstance(item, type) or item is None:
             if self.type is not None and item is not None:
                 raise TypeError(
                     f"Cannot cast an NBT type that already has a specific datatype ({self.type.__name__}). Cast to None first.")
-            return nbt(addr=f"{self.target_type} {self.target} {self.path}".strip(), datatype=item)
+
+            nbt_type = item
+            if nbt_type is not None and not isinstance(nbt_type, NBTType):
+                check_val = nbt_type.__name__ if isinstance(nbt_type, type) else str(nbt_type)
+                for enum_val in NBTType:
+                    if enum_val.value == check_val or enum_val.name == check_val:
+                        nbt_type = enum_val
+                        break
+
+            return nbt(addr=f"{self.target_type} {self.target} {self.path}".strip(), datatype=nbt_type)
 
         if self.is_number():
             raise TypeError("Cannot chain path on NBT numbers")
@@ -656,6 +683,10 @@ class nbt:
         else:
             raise TypeError(f"Invalid NBT path index: {item}")
         return nbt(addr=f"{self.target_type} {self.target} {new_path}", datatype=None)
+
+    def __setitem__(self, key, value):
+        target = self[key]
+        target.__iset__(value)
 
     def _parse_addr(self, addr: str):
         parts = addr.split(" ", 1)
@@ -1191,10 +1222,12 @@ class tagged:
         from .context import runcommand
         if isinstance(other, tagged):
             target = other.target
+        elif isinstance(other, selector):
+            target = other.target
         elif isinstance(other, str):
             target = other
         else:
-            raise ValueError("tagged can only be set to a string selector or another tagged object")
+            raise ValueError("tagged can only be set to a string selector, selector object, or another tagged object")
 
         runcommand(f"tag @e remove {self.tag_name}")
         runcommand(f"tag {target} add {self.tag_name}")
@@ -1203,6 +1236,87 @@ class tagged:
         if self.tag_name:
             return f"@e[tag={self.tag_name}]"
         return str(self.target)
+
+
+class selector:
+    def __init__(self, target: str):
+        self.target = target
+
+    def __str__(self):
+        return str(self.target)
+
+    def __repr__(self):
+        return f'selector("{self.target}")'
+
+    def __getattr__(self, name):
+        return _SelectorAttribute(self.target, name)
+
+    def _as(self):
+        from .execute_modifiers import _as
+        return _as(self)
+
+    def at(self):
+        from .execute_modifiers import at
+        return at(self)
+
+    def positioned(self):
+        from .execute_modifiers import positioned
+        return positioned(self)
+
+    def facing(self, *args):
+        from .execute_modifiers import facing
+        return facing(self, *args)
+
+    def rotated(self):
+        from .execute_modifiers import rotated
+        return rotated(self)
+
+    def attacker(self):
+        from .execute_modifiers import applyon
+        return applyon("attacker")
+
+    def controller(self):
+        from .execute_modifiers import applyon
+        return applyon("controller")
+
+    def leasher(self):
+        from .execute_modifiers import applyon
+        return applyon("leasher")
+
+    def origin(self):
+        from .execute_modifiers import applyon
+        return applyon("origin")
+
+    def owner(self):
+        from .execute_modifiers import applyon
+        return applyon("owner")
+
+    def passengers(self):
+        from .execute_modifiers import applyon
+        return applyon("passengers")
+
+    def target(self):
+        from .execute_modifiers import applyon
+        return applyon("target")
+
+    def vehicle(self):
+        from .execute_modifiers import applyon
+        return applyon("vehicle")
+
+
+class _SelectorAttribute(nbt):
+    def __init__(self, target, name):
+        super().__init__(addr=f"entity {target} {name}", datatype=None)
+        self._target = target
+        self._name = name
+
+    def __call__(self, *args):
+        from .context import runcommand
+        args_str = " ".join(str(a) for a in args)
+        if args_str:
+            runcommand(f"{self._name} {self._target} {args_str}")
+        else:
+            runcommand(f"{self._name} {self._target}")
 
 
 class ref:
@@ -1217,8 +1331,16 @@ class _Storage:
     def __getattr__(self, name):
         return nbt(addr=f"storage {name}", datatype=None)
 
+    def __setattr__(self, name, value):
+        target = getattr(self, name)
+        target.__iset__(value)
+
     def __getitem__(self, item):
         return nbt(addr=f"storage {item}", datatype=None)
+
+    def __setitem__(self, key, value):
+        target = self[key]
+        target.__iset__(value)
 
 
 storage = _Storage()
