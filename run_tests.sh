@@ -16,8 +16,11 @@ source venv/bin/activate
 
 echo "Installing dependencies and packages..."
 pip install --upgrade pip
-pip install pytest
+pip install pytest beautifulsoup4
 pip install -e .
+
+echo "Building NBT schema..."
+python tests/build_nbt_schema.py
 
 echo "Running pytest..."
 cd tests

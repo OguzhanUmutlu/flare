@@ -609,13 +609,14 @@ class score:
 
 
 class nbt:
-    def __init__(self, value=None, *, addr: str = None, datatype: NBTType = None):
+    def __init__(self, value=None, *, addr: str = None, datatype: NBTType = None, schema_node: dict = None):
         self.type = datatype
         self.value_to_set = value
         self.addr = None
         self.path = ""
         self.target = ""
         self.target_type = "storage"
+        self._schema_node = schema_node
 
         if addr is not None:
             self._parse_addr(addr)
@@ -644,10 +645,17 @@ class nbt:
         if self.is_number():
             raise AttributeError("Cannot chain path on NBT numbers")
         new_path = f"{self.path}.{name}" if self.path else name
-        return nbt(addr=f"{self.target_type} {self.target} {new_path}", datatype=None)
+        
+        datatype = None
+        new_schema_node = None
+        if self._schema_node and "children" in self._schema_node and name in self._schema_node["children"]:
+            new_schema_node = self._schema_node["children"][name]
+            datatype = new_schema_node.get("type", None)
+            
+        return nbt(addr=f"{self.target_type} {self.target} {new_path}", datatype=datatype, schema_node=new_schema_node)
 
     def __setattr__(self, name, value):
-        if name in ("value", "addr", "type", "target_type", "target", "path", "value_to_set", "_target", "_name"):
+        if name in ("value", "addr", "type", "target_type", "target", "path", "value_to_set", "_target", "_name", "_schema_node"):
             super().__setattr__(name, value)
         else:
             target = getattr(self, name)
@@ -680,9 +688,26 @@ class nbt:
             else:
                 key = item
             new_path = f"{self.path}.{key}" if self.path else key
+            
+            datatype = None
+            new_schema_node = None
+            if self._schema_node and "children" in self._schema_node and item in self._schema_node["children"]:
+                new_schema_node = self._schema_node["children"][item]
+                datatype = new_schema_node.get("type", None)
+            return nbt(addr=f"{self.target_type} {self.target} {new_path}", datatype=datatype, schema_node=new_schema_node)
         else:
             raise TypeError(f"Invalid NBT path index: {item}")
-        return nbt(addr=f"{self.target_type} {self.target} {new_path}", datatype=None)
+        
+        datatype = None
+        new_schema_node = None
+        if isinstance(item, int) and self._schema_node and "children" in self._schema_node and "[]" in self._schema_node["children"]:
+            new_schema_node = self._schema_node["children"]["[]"]
+            if new_schema_node == "RECURSIVE_PASSENGERS":
+                from .nbt_schema import ENTITY_SCHEMA
+                new_schema_node = ENTITY_SCHEMA
+            datatype = new_schema_node.get("type", None)
+            
+        return nbt(addr=f"{self.target_type} {self.target} {new_path}", datatype=datatype, schema_node=new_schema_node)
 
     def __setitem__(self, key, value):
         target = self[key]
@@ -1306,7 +1331,14 @@ class selector:
 
 class _SelectorAttribute(nbt):
     def __init__(self, target, name):
-        super().__init__(addr=f"entity {target} {name}", datatype=None)
+        from .nbt_schema import ENTITY_SCHEMA
+        schema_node = None
+        datatype = None
+        if name in ENTITY_SCHEMA["children"]:
+            schema_node = ENTITY_SCHEMA["children"][name]
+            datatype = schema_node.get("type", None)
+            
+        super().__init__(addr=f"entity {target} {name}", datatype=datatype, schema_node=schema_node)
         self._target = target
         self._name = name
 
