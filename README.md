@@ -134,7 +134,7 @@ my_array.prepend(0)
 You can dynamically traverse NBT Compounds using standard Python dot notation or dictionary indexing!
 
 ```python
-from flare import nbtdict
+from flare import nbtdict, storage
 
 player_data = nbtdict(addr="storage mypack:data Player")
 
@@ -144,8 +144,43 @@ first_slot = inventory[0]
 
 # If your NBT key has a space, use indexing!
 weird_key = player_data["Custom Key With Space"]
+
+# Or cleanly build storage namespaces on the fly using the built-in 'storage' variable!
+# This automatically maps to nbt(addr="storage mypack:data Player.Inventory[0]")
+fast_slot = storage["mypack:data"].Player.Inventory[0]
 ```
-*Note: Flare dynamically generates the string path behind the scenes (`Player.Inventory[0]`). Commands are only emitted when you read or write to these endpoints!*
+*Note: Flare dynamically generates the string path behind the scenes. Commands are only emitted when you read or write to these endpoints!*
+
+### NBT Type Casting
+If you are dynamically traversing NBT and need to interact with a specific type (like an `int` or a `list`), you can natively cast the untyped path by indexing it with a Python type!
+
+```python
+# 'test' is an untyped NBT path. By appending [int], Flare knows it should be treated as an integer!
+x = storage.hello.test[int]
+
+# If you need to force a type change on an already-typed NBT variable, you must explicitly cast to None first:
+x = my_typed_nbt[None][list]
+```
+
+---
+
+## The `tagged` Object
+
+If you need to dynamically assign and manage entity tags, use the `tagged` class. When you create a `tagged` variable, Flare generates a unique tag name and seamlessly applies it to your specified selector. It behaves like a native string selector in commands!
+
+```python
+from flare import tagged
+
+# This physically tags all players within distance 5 with a unique tag!
+# `tag @e remove my_tag` followed by `tag @a[distance=..5] add my_tag`
+close_players = tagged("@a[distance=..5]")
+
+# The preprocessor automatically turns this into `kill @e[tag=my_tag]`!
+kill {close_players}
+
+# You can easily reassign it to move the tag!
+close_players[:] = "@p"
+```
 
 ---
 

@@ -636,6 +636,12 @@ class nbt:
         return nbt(addr=f"{self.target_type} {self.target} {new_path}", datatype=None)
 
     def __getitem__(self, item):
+        if isinstance(item, type) or item is None:
+            if self.type is not None and item is not None:
+                raise TypeError(
+                    f"Cannot cast an NBT type that already has a specific datatype ({self.type.__name__}). Cast to None first.")
+            return nbt(addr=f"{self.target_type} {self.target} {self.path}".strip(), datatype=item)
+
         if self.is_number():
             raise TypeError("Cannot chain path on NBT numbers")
         if isinstance(item, int):
@@ -1170,6 +1176,35 @@ class fixed(score):
         super().__init__(value, addr=addr, multiplier=multiplier)
 
 
+class tagged:
+    def __init__(self, target: str, *, tag_name: str = None):
+        self.target = target
+        self.tag_name = tag_name
+
+    def __icopy__(self, varid: str):
+        from .context import runcommand
+        runcommand(f"tag @e remove {varid}")
+        runcommand(f"tag {self.target} add {varid}")
+        return tagged(self.target, tag_name=varid)
+
+    def __iset__(self, other):
+        from .context import runcommand
+        if isinstance(other, tagged):
+            target = other.target
+        elif isinstance(other, str):
+            target = other
+        else:
+            raise ValueError("tagged can only be set to a string selector or another tagged object")
+
+        runcommand(f"tag @e remove {self.tag_name}")
+        runcommand(f"tag {target} add {self.tag_name}")
+
+    def __str__(self):
+        if self.tag_name:
+            return f"@e[tag={self.tag_name}]"
+        return str(self.target)
+
+
 class ref:
     def __init__(self, target):
         self.target = target
@@ -1177,6 +1212,16 @@ class ref:
     def __icopy__(self, varid: str):
         return self.target
 
+
+class _Storage:
+    def __getattr__(self, name):
+        return nbt(addr=f"storage {name}", datatype=None)
+
+    def __getitem__(self, item):
+        return nbt(addr=f"storage {item}", datatype=None)
+
+
+storage = _Storage()
 
 nbtbyte = nbt[byte]
 nbtbool = nbt[boolean]

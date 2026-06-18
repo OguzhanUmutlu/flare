@@ -3,9 +3,9 @@ from .context import namespace, export, tick, push_context, runcommand, files, t
     constants, _flare_assign, _flare_print, dbg
 from .control_flow import _flare_if, _flare_while, _flare_for
 from .types import NBTType, byte, boolean, short, long, double
-from .variables import score, nbt, fixed, ref, getscore, nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, \
-    nbtdouble, nbtstr, nbtlist, nbtdict, nbtbytearray, nbtintarray, nbtlongarray
+from .variables import score, nbt, fixed, tagged, ref, getscore, storage, nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, \
+    nbtfloat, nbtdouble, nbtstr, nbtlist, nbtdict, nbtbytearray, nbtintarray, nbtlongarray
 
-__all__ = ["namespace", "export", "tick", "score", "nbt", "fixed", "ref", "getscore", "_flare_print", "dbg", "nbtbyte", "nbtbool",
-    "nbtshort", "nbtint", "nbtlong", "nbtfloat", "nbtdouble", "nbtstr", "nbtlist", "nbtdict", "nbtbytearray",
-    "nbtintarray", "nbtlongarray"]
+__all__ = ["namespace", "export", "tick", "score", "nbt", "fixed", "tagged", "ref", "getscore", "storage",
+           "_flare_print", "dbg", "nbtbyte", "nbtbool", "nbtshort", "nbtint", "nbtlong", "nbtfloat", "nbtdouble",
+           "nbtstr", "nbtlist", "nbtdict", "nbtbytearray", "nbtintarray", "nbtlongarray"]
