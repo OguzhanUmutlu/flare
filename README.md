@@ -164,6 +164,57 @@ x = my_typed_nbt[None][list]
 
 ---
 
+## Advanced Math & Floating Point
+
+Flare features a complete suite of advanced mathematical primitives, allowing you to perform operations far beyond standard integer scoreboards. 
+
+### Big Integers (`bigscore`)
+If you need to perform calculations on numbers larger than the 32-bit Minecraft limit (`2,147,483,647`), you can use the `bigscore` type! A `bigscore` transparently chains multiple scoreboard objectives together to represent arbitrarily large numbers. 
+
+```python
+from flare import bigscore
+
+# Create a 64-bit integer by combining two 32-bit limbs!
+x = bigscore(10_000_000_000, size=2)
+x *= 5
+```
+
+### Floating Point (`float32` & `float64`)
+Flare fully implements the IEEE 754 floating-point standards natively in Minecraft using raw bit-manipulation! You can seamlessly perform decimal arithmetic without manually managing fixed-point scaling.
+
+```python
+from flare.variables import float32, float64
+
+# Native 32-bit floating point arithmetic!
+a = float32(1.5)
+b = float32(2.25)
+c = a * b
+
+# Need more precision? Use 64-bit floats!
+d = float64(3.14159)
+```
+
+### The `flaremath` Standard Library
+Flare comes bundled with `flaremath`, a standard library extension that provides high-level mathematical functions. These functions automatically compile into highly-optimized Minecraft scoreboard and bit-shifting algorithms (such as CORDIC and Taylor series approximations).
+
+```python
+import flare.flaremath as math
+from flare.variables import float32
+
+x = float32(0.5)
+
+# Calculate trigonometry natively in Minecraft!
+y = math.sin(x)
+z = math.cos(y)
+
+# Flaremath supports logarithms, exponents, roots, and more!
+log_val = math.ln(x)
+sqrt_val = math.sqrt(y)
+pow_val = math.pow(x, 3)
+```
+
+---
+
 ## The `tagged` Object
 
 If you need to dynamically assign and manage entity tags, use the `tagged` class. When you create a `tagged` variable, Flare generates a unique tag name and seamlessly applies it to your specified selector. It behaves like a native string selector in commands!
