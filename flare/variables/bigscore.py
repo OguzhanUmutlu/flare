@@ -94,16 +94,18 @@ class bigscore:
             return self
         if isinstance(other, bigscore):
             other._check_addr()
-            if self.size != other.size:
-                raise ValueError("Cannot assign bigscores of different sizes")
+            if self.size < other.size:
+                raise ValueError("Cannot assign larger bigscore to smaller bigscore")
             if self._base != other._base:
                 raise ValueError("Cannot assign bigscores of different bases")
             if self.multiplier != other.multiplier:
                 pass
-            for i in range(self.size):
+            for i in range(other.size):
                 runcommand(f"scoreboard players operation {self._get_limb(i)} = {other._get_limb(i)}")
+            for i in range(other.size, self.size):
+                runcommand(f"scoreboard players set {self._get_limb(i)} 0")
             return self
-        if isinstance(other, _get_score()()):
+        if isinstance(other, _get_score()):
             other._check_addr()
             runcommand(f"scoreboard players operation {self._get_limb(0)} = {other.addr}")
 
@@ -301,6 +303,7 @@ class bigscore:
 
     def __idiv__(self, other):
         self._check_addr()
+
         if isinstance(other, (int, float)):
             M = int(round(other))
             if M == 0:
@@ -318,6 +321,19 @@ class bigscore:
                 runcommand(f"scoreboard players operation !rem temp = !val temp")
                 runcommand(f"scoreboard players operation !rem temp %= !M temp")
             return self
+        if isinstance(other, _get_score()):
+            other._check_addr()
+            runcommand("scoreboard players set !rem temp 0")
+            for i in reversed(range(self.size)):
+                runcommand(f"scoreboard players operation !val temp = !rem temp")
+                runcommand(f"scoreboard players operation !val temp *= !BASE_{self._base} temp")
+                runcommand(f"scoreboard players operation !val temp += {self._get_limb(i)}")
+                runcommand(f"scoreboard players operation {self._get_limb(i)} = !val temp")
+                runcommand(f"scoreboard players operation {self._get_limb(i)} /= {other.addr}")
+                runcommand(f"scoreboard players operation !rem temp = !val temp")
+                runcommand(f"scoreboard players operation !rem temp %= {other.addr}")
+            return self
+
         raise NotImplementedError("Long division of bigscores is currently unsupported")
 
     def __itruediv__(self, other):

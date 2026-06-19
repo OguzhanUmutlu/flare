@@ -36,6 +36,21 @@ class BinaryOp:
         return node
 
     def _alloc_temp(self, like):
+        try:
+            from .float32 import float32
+            from .float64 import float64
+            from .complex import complex_type
+            if isinstance(like, (float32, float64)):
+                t = like.__class__(addr=f"!t{ctx._temp_id} {temp_obj}")
+                ctx._temp_id += 1
+                return t
+            if isinstance(like, complex_type):
+                t = complex_type(like.real.__class__(addr=f"!tr{ctx._temp_id} {temp_obj}"),
+                                 like.imag.__class__(addr=f"!ti{ctx._temp_id} {temp_obj}"))
+                ctx._temp_id += 1
+                return t
+        except ImportError:
+            pass
         if isinstance(like, _get_bigscore()):
             t = like.__class__(addr=f"!t{ctx._temp_id} {temp_obj}")
         elif isinstance(like, _get_score()):
@@ -61,9 +76,20 @@ class BinaryOp:
             getattr(dest, iop)(self.right)
         return dest
 
-    def __icopy__(self, varid: str):
+    def __icopy__(self, varid: str, is_recursive: bool = False):
+        try:
+            from .float32 import float32
+            from .float64 import float64
+            from .complex import complex_type
+        except ImportError:
+            float32 = float64 = complex_type = type("Dummy", (), {})
+
         leaf = self._leftmost_leaf()
-        if isinstance(leaf, _get_bigscore()):
+        if isinstance(leaf, (float32, float64)):
+            dest = leaf.__class__(addr=f"{varid} {vars_obj}")
+        elif isinstance(leaf, complex_type):
+            dest = leaf.__icopy__(varid)
+        elif isinstance(leaf, _get_bigscore()):
             dest = leaf.__class__(addr=f"{varid} {vars_obj}")
         elif isinstance(leaf, _get_score()):
             dest = _get_score()(addr=f"{varid} {vars_obj}", multiplier=leaf.multiplier)
@@ -153,7 +179,22 @@ class UnaryOp:
         return node
 
     def _alloc_temp(self, like):
-        if isinstance(like, _get_bigscore()()):
+        try:
+            from .float32 import float32
+            from .float64 import float64
+            from .complex import complex_type
+            if isinstance(like, (float32, float64)):
+                t = like.__class__(addr=f"!t{ctx._temp_id} {temp_obj}")
+                ctx._temp_id += 1
+                return t
+            if isinstance(like, complex_type):
+                t = complex_type(like.real.__class__(addr=f"!tr{ctx._temp_id} {temp_obj}"),
+                                 like.imag.__class__(addr=f"!ti{ctx._temp_id} {temp_obj}"))
+                ctx._temp_id += 1
+                return t
+        except ImportError:
+            pass
+        if isinstance(like, _get_bigscore()):
             t = like.__class__(addr=f"!t{ctx._temp_id} {temp_obj}")
         elif isinstance(like, _get_score()):
             t = _get_score()(addr=f"!t{ctx._temp_id} {temp_obj}", multiplier=like.multiplier)
@@ -170,12 +211,28 @@ class UnaryOp:
             self.operand._eval_into(dest)
         else:
             dest.__iset__(self.operand)
-        getattr(dest, iop)()
+        if hasattr(dest, iop):
+            getattr(dest, iop)()
+        elif self.op == "neg":
+            dest *= -1
+        else:
+            raise TypeError(f"Operand does not support unary {self.op}")
         return dest
 
-    def __icopy__(self, varid: str):
+    def __icopy__(self, varid: str, is_recursive: bool = False):
+        try:
+            from .float32 import float32
+            from .float64 import float64
+            from .complex import complex_type
+        except ImportError:
+            float32 = float64 = complex_type = type("Dummy", (), {})
+
         leaf = self._leftmost_leaf()
-        if isinstance(leaf, _get_bigscore()()):
+        if isinstance(leaf, (float32, float64)):
+            dest = leaf.__class__(addr=f"{varid} {vars_obj}")
+        elif isinstance(leaf, complex_type):
+            dest = leaf.__icopy__(varid)
+        elif isinstance(leaf, _get_bigscore()):
             dest = leaf.__class__(addr=f"{varid} {vars_obj}")
         elif isinstance(leaf, _get_score()):
             dest = _get_score()(addr=f"{varid} {vars_obj}", multiplier=leaf.multiplier)

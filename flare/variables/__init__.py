@@ -1,5 +1,8 @@
 from .bigscore import bigscore, bigfixed
+from .complex import complex_type
 from .core import UnsupportedOperandError, BinaryOp, UnaryOp
+from .float32 import float32
+from .float64 import float64
 from .nbt import nbt
 from .score import score, fixed, getscore, INT32_LIMIT
 from .selector import selector, tagged, ref
