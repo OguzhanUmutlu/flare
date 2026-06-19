@@ -2,19 +2,11 @@ from __future__ import annotations
 
 import math
 
+from . import bigscore
 from .core import UnsupportedOperandError, BinaryOp, UnaryOp
+from .score import score, getscore, fixed
 from .. import context as ctx
 from ..context import runcommand, temp_obj, vars_obj
-
-
-def _get_score():
-    from .score import score
-    return score
-
-
-def _get_bigscore():
-    from .bigscore import bigscore
-    return bigscore
 
 
 class float64:
@@ -23,6 +15,14 @@ class float64:
         self.addr = None
         self.target = ""
         self.objective = ""
+
+    def _alloc_temp(self):
+        t = self.__class__(addr=f"!t{ctx._temp_id} {temp_obj}")
+        ctx._temp_id += 1
+        return t
+
+    def _create_var(self, varid: str):
+        return self.__class__(addr=f"{varid} {vars_obj}")
 
         if addr is not None:
             self._parse_addr(addr)
@@ -39,9 +39,9 @@ class float64:
             self.objective = temp_obj
         self.addr = f"{self.target} {self.objective}"
 
-        self._sign = _get_score()(addr=f"{self.target}_s {self.objective}")
-        self._exp = _get_score()(addr=f"{self.target}_e {self.objective}")
-        self._mant = _get_bigscore()[4](addr=f"{self.target}_m {self.objective}")
+        self._sign = score(addr=f"{self.target}_s {self.objective}")
+        self._exp = score(addr=f"{self.target}_e {self.objective}")
+        self._mant = bigscore[4](addr=f"{self.target}_m {self.objective}")
 
     def _check_addr(self):
         if self.addr is None:
@@ -110,37 +110,37 @@ class float64:
             ctx._temp_id += 1
             temp_b.__iset__(other)
 
-            runcommand(f"scoreboard players operation !diff temp = {self._exp.addr}")
-            runcommand(f"scoreboard players operation !diff temp -= {temp_b._exp.addr}")
+            runcommand(f"scoreboard players operation !diff {temp_obj} = {self._exp.addr}")
+            runcommand(f"scoreboard players operation !diff {temp_obj} -= {temp_b._exp.addr}")
 
             runcommand(
-                f"execute if score !diff temp matches ..-1 run scoreboard players operation {self._sign.addr} >< {temp_b._sign.addr}")
+                f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation {self._sign.addr} >< {temp_b._sign.addr}")
             runcommand(
-                f"execute if score !diff temp matches ..-1 run scoreboard players operation {self._exp.addr} >< {temp_b._exp.addr}")
+                f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation {self._exp.addr} >< {temp_b._exp.addr}")
 
             for i in range(4):
                 runcommand(
-                    f"execute if score !diff temp matches ..-1 run scoreboard players operation {self._mant._get_limb(i)} >< {temp_b._mant._get_limb(i)}")
+                    f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation {self._mant._get_limb(i)} >< {temp_b._mant._get_limb(i)}")
 
-            ctx.ensure_constant("!min1", "temp", -1)
+            c_min1_addr = getscore(-1).addr
             runcommand(
-                f"execute if score !diff temp matches ..-1 run scoreboard players operation !diff temp *= !min1 temp")
+                f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation !diff {temp_obj} *= {c_min1_addr}")
 
-            ctx.ensure_constant("!pow65536", "temp", 65536)
             for _ in range(4):
                 runcommand(
-                    f"execute if score !diff temp matches 16.. run scoreboard players operation !val temp = {temp_b._mant._get_limb(0)}")
+                    f"execute if score !diff {temp_obj} matches 16.. run scoreboard players operation !val {temp_obj} = {temp_b._mant._get_limb(0)}")
                 temp_b._mant /= 65536
-                runcommand(f"execute if score !diff temp matches 16.. run scoreboard players remove !diff temp 16")
+                runcommand(
+                    f"execute if score !diff {temp_obj} matches 16.. run scoreboard players remove !diff {temp_obj} 16")
 
             for p in reversed(range(0, 4)):
                 shift = 1 << p
                 pow2 = 1 << shift
                 runcommand(
-                    f"execute if score !diff temp matches {shift}.. run scoreboard players operation !val temp = {temp_b._mant._get_limb(0)}")
+                    f"execute if score !diff {temp_obj} matches {shift}.. run scoreboard players operation !val {temp_obj} = {temp_b._mant._get_limb(0)}")
                 temp_b._mant /= pow2
                 runcommand(
-                    f"execute if score !diff temp matches {shift}.. run scoreboard players remove !diff temp {shift}")
+                    f"execute if score !diff {temp_obj} matches {shift}.. run scoreboard players remove !diff {temp_obj} {shift}")
 
             temp_b._mant *= temp_b._sign
             self._mant *= self._sign
@@ -150,40 +150,40 @@ class float64:
             runcommand(
                 f"execute if score {self._mant._get_limb(3)} matches ..-1 run scoreboard players set {self._sign.addr} -1")
             runcommand(
-                f"execute if score {self._mant._get_limb(3)} matches ..-1 run scoreboard players operation !val temp = {self._mant._get_limb(0)}")
+                f"execute if score {self._mant._get_limb(3)} matches ..-1 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
             self._mant *= -1
 
-            runcommand(f"scoreboard players set !shift temp 0")
+            runcommand(f"scoreboard players set !shift {temp_obj} 0")
             runcommand(
-                f"execute if score {self._mant._get_limb(3)} matches 4503.. run scoreboard players set !shift temp 1")
+                f"execute if score {self._mant._get_limb(3)} matches 4503.. run scoreboard players set !shift {temp_obj} 1")
             runcommand(
-                f"execute if score {self._mant._get_limb(3)} matches 451.. run scoreboard players set !shift temp 1")
+                f"execute if score {self._mant._get_limb(3)} matches 451.. run scoreboard players set !shift {temp_obj} 1")
             runcommand(
-                f"execute if score !shift temp matches 1 run scoreboard players operation !val temp = {self._mant._get_limb(0)}")
+                f"execute if score !shift {temp_obj} matches 1 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
             self._mant /= 2
-            runcommand(f"execute if score !shift temp matches 1 run scoreboard players add {self._exp.addr} 1")
+            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players add {self._exp.addr} 1")
 
-            runcommand(f"scoreboard players set !is_zero temp 0")
+            runcommand(f"scoreboard players set !is_zero {temp_obj} 0")
             runcommand(
-                f"execute if score {self._mant._get_limb(3)} matches 0 if score {self._mant._get_limb(2)} matches 0 if score {self._mant._get_limb(1)} matches 0 if score {self._mant._get_limb(0)} matches 0 run scoreboard players set !is_zero temp 1")
-            runcommand(f"execute if score !is_zero temp matches 1 run scoreboard players set {self._exp.addr} 0")
-            runcommand(f"execute if score !is_zero temp matches 1 run scoreboard players set {self._sign.addr} 1")
+                f"execute if score {self._mant._get_limb(3)} matches 0 if score {self._mant._get_limb(2)} matches 0 if score {self._mant._get_limb(1)} matches 0 if score {self._mant._get_limb(0)} matches 0 run scoreboard players set !is_zero {temp_obj} 1")
+            runcommand(f"execute if score !is_zero {temp_obj} matches 1 run scoreboard players set {self._exp.addr} 0")
+            runcommand(f"execute if score !is_zero {temp_obj} matches 1 run scoreboard players set {self._sign.addr} 1")
 
             for _ in range(4):
                 runcommand(
-                    f"execute if score !is_zero temp matches 0 if score {self._mant._get_limb(3)} matches 0 run scoreboard players operation !val temp = {self._mant._get_limb(0)}")
+                    f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._get_limb(3)} matches 0 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
                 self._mant *= 65536
                 runcommand(
-                    f"execute if score !is_zero temp matches 0 if score {self._mant._get_limb(3)} matches 0 run scoreboard players remove {self._exp.addr} 16")
+                    f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._get_limb(3)} matches 0 run scoreboard players remove {self._exp.addr} 16")
 
             for p in reversed(range(0, 4)):
                 shift = 1 << p
                 pow2 = 1 << shift
                 runcommand(
-                    f"execute if score !is_zero temp matches 0 if score {self._mant._get_limb(3)} matches ..449 run scoreboard players operation !val temp = {self._mant._get_limb(0)}")
+                    f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._get_limb(3)} matches ..449 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
                 self._mant *= pow2
                 runcommand(
-                    f"execute if score !is_zero temp matches 0 if score {self._mant._get_limb(3)} matches ..449 run scoreboard players remove {self._exp.addr} {shift}")
+                    f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._get_limb(3)} matches ..449 run scoreboard players remove {self._exp.addr} {shift}")
 
             return self
         raise UnsupportedOperandError(self, "+", other)
@@ -199,8 +199,8 @@ class float64:
             temp_b = self.__class__(addr=f"!fb{ctx._temp_id} {temp_obj}")
             ctx._temp_id += 1
             temp_b.__iset__(other)
-            ctx.ensure_constant("!min1", "temp", -1)
-            runcommand(f"scoreboard players operation {temp_b._sign.addr} *= !min1 temp")
+            c_min1_addr = getscore(-1).addr
+            runcommand(f"scoreboard players operation {temp_b._sign.addr} *= {c_min1_addr}")
             return self.__iadd__(temp_b)
         raise UnsupportedOperandError(self, "-", other)
 
@@ -215,7 +215,6 @@ class float64:
             runcommand(f"scoreboard players operation {self._sign.addr} *= {other._sign.addr}")
             runcommand(f"scoreboard players operation {self._exp.addr} += {other._exp.addr}")
 
-            from .bigscore import bigscore
             bA = bigscore[8](addr=f"!ba{ctx._temp_id} {temp_obj}")
             bB = bigscore[8](addr=f"!bb{ctx._temp_id} {temp_obj}")
             ctx._temp_id += 1
@@ -228,13 +227,13 @@ class float64:
 
             self._mant.__iset__(bA)
 
-            runcommand(f"scoreboard players set !shift temp 0")
+            runcommand(f"scoreboard players set !shift {temp_obj} 0")
             runcommand(
-                f"execute if score {self._mant._get_limb(3)} matches 451.. run scoreboard players set !shift temp 1")
+                f"execute if score {self._mant._get_limb(3)} matches 451.. run scoreboard players set !shift {temp_obj} 1")
             runcommand(
-                f"execute if score !shift temp matches 1 run scoreboard players operation !val temp = {self._mant._get_limb(0)}")
+                f"execute if score !shift {temp_obj} matches 1 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
             self._mant /= 2
-            runcommand(f"execute if score !shift temp matches 1 run scoreboard players add {self._exp.addr} 1")
+            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players add {self._exp.addr} 1")
 
             return self
         raise UnsupportedOperandError(self, "*", other)
@@ -253,13 +252,13 @@ class float64:
             raise NotImplementedError(
                 "Long division of bigscores is currently unsupported, so float64 division is not natively supported.")
 
-            runcommand(f"scoreboard players set !shift temp 0")
+            runcommand(f"scoreboard players set !shift {temp_obj} 0")
             runcommand(
-                f"execute if score {self._mant._get_limb(3)} matches ..449 run scoreboard players set !shift temp 1")
+                f"execute if score {self._mant._get_limb(3)} matches ..449 run scoreboard players set !shift {temp_obj} 1")
             runcommand(
-                f"execute if score !shift temp matches 1 run scoreboard players operation !val temp = {self._mant._get_limb(0)}")
+                f"execute if score !shift {temp_obj} matches 1 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
             self._mant *= 2
-            runcommand(f"execute if score !shift temp matches 1 run scoreboard players remove {self._exp.addr} 1")
+            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players remove {self._exp.addr} 1")
 
             return self
         raise UnsupportedOperandError(self, "/", other)
@@ -290,6 +289,29 @@ class float64:
 
     def __rtruediv__(self, other):
         return BinaryOp(other, self, "truediv")
+
+    def __round__(self, ndigits=None):
+        if ndigits is not None and ndigits != 0:
+            raise ValueError("Rounding to specific digits is unsupported to preserve minimalism")
+        t = fixed(0.0)
+        t.__iset__(self)
+        t.__round__()
+        self.__iset__(t)
+        return self
+
+    def __floor__(self):
+        t = fixed(0.0)
+        t.__iset__(self)
+        t.__floor__()
+        self.__iset__(t)
+        return self
+
+    def __ceil__(self):
+        t = fixed(0.0)
+        t.__iset__(self)
+        t.__ceil__()
+        self.__iset__(t)
+        return self
 
     def __neg__(self):
         return UnaryOp(self, "neg")

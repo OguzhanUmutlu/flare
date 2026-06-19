@@ -1,12 +1,26 @@
 from __future__ import annotations
 
-from .core import UnsupportedOperandError, BinaryOp
+import builtins
+import math
+
+from .core import UnsupportedOperandError, BinaryOp, UnaryOp
+from .. import context as ctx
+from ..context import temp_obj
 
 
 class complex_type:
     def __init__(self, real, imag):
         self.real = real
         self.imag = imag
+
+    def _alloc_temp(self):
+        t = self.__class__(self.real.__class__(addr=f"!tr{ctx._temp_id} {temp_obj}"),
+                           self.imag.__class__(addr=f"!ti{ctx._temp_id} {temp_obj}"))
+        ctx._temp_id += 1
+        return t
+
+    def _create_var(self, varid: str):
+        return self.__icopy__(varid)
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
         if hasattr(self.real, "__icopy__"):
@@ -102,8 +116,16 @@ class complex_type:
     def __rtruediv__(self, other):
         return BinaryOp(other, self, "truediv")
 
+    def __round__(self, ndigits=None):
+        return complex_type(builtins.round(self.real, ndigits), builtins.round(self.imag, ndigits))
+
+    def __floor__(self):
+        return complex_type(math.floor(self.real), math.floor(self.imag))
+
+    def __ceil__(self):
+        return complex_type(math.ceil(self.real), math.ceil(self.imag))
+
     def __neg__(self):
-        from .core import UnaryOp
         return UnaryOp(self, "neg")
 
     def __pos__(self):

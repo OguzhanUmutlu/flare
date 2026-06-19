@@ -1,25 +1,6 @@
 from __future__ import annotations
 
 
-def _get_bigscore():
-    from .bigscore import bigscore
-    return bigscore
-
-
-def _get_score():
-    from .score import score
-    return score
-
-
-def _get_nbt():
-    from .nbt import nbt
-    return nbt
-
-
-from .. import context as ctx
-from ..context import temp_obj, vars_obj
-
-
 class BinaryOp:
     def __init__(self, left, right, op: str):
         self.left = left
@@ -36,29 +17,7 @@ class BinaryOp:
         return node
 
     def _alloc_temp(self, like):
-        try:
-            from .float32 import float32
-            from .float64 import float64
-            from .complex import complex_type
-            if isinstance(like, (float32, float64)):
-                t = like.__class__(addr=f"!t{ctx._temp_id} {temp_obj}")
-                ctx._temp_id += 1
-                return t
-            if isinstance(like, complex_type):
-                t = complex_type(like.real.__class__(addr=f"!tr{ctx._temp_id} {temp_obj}"),
-                                 like.imag.__class__(addr=f"!ti{ctx._temp_id} {temp_obj}"))
-                ctx._temp_id += 1
-                return t
-        except ImportError:
-            pass
-        if isinstance(like, _get_bigscore()):
-            t = like.__class__(addr=f"!t{ctx._temp_id} {temp_obj}")
-        elif isinstance(like, _get_score()):
-            t = _get_score()(addr=f"!t{ctx._temp_id} {temp_obj}", multiplier=like.multiplier)
-        else:
-            t = _get_nbt()(addr=f"flare:temp !t{ctx._temp_id}", datatype=like.type)
-        ctx._temp_id += 1
-        return t
+        return like._alloc_temp()
 
     def _eval_into(self, dest):
         if self.op in ("eq", "ne", "lt", "le", "gt", "ge", "and", "or", "not"):
@@ -77,26 +36,8 @@ class BinaryOp:
         return dest
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
-        try:
-            from .float32 import float32
-            from .float64 import float64
-            from .complex import complex_type
-        except ImportError:
-            float32 = float64 = complex_type = type("Dummy", (), {})
-
         leaf = self._leftmost_leaf()
-        if isinstance(leaf, (float32, float64)):
-            dest = leaf.__class__(addr=f"{varid} {vars_obj}")
-        elif isinstance(leaf, complex_type):
-            dest = leaf.__icopy__(varid)
-        elif isinstance(leaf, _get_bigscore()):
-            dest = leaf.__class__(addr=f"{varid} {vars_obj}")
-        elif isinstance(leaf, _get_score()):
-            dest = _get_score()(addr=f"{varid} {vars_obj}", multiplier=leaf.multiplier)
-        elif isinstance(leaf, _get_nbt()):
-            dest = _get_nbt()(addr=f"flare:vars {varid}", datatype=leaf.type)
-        else:
-            dest = _get_score()(addr=f"{varid} {vars_obj}")
+        dest = leaf._create_var(varid)
         self._eval_into(dest)
         return dest
 
@@ -179,29 +120,7 @@ class UnaryOp:
         return node
 
     def _alloc_temp(self, like):
-        try:
-            from .float32 import float32
-            from .float64 import float64
-            from .complex import complex_type
-            if isinstance(like, (float32, float64)):
-                t = like.__class__(addr=f"!t{ctx._temp_id} {temp_obj}")
-                ctx._temp_id += 1
-                return t
-            if isinstance(like, complex_type):
-                t = complex_type(like.real.__class__(addr=f"!tr{ctx._temp_id} {temp_obj}"),
-                                 like.imag.__class__(addr=f"!ti{ctx._temp_id} {temp_obj}"))
-                ctx._temp_id += 1
-                return t
-        except ImportError:
-            pass
-        if isinstance(like, _get_bigscore()):
-            t = like.__class__(addr=f"!t{ctx._temp_id} {temp_obj}")
-        elif isinstance(like, _get_score()):
-            t = _get_score()(addr=f"!t{ctx._temp_id} {temp_obj}", multiplier=like.multiplier)
-        else:
-            t = _get_nbt()(addr=f"flare:temp !t{ctx._temp_id}", datatype=like.type)
-        ctx._temp_id += 1
-        return t
+        return like._alloc_temp()
 
     def _eval_into(self, dest):
         if self.op in ("not",):
@@ -220,26 +139,8 @@ class UnaryOp:
         return dest
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
-        try:
-            from .float32 import float32
-            from .float64 import float64
-            from .complex import complex_type
-        except ImportError:
-            float32 = float64 = complex_type = type("Dummy", (), {})
-
         leaf = self._leftmost_leaf()
-        if isinstance(leaf, (float32, float64)):
-            dest = leaf.__class__(addr=f"{varid} {vars_obj}")
-        elif isinstance(leaf, complex_type):
-            dest = leaf.__icopy__(varid)
-        elif isinstance(leaf, _get_bigscore()):
-            dest = leaf.__class__(addr=f"{varid} {vars_obj}")
-        elif isinstance(leaf, _get_score()):
-            dest = _get_score()(addr=f"{varid} {vars_obj}", multiplier=leaf.multiplier)
-        elif isinstance(leaf, _get_nbt()):
-            dest = _get_nbt()(addr=f"flare:vars {varid}", datatype=leaf.type)
-        else:
-            dest = _get_score()(addr=f"{varid} {vars_obj}")
+        dest = leaf._create_var(varid)
         self._eval_into(dest)
         return dest
 

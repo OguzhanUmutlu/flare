@@ -107,7 +107,7 @@ def dbg(*args):
 
 
 def _flare_print(*args):
-    from .variables import score, nbt  # to avoid circular import
+    from .variables import score, nbt  # avoid circular import
     components = []
     for i, arg in enumerate(args):
         if i > 0:
@@ -169,7 +169,6 @@ def export(func=None, *, append=False):
     is_recursive = func.__name__ in _recursive_functions
     sig = inspect.signature(func)
 
-    from .variables import score, nbt
     kwargs = {}
 
     for name, param in sig.parameters.items():
@@ -216,7 +215,6 @@ def export(func=None, *, append=False):
                 if is_recursive and isinstance(target, nbt):
                     base_addr = f"storage flare:args {func.__name__}_{arg_name}"
                     if isinstance(arg_val, (int, float, str)):
-                        import json
                         runcommand(f"data modify {base_addr} append value {json.dumps(arg_val)}")
                     elif isinstance(arg_val, nbt):
                         runcommand(f"data modify {base_addr} append from {arg_val.addr}")
@@ -290,7 +288,6 @@ def _flare_assign(var_name, value, local_env, global_env):
         return target
 
     if target is None and hasattr(value, "__icopy__"):
-        import inspect
         if "is_recursive" in inspect.signature(value.__icopy__).parameters:
             return value.__icopy__(varid=f"{_current_namespace}_{var_name}", is_recursive=_in_recursive_context)
         return value.__icopy__(varid=f"{_current_namespace}_{var_name}")
@@ -310,12 +307,9 @@ def _flare_return(value):
         return
 
     if hasattr(ret_anno, '__name__') and ret_anno.__name__ in ('score', 'fixed', '_PrecisionScore'):
-        from .variables import score
         target = score(addr=f"{func_name.replace(':', '_')}_ret {vars_obj}")
         target.__iset__(value)
     else:
-        from .variables import nbt
-        import inspect
         if inspect.isclass(ret_anno) and issubclass(ret_anno, nbt):
             target = ret_anno(addr=f"storage flare:returns {func_name.replace(':', '_')}")
         else:

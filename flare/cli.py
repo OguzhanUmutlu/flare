@@ -4,14 +4,17 @@ import json
 import os
 import shutil
 import sys
+import threading
 import time
+import traceback
 from pathlib import Path
 
+import mcemu
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from flare import context
-from flare.preprocessor import FlareTransformer, CallGraphAnalyzer, preprocess_minecraft_commands
+from . import context
+from .preprocessor import FlareTransformer, CallGraphAnalyzer, preprocess_minecraft_commands
 
 
 def init_project(path: str):
@@ -89,7 +92,6 @@ def build_datapack(file_path: str):
         sys.path.pop(0)
     except Exception as e:
         print(f"Build failed: {e}")
-        import traceback
         traceback.print_exc()
         return False, set(), None
 
@@ -176,17 +178,7 @@ def get_tags(build_dir: Path, tag_type: str, tag_name: str) -> list[str]:
 
 
 def run_emulator(build_dir: Path):
-    try:
-        import mcemu
-    except ImportError:
-        print("mcemu is not installed. Run `pip install mcemu` to use the --run feature.")
-        return None
     print("\n--- Starting mcemu ---")
-    try:
-        import mcemu.commands
-    except ImportError:
-        pass
-
     emu = mcemu.Emulator()
     emu.load_datapack(str(build_dir.absolute()))
 
@@ -243,7 +235,6 @@ def main():
         except KeyboardInterrupt:
             pass
 
-    import threading
     if success and args.run is not None:
         try:
             timeout = float(args.run) if args.run != "-1" else None

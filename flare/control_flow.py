@@ -1,8 +1,10 @@
 from . import context as ctx
+from .execute_modifiers import ExecuteChain, _as
 from .compiler import _flatten_and
 from .context import push_context, runcommand, temp_obj
 from .types import NBTType
 from .variables import score, nbt
+from .variables import selector
 
 
 def _flare_if(*args):
@@ -168,7 +170,6 @@ def _flare_for(iterable, body_func):
         runcommand(f"execute if score {ret_temp_init.addr} matches 1 run return 1")
 
     else:
-        from .variables import selector
         if isinstance(iterable, selector):
             _flare_with(iterable, lambda: body_func(selector("@s")))
         else:
@@ -177,9 +178,6 @@ def _flare_for(iterable, body_func):
 
 
 def _flare_with(*args):
-    from .execute_modifiers import ExecuteChain, _as
-    from .variables import selector
-
     body_func = args[-1]
     chains = args[:-1]
 
