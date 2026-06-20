@@ -1,5 +1,6 @@
 import builtins
 import math
+from math import *
 
 _orig = {"floor": math.floor, "ceil": math.ceil, "round": builtins.round, "sqrt": math.sqrt, "sin": math.sin,
          "cos": math.cos, "tan": math.tan, "asin": math.asin, "acos": math.acos, "atan": math.atan, "atan2": math.atan2,

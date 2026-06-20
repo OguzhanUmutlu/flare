@@ -194,11 +194,11 @@ c = a * b
 d = float64(3.14159)
 ```
 
-### The `flaremath` Standard Library
-Flare comes bundled with `flaremath`, a standard library extension that provides high-level mathematical functions. These functions automatically compile into highly-optimized Minecraft scoreboard and bit-shifting algorithms (such as CORDIC and Taylor series approximations).
+### The `math` Standard Library
+Flare comes bundled with `math`, a standard library extension that provides high-level mathematical functions. These functions automatically compile into highly-optimized Minecraft scoreboard and bit-shifting algorithms (such as CORDIC and Taylor series approximations).
 
 ```python
-import flare.flaremath as math
+from flare import math
 from flare.variables import float32
 
 x = float32(0.5)
@@ -212,6 +212,16 @@ log_val = math.ln(x)
 sqrt_val = math.sqrt(y)
 pow_val = math.pow(x, 3)
 ```
+
+**Supported Functions:**
+- **Rounding:** `floor(x)`, `ceil(x)`, `round_(x, ndigits)`
+- **Roots & Exponents:** `sqrt(x)`, `exp(x)`, `pow(x, y)`
+- **Logarithms:** `ln(x)`, `log(x, base)`
+- **Trigonometry:** `sin(x)`, `cos(x)`, `tan(x)`, `fastsin(x)`
+- **Inverse Trigonometry:** `asin(x)`, `acos(x)`, `atan(x)`, `atan2(y, x)`
+- **Reciprocal Trigonometry:** `csc(x)`, `sec(x)`, `cot(x)`, `acsc(x)`, `asec(x)`, `acot(x)`
+- **Hyperbolic:** `sinh(x)`, `cosh(x)`, `tanh(x)`, `asinh(x)`, `acosh(x)`, `atanh(x)`
+- **Reciprocal Hyperbolic:** `csch(x)`, `sech(x)`, `coth(x)`, `acsch(x)`, `asech(x)`, `acoth(x)`
 
 ---
 
