@@ -318,3 +318,6 @@ class float64:
 
     def __pos__(self):
         return self
+
+    def __repr__(self):
+        return f"Double(addr={self.addr})"

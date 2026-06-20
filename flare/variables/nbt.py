@@ -12,7 +12,7 @@ from ..types import array
 
 
 def _score():
-    from .score import score
+    from .score import score  # avoid circular import
     return score
 
 
@@ -265,9 +265,17 @@ class nbt:
                 f"execute store result {self.addr} {self.type.name.lower()} {1 / other.multiplier} run scoreboard players get {other.addr}")
             return self
         if isinstance(other, str):
-            if self.type != NBTType.String:
+            if self.type == NBTType.String:
+                runcommand(f"data modify {self.addr} set value {json.dumps(other)}")
+            elif self.type is None:
+                if (other.startswith('{') and other.endswith('}')) or (
+                        other.startswith('[') and other.endswith(']')) or other.endswith('b') or other.endswith(
+                    'd') or other.endswith('f') or other.endswith('s') or other.endswith('l'):
+                    runcommand(f"data modify {self.addr} set value {other}")
+                else:
+                    runcommand(f"data modify {self.addr} set value {json.dumps(other)}")
+            else:
                 raise TypeError(f"Cannot set {self.type.name.lower()} with string")
-            runcommand(f"data modify {self.addr} set value {json.dumps(other)}")
             return self
         if isinstance(other, list):
             if not self.is_sequence():
@@ -680,3 +688,6 @@ class nbt:
 
     def prepend(self, other):
         return self.insert(0, other)
+
+    def __repr__(self):
+        return f"NBT[{self.type}](addr=\"{self.addr}\")"

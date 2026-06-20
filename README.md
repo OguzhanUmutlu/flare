@@ -57,6 +57,18 @@ execute as @a run particle flame ~ ~ ~
 health = score(20)
 if health < 10:
     title @a title "Low Health!"
+
+# You can effortlessly interpolate Python variables into commands!
+# Flare automatically resolves local variables and addresses.
+i = 10
+tp @a ~i ~ ~
+
+# Flare natively supports multi-line commands! No quotes needed.
+# The preprocessor smartly tracks your bracket indentation.
+summon cow ~ ~ ~ {
+    "CustomName": '"Bessie"',
+    "Invulnerable": 1b
+}
 ```
 
 ---
@@ -109,6 +121,30 @@ c = a * b  # Flare handles all scaling math for you!
 ## NBT Variables
 
 Flare supports full, programmatic NBT data manipulation! You define the NBT type you want using `nbt[type]`.
+
+### Inline NBT Macros (`nbt{}` and `nbt[]`)
+
+If you want to construct raw NBT structures (such as inside a `summon` or `data modify` command) without allocating a persistent `storage` variable in Flare, you can use the custom `nbt{...}` and `nbt[...]` syntax!
+
+This acts as a powerful syntax macro: it evaluates inline using Python's local scope, strips all unnecessary JSON whitespace for optimal command minification, and embeds the raw string directly into the surrounding command.
+
+```python
+i = 10
+# This behaves like an f-string macro, not a persistent memory allocation!
+infinite_invisibility = nbt{Id: 14, Duration: 999999, Amplifier: 1, ShowParticles: 0b}
+
+summon chicken ~i ~ ~ {
+    Tags: [f"quack{i}"],
+    IsChickenJockey: true,
+    Passengers: [{
+        id: "minecraft:zombie",
+        IsBaby: true,
+        ActiveEffects: [infinite_invisibility]
+    }]
+}
+```
+
+*Note: Flare's smart lexer natively understands Minecraft data types! You don't need to quote NBT keys (e.g. `Tags:` instead of `"Tags":`), and Python variables (like `infinite_invisibility` or `i`) will be seamlessly evaluated and minified.*
 
 ### Basic NBT
 ```python
@@ -237,7 +273,7 @@ from flare import tagged
 close_players = tagged("@a[distance=..5]")
 
 # The preprocessor automatically turns this into `kill @e[tag=my_tag]`!
-kill {close_players}
+kill close_players
 
 # You can easily reassign it to move the tag!
 close_players[:] = "@p"

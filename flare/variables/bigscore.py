@@ -39,8 +39,6 @@ class bigscore:
     def __class_getitem__(cls, item):
         if isinstance(item, tuple):
             s, m = item
-            if isinstance(m, int) and m > 0:
-                m = 10 ** -m
         else:
             s = item
             m = cls._multiplier
@@ -535,6 +533,9 @@ class bigscore:
             return self
         raise UnsupportedOperandError(self, "><", other)
 
+    def __repr__(self):
+        return f"bigscore(size={self.size}, base={self._base})"
+
 
 class bigfixed(bigscore):
 
@@ -542,13 +543,16 @@ class bigfixed(bigscore):
     def __class_getitem__(cls, item):
         if isinstance(item, tuple):
             s, m = item
-            m = 10 ** m
+            m = 10 ** -m
         else:
             s = 2
-            m = 10 ** item
+            m = 10 ** -item
 
         class _TypedBigFixed(cls):
             _size = s
             _multiplier = m
 
         return _TypedBigFixed
+
+    def __repr__(self):
+        return f"bigfixed(size={self.size}, multiplier={self.multiplier})"

@@ -7,14 +7,26 @@ class BinaryOp:
         self.right = right
         self.op = op
 
-    def _leftmost_leaf(self):
-        node = self
-        while isinstance(node, (BinaryOp, UnaryOp)):
+    def _best_leaf(self):
+        def get_priority(leaf):
+            if hasattr(leaf, "_type_priority"):
+                return leaf._type_priority()
+            return 0
+
+        def traverse(node):
             if isinstance(node, BinaryOp):
-                node = node.left
+                left_leaf = traverse(node.left)
+                right_leaf = traverse(node.right)
+                if get_priority(left_leaf) >= get_priority(right_leaf):
+                    return left_leaf
+                else:
+                    return right_leaf
+            elif isinstance(node, UnaryOp):
+                return traverse(node.operand)
             else:
-                node = node.operand
-        return node
+                return node
+
+        return traverse(self)
 
     def _alloc_temp(self, like):
         return like._alloc_temp()
@@ -23,20 +35,35 @@ class BinaryOp:
         if self.op in ("eq", "ne", "lt", "le", "gt", "ge", "and", "or", "not"):
             raise TypeError("Logical/Relational operators cannot be assigned directly.")
         iop = f"__i{self.op}__"
-        if isinstance(self.left, (BinaryOp, UnaryOp)):
-            self.left._eval_into(dest)
+        
+        left_node = self.left
+        right_node = self.right
+        
+        if self.op in ("add", "mul"):
+            def get_priority(node):
+                if hasattr(node, "_best_leaf"):
+                    node = node._best_leaf()
+                if hasattr(node, "_type_priority"):
+                    return node._type_priority()
+                return 0
+                
+            if get_priority(right_node) > get_priority(left_node):
+                left_node, right_node = right_node, left_node
+                
+        if isinstance(left_node, (BinaryOp, UnaryOp)):
+            left_node._eval_into(dest)
         else:
-            dest.__iset__(self.left)
-        if isinstance(self.right, (BinaryOp, UnaryOp)):
+            dest.__iset__(left_node)
+        if isinstance(right_node, (BinaryOp, UnaryOp)):
             temp = self._alloc_temp(dest)
-            self.right._eval_into(temp)
+            right_node._eval_into(temp)
             getattr(dest, iop)(temp)
         else:
-            getattr(dest, iop)(self.right)
+            getattr(dest, iop)(right_node)
         return dest
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
-        leaf = self._leftmost_leaf()
+        leaf = self._best_leaf()
         dest = leaf._create_var(varid)
         self._eval_into(dest)
         return dest
@@ -110,14 +137,26 @@ class UnaryOp:
         self.operand = operand
         self.op = op
 
-    def _leftmost_leaf(self):
-        node = self
-        while isinstance(node, (BinaryOp, UnaryOp)):
+    def _best_leaf(self):
+        def get_priority(leaf):
+            if hasattr(leaf, "_type_priority"):
+                return leaf._type_priority()
+            return 0
+
+        def traverse(node):
             if isinstance(node, BinaryOp):
-                node = node.left
+                left_leaf = traverse(node.left)
+                right_leaf = traverse(node.right)
+                if get_priority(left_leaf) >= get_priority(right_leaf):
+                    return left_leaf
+                else:
+                    return right_leaf
+            elif isinstance(node, UnaryOp):
+                return traverse(node.operand)
             else:
-                node = node.operand
-        return node
+                return node
+
+        return traverse(self)
 
     def _alloc_temp(self, like):
         return like._alloc_temp()
@@ -139,7 +178,7 @@ class UnaryOp:
         return dest
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
-        leaf = self._leftmost_leaf()
+        leaf = self._best_leaf()
         dest = leaf._create_var(varid)
         self._eval_into(dest)
         return dest

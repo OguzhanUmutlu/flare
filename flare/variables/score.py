@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from fractions import Fraction
+from math import log
 
 from .core import UnsupportedOperandError, BinaryOp, UnaryOp
 from .. import context as ctx
@@ -11,7 +12,7 @@ INT32_LIMIT = (2 ** 31) - 1
 
 
 def _nbt():
-    from .nbt import nbt
+    from .nbt import nbt  # avoid circular import
     return nbt
 
 
@@ -32,6 +33,9 @@ class score:
         self.multiplier = multiplier
         self.value_to_set = value if value is not None else (0 if addr is None else None)
         self.addr = addr
+
+    def _type_priority(self):
+        return -self.multiplier
 
     def _alloc_temp(self):
         t = score(addr=f"!t{ctx._temp_id} {temp_obj}", multiplier=self.multiplier)
@@ -86,9 +90,7 @@ class score:
                 self.__iset__(self.value_to_set)
 
     @classmethod
-    def __class_getitem__(cls, precision: int):
-        multiplier = 10 ** -precision
-
+    def __class_getitem__(cls, multiplier: int):
         class _PrecisionScore(cls):
             def __init__(self, value: int | float | None = None, *, addr: str = None, mult: float = multiplier):
                 super().__init__(value, addr=addr, multiplier=mult)
@@ -574,7 +576,19 @@ class score:
             return self
         raise UnsupportedOperandError(self, "><", other)
 
+    def __repr__(self):
+        if self.multiplier != 1.0:
+            return f"score[{self.multiplier}](addr=\"{self.addr}\")"
+        return f"score(addr=\"{self.addr}\")"
+
 
 class fixed(score):
     def __init__(self, value: int | float | None = None, *, addr: str = None, multiplier: float = 1e-4):
         super().__init__(value, addr=addr, multiplier=multiplier)
+
+    def __repr__(self):
+        return f"fixed[{-log(self.multiplier)}](addr=\"{self.addr}\")"
+
+    @classmethod
+    def __class_getitem__(cls, precision: int):
+        return score[10 ** -precision]

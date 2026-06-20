@@ -85,7 +85,10 @@ def build_datapack(file_path: str):
 
         global_env = {"__name__": "__main__", "__file__": abs_path}
         exec(
-            "from flare import _flare_assign, _flare_if, _flare_while, _flare_for, _flare_with, runcommand, _flare_return",
+            "from flare import _flare_assign, _flare_if, _flare_while, _flare_for, _flare_with, runcommand, _flare_return\n"
+            "from flare.command_parser import interpolate_command\n"
+            "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
+            "from flare import nbt, score, fixed, nbtintarray, dbg, export, namespace",
             global_env)
 
         exec(compile(tree, abs_path, "exec"), global_env)
@@ -93,7 +96,7 @@ def build_datapack(file_path: str):
     except Exception as e:
         print(f"Build failed: {e}")
         traceback.print_exc()
-        return False, set(), None
+        return False, {os.path.abspath(file_path)}, None
 
     new_modules = set(sys.modules.keys()) - old_modules
     watch_files = {os.path.abspath(file_path)}

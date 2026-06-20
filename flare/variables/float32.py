@@ -429,3 +429,6 @@ class float32:
 
     def __pos__(self):
         return self
+
+    def __repr__(self):
+        return f"Float(exp={self._exp}, sign={self._sign}, mant={self._mant})"

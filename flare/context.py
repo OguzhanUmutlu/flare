@@ -1,6 +1,8 @@
 import inspect
 import json
 
+from .command_parser import interpolate_command
+
 files = {"main": []}
 current_file = "main"
 _current_namespace = "flare"
@@ -93,7 +95,9 @@ def __float_prec(x: float) -> int:
     return len(str(x).split(".")[-1])
 
 
-def runcommand(command: str):
+def runcommand(command: str, local_vars=None, global_vars=None):
+    if local_vars is not None and global_vars is not None:
+        command = interpolate_command(command, local_vars, global_vars)
     files[current_file].append(command)
 
 
@@ -112,6 +116,9 @@ def _flare_print(*args):
     for i, arg in enumerate(args):
         if i > 0:
             components.append({"text": " "})
+
+        if hasattr(arg, '__icopy__') and getattr(type(arg), '__name__', '') in ("BinaryOp", "UnaryOp"):
+            arg = arg.__icopy__(f"{_current_namespace}_temp_print_{i}")
 
         if isinstance(arg, score):
             if getattr(arg, 'multiplier', 1.0) != 1.0:
@@ -156,6 +163,7 @@ def _flare_print(*args):
 
 
 def export(func=None, *, append=False):
+    from flare import score  # avoid circular import
     if func is None:
         def wrapper(f):
             return export(f, append=append)
@@ -206,6 +214,7 @@ def export(func=None, *, append=False):
 
     class ProxyFunction:
         def __call__(self, *args, **call_kwargs):
+            from .variables import score, nbt  # avoid circular import
             global _temp_id
             bound = sig.bind(*args, **call_kwargs)
             bound.apply_defaults()
@@ -296,6 +305,7 @@ def _flare_assign(var_name, value, local_env, global_env):
 
 
 def _flare_return(value):
+    from .variables import score, nbt  # avoid circular import
     func_name = _logical_func
     if func_name is None:
         raise Exception("Return outside of exported function")

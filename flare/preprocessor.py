@@ -13,8 +13,8 @@ class CallGraphAnalyzer(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         is_exported = any(
-            isinstance(dec, ast.Name) and dec.id == 'export' or isinstance(dec, ast.Call) and getattr(dec.func, 'id',
-                                                                                                      '') == 'export'
+            isinstance(dec, ast.Name) and dec.id == "export" or isinstance(dec, ast.Call) and getattr(dec.func, "id",
+                                                                                                      "") == "export"
             for dec in node.decorator_list)
         if is_exported:
             self.exported_funcs.add(node.name)
@@ -227,8 +227,52 @@ COMMAND_KEYWORDS = "advancement|attribute|ban|ban-ip|banlist|bossbar|clear|clone
 COMMAND_RE = re.compile(r"^(\s*)(/?(?:" + COMMAND_KEYWORDS + r")\b|/\S*)(.*)$")
 
 
+def process_nbt_literals(source: str) -> str:
+    out = []
+    i = 0
+    n = len(source)
+    while i < n:
+        if source[i:i + 3] == "nbt":
+            if i == 0 or not (source[i - 1].isalnum() or source[i - 1] == "_"):
+                j = i + 3
+                while j < n and source[j] in " \t\r\n":
+                    j += 1
+                if j < n and source[j] in "{[":
+                    bracket_count = 1
+                    curr = j + 1
+                    while curr < n and bracket_count > 0:
+                        c = source[curr]
+                        if c in "\"'":
+                            quote = c
+                            curr += 1
+                            while curr < n:
+                                if source[curr] == "\\":
+                                    curr += 2
+                                    continue
+                                if source[curr] == quote:
+                                    curr += 1
+                                    break
+                                curr += 1
+                            continue
+                        if c in "{[(":
+                            bracket_count += 1
+                        elif c in "}])":
+                            bracket_count -= 1
+                        curr += 1
+
+                    if bracket_count == 0:
+                        nbt_str = source[j:curr]
+                        safe_nbt = nbt_str.replace('"', '\\"')
+                        out.append(f'interpolate_command("""{safe_nbt}""", locals(), globals())')
+                        i = curr
+                        continue
+        out.append(source[i])
+        i += 1
+    return "".join(out)
+
+
 def preprocess_minecraft_commands(source: str) -> str:
-    source = "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\n" + source
+    source = process_nbt_literals(source)
     lines = source.split("\n")
 
     skip_lines = set()
@@ -240,15 +284,21 @@ def preprocess_minecraft_commands(source: str) -> str:
     except (tokenize.TokenError, IndentationError):
         pass
 
-    for i in range(len(lines)):
+    bracket_counts = {"{": 0, "[": 0, "(": 0}
+    bracket_matches = {"}": "{", "]": "[", ")": "("}
+
+    i = 0
+    while i < len(lines):
         line_num = i + 1
         if line_num in skip_lines:
+            i += 1
             continue
 
         line = lines[i]
         stripped = line.strip()
 
         if not stripped or stripped.startswith("#"):
+            i += 1
             continue
 
         match = COMMAND_RE.match(line)
@@ -257,10 +307,54 @@ def preprocess_minecraft_commands(source: str) -> str:
             cmd = match.group(2) + match.group(3)
             if cmd.startswith("/"):
                 cmd = cmd[1:]
-            if '"""' in cmd:
-                lines[i] = f"{indent}runcommand(f'''{cmd}''')"
+
+            in_string = False
+            escape = False
+            cmd_lines = []
+
+            start_i = i
+
+            while i < len(lines):
+                current_line = lines[i]
+                cmd_lines.append(current_line)
+
+                for char in current_line:
+                    if escape:
+                        escape = False
+                        continue
+                    if char == "\\":
+                        escape = True
+                        continue
+                    if char in ('"', "'"):
+                        if in_string == char:
+                            in_string = False
+                        elif not in_string:
+                            in_string = char
+                        continue
+
+                    if not in_string:
+                        if char in bracket_counts:
+                            bracket_counts[char] += 1
+                        elif char in bracket_matches:
+                            opener = bracket_matches[char]
+                            if bracket_counts[opener] > 0:
+                                bracket_counts[opener] -= 1
+
+                if sum(bracket_counts.values()) == 0:
+                    break
+                i += 1
+
+            full_cmd = " ".join([c.strip() for c in cmd_lines])
+
+            if '"""' in full_cmd:
+                lines[start_i] = f"{indent}runcommand('''{full_cmd}''', locals(), globals())"
             else:
-                lines[i] = f'{indent}runcommand(f"""{cmd}""")'
+                lines[start_i] = f'{indent}runcommand("""{full_cmd}""", locals(), globals())'
+
+            for j in range(start_i + 1, min(i + 1, len(lines))):
+                lines[j] = ""
+
+        i += 1
 
     intermediate_source = "\n".join(lines)
 
@@ -274,15 +368,57 @@ def preprocess_minecraft_commands(source: str) -> str:
     while i < len(tokens):
         tok = tokens[i]
 
-        if tok.type == tokenize.NAME and tok.string == 'as':
+        if tok.type == tokenize.NAME and tok.string == "nbt":
+            j = i + 1
+            while j < len(tokens) and tokens[j].type in (tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
+                                                         tokenize.DEDENT):
+                j += 1
+            if j < len(tokens) and tokens[j].type == tokenize.OP and tokens[j].string == "(":
+                k = j + 1
+                while k < len(tokens) and tokens[k].type in (tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
+                                                             tokenize.DEDENT):
+                    k += 1
+                if k < len(tokens) and tokens[k].type == tokenize.OP and tokens[k].string in ("{", "["):
+                    bracket_count = 1
+                    curr = k + 1
+                    while curr < len(tokens) and bracket_count > 0:
+                        inner_tok = tokens[curr]
+                        if inner_tok.type == tokenize.OP:
+                            if inner_tok.string in ("{", "[", "("):
+                                bracket_count += 1
+                            elif inner_tok.string in ("}", "]", ")"):
+                                bracket_count -= 1
+                        curr += 1
+
+                    if bracket_count == 0:
+                        start_row, start_col = tokens[k].start
+                        end_row, end_col = tokens[curr - 1].end
+                        lines_arr = intermediate_source.split("\n")
+
+                        if start_row == end_row:
+                            nbt_str = lines_arr[start_row - 1][start_col:end_col]
+                        else:
+                            parts = [lines_arr[start_row - 1][start_col:]]
+                            for r in range(start_row, end_row - 1):
+                                parts.append(lines_arr[r])
+                            parts.append(lines_arr[end_row - 1][:end_col])
+                            nbt_str = " ".join(p.strip() for p in parts if p.strip())
+
+                        out_tokens.append((tokenize.NAME, "nbt"))
+                        out_tokens.append((tokenize.OP, "("))
+                        out_tokens.append((tokenize.STRING, f"'''{nbt_str}'''"))
+                        i = curr
+                        continue
+
+        if tok.type == tokenize.NAME and tok.string == "as":
             is_func_or_attr = False
-            if i + 1 < len(tokens) and tokens[i + 1].type == tokenize.OP and tokens[i + 1].string == '(':
+            if i + 1 < len(tokens) and tokens[i + 1].type == tokenize.OP and tokens[i + 1].string == "(":
                 is_func_or_attr = True
-            elif i > 0 and tokens[i - 1].type == tokenize.OP and tokens[i - 1].string == '.':
+            elif i > 0 and tokens[i - 1].type == tokenize.OP and tokens[i - 1].string == ".":
                 is_func_or_attr = True
 
             if is_func_or_attr:
-                out_tokens.append((tokenize.NAME, '_as'))
+                out_tokens.append((tokenize.NAME, "_as"))
                 i += 1
                 continue
 
@@ -311,7 +447,7 @@ def preprocess_minecraft_commands(source: str) -> str:
 
             if i + 1 < len(tokens) and tokens[i + 1].type == tokenize.NAME:
                 name_tok = tokens[i + 1]
-                if name_tok.string in ('a', 'e', 'p', 'r', 's', 'n', 'c'):
+                if name_tok.string in ("a", "e", "p", "r", "s", "n", "c"):
                     is_decorator = False
                     is_matrix_mult = False
 

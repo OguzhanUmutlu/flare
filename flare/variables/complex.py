@@ -148,3 +148,6 @@ class complex_type:
 
     def __rmul__(self, other):
         return BinaryOp(other, self, "mul")
+
+    def __repr__(self):
+        return f"({self.real} + {self.imag}j)"

@@ -22,10 +22,17 @@ print(score(addr=b.addr))
 print(c)
 dbg(c)
 
+
 @export
 def factorial(n: nbt[int]) -> nbt[int]:
     if n <= 1:
         return 1
     return n * factorial(n - 1)
 
+
 print(factorial(64))
+
+x = score(12)
+y = fixed(20.7)
+print(x * y)
+print(y * x)
