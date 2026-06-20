@@ -26,6 +26,11 @@ class nbt:
         self.target_type = "storage"
         self._schema_node = schema_node
 
+        if addr is not None:
+            self._parse_addr(addr)
+            if self.value_to_set is not None:
+                self.__iset__(self.value_to_set)
+
     def _alloc_temp(self):
         t = nbt(addr=f"flare:temp !t{ctx._temp_id}", datatype=self.type)
         ctx._temp_id += 1
@@ -33,11 +38,6 @@ class nbt:
 
     def _create_var(self, varid: str):
         return nbt(addr=f"flare:vars {varid}", datatype=self.type)
-
-        if addr is not None:
-            self._parse_addr(addr)
-            if self.value_to_set is not None:
-                self.__iset__(self.value_to_set)
 
     def __str__(self):
         return f"[NBT {self.addr}]"
@@ -71,6 +71,8 @@ class nbt:
         return store(self)
 
     def __getattr__(self, name):
+        if name.startswith("_"):
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
         if self.is_number():
             raise AttributeError("Cannot chain path on NBT numbers")
         new_path = f"{self.path}.{name}" if self.path else name

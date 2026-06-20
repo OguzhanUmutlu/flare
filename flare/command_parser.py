@@ -74,6 +74,15 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
                     output.append(val.addr)
                 elif hasattr(val, "target"):
                     output.append(val.target)
+                elif isinstance(val, dict) and output and output[-1].endswith("**"):
+                    output[-1] = output[-1][:-2]  # Remove the **
+                    items = []
+                    for k, v in val.items():
+                        if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-\.]+$', k):
+                            k = json.dumps(k)
+                        v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
+                        items.append(f"{k}: {v_str}")
+                    output.append(", ".join(items))
                 else:
                     output.append(str(val))
             elif not is_key and ident in global_vars:
@@ -82,6 +91,15 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
                     output.append(val.addr)
                 elif hasattr(val, "target"):
                     output.append(val.target)
+                elif isinstance(val, dict) and output and output[-1].endswith("**"):
+                    output[-1] = output[-1][:-2]  # Remove the **
+                    items = []
+                    for k, v in val.items():
+                        if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-\.]+$', k):
+                            k = json.dumps(k)
+                        v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
+                        items.append(f"{k}: {v_str}")
+                    output.append(", ".join(items))
                 else:
                     output.append(str(val))
             else:

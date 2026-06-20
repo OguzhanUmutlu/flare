@@ -20,9 +20,12 @@ _in_recursive_context = False
 return_types = {}
 _logical_func = None
 
+validation_level = "strict"
+minecraft_version = "1.20.4"
+
 
 def reset_context():
-    global files, current_file, _current_namespace, functions, constants, _temp_id, _func_id, _objective_offset, _constant_offset
+    global files, current_file, _current_namespace, functions, constants, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, minecraft_version
     files = {"main": []}
     current_file = "main"
     _current_namespace = "flare"
@@ -95,9 +98,22 @@ def __float_prec(x: float) -> int:
     return len(str(x).split(".")[-1])
 
 
+from .validator import validate_command, FlareCommandValidationError
+
+
 def runcommand(command: str, local_vars=None, global_vars=None):
     if local_vars is not None and global_vars is not None:
         command = interpolate_command(command, local_vars, global_vars)
+
+    if validation_level != "none":
+        try:
+            validate_command(command, minecraft_version)
+        except FlareCommandValidationError as e:
+            if validation_level == "strict":
+                raise e
+            elif validation_level == "warning":
+                print(f"[Flare Compiler Warning] {e}")
+
     files[current_file].append(command)
 
 
@@ -117,11 +133,11 @@ def _flare_print(*args):
         if i > 0:
             components.append({"text": " "})
 
-        if hasattr(arg, '__icopy__') and getattr(type(arg), '__name__', '') in ("BinaryOp", "UnaryOp"):
+        if hasattr(arg, "__icopy__") and getattr(type(arg), "__name__", "") in ("BinaryOp", "UnaryOp"):
             arg = arg.__icopy__(f"{_current_namespace}_temp_print_{i}")
 
         if isinstance(arg, score):
-            if getattr(arg, 'multiplier', 1.0) != 1.0:
+            if getattr(arg, "multiplier", 1.0) != 1.0:
                 scale_str = f"{arg.multiplier:.15f}".rstrip("0")
                 if scale_str.endswith("."):
                     scale_str += "0"
@@ -182,15 +198,15 @@ def export(func=None, *, append=False):
     for name, param in sig.parameters.items():
         anno = param.annotation
 
-        if hasattr(anno, '__name__') and anno.__name__ in ('score', 'fixed', '_PrecisionScore'):
+        if hasattr(anno, "__name__") and anno.__name__ in ("score", "fixed", "_PrecisionScore"):
             if is_recursive:
                 raise TypeError(
                     f"Recursive function '{func.__name__}' argument '{name}' needs a stack but it's a score.")
-            if anno.__name__ == '_PrecisionScore' or anno.__name__ == 'fixed':
+            if anno.__name__ == "_PrecisionScore" or anno.__name__ == "fixed":
                 kwargs[name] = anno(addr=f"{func.__name__}_{name} {vars_obj}")
             else:
                 kwargs[name] = score(addr=f"{func.__name__}_{name} {vars_obj}")
-        elif hasattr(anno, '__name__') and anno.__name__ in ('nbt', '_TypedNBT'):
+        elif hasattr(anno, "__name__") and anno.__name__ in ("nbt", "_TypedNBT"):
             if is_recursive:
                 kwargs[name] = anno(addr=f"storage flare:args {func.__name__}_{name}[-1]")
             else:
@@ -249,24 +265,24 @@ def export(func=None, *, append=False):
 
             ret_anno = sig.return_annotation
             if ret_anno is not inspect.Signature.empty:
-                if hasattr(ret_anno, '__name__') and ret_anno.__name__ in ('score', 'fixed', '_PrecisionScore'):
+                if hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
                     temp_ret = score(addr=f"!ret{_temp_id} {temp_obj}")
                     _temp_id += 1
                     runcommand(
-                        f"scoreboard players operation {temp_ret.addr} = {func_name.replace(':', '_')}_ret {vars_obj}")
-                    if ret_anno.__name__ in ('fixed', '_PrecisionScore'):
+                        f"scoreboard players operation {temp_ret.addr} = {func_name.replace(":", "_")}_ret {vars_obj}")
+                    if ret_anno.__name__ in ("fixed", "_PrecisionScore"):
                         pass
                     return temp_ret
                 else:
                     temp_ret = nbt(addr=f"storage flare:temp !ret{_temp_id}")
                     _temp_id += 1
                     runcommand(
-                        f"data modify {temp_ret.addr} set from storage flare:returns {func_name.replace(':', '_')}")
+                        f"data modify {temp_ret.addr} set from storage flare:returns {func_name.replace(":", "_")}")
                     return temp_ret
 
     proxy = ProxyFunction()
 
-    func_globals = getattr(func, '__globals__', {})
+    func_globals = getattr(func, "__globals__", {})
     prev_func = func_globals.get(func.__name__)
     func_globals[func.__name__] = proxy
 
@@ -316,17 +332,17 @@ def _flare_return(value):
             raise TypeError(f"Function {func_name} returned a value but has no return type annotation")
         return
 
-    if hasattr(ret_anno, '__name__') and ret_anno.__name__ in ('score', 'fixed', '_PrecisionScore'):
-        target = score(addr=f"{func_name.replace(':', '_')}_ret {vars_obj}")
+    if hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
+        target = score(addr=f"{func_name.replace(":", "_")}_ret {vars_obj}")
         target.__iset__(value)
     else:
         if inspect.isclass(ret_anno) and issubclass(ret_anno, nbt):
-            target = ret_anno(addr=f"storage flare:returns {func_name.replace(':', '_')}")
+            target = ret_anno(addr=f"storage flare:returns {func_name.replace(":", "_")}")
         else:
             datatype = None
-            if hasattr(ret_anno, '__origin__') or isinstance(ret_anno, type):
-                datatype = getattr(ret_anno, '__origin__', ret_anno)
-            target = nbt(addr=f"storage flare:returns {func_name.replace(':', '_')}", datatype=datatype)
+            if hasattr(ret_anno, "__origin__") or isinstance(ret_anno, type):
+                datatype = getattr(ret_anno, "__origin__", ret_anno)
+            target = nbt(addr=f"storage flare:returns {func_name.replace(":", "_")}", datatype=datatype)
         target.__iset__(value)
 
     runcommand("return 1")

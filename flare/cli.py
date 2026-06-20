@@ -42,7 +42,7 @@ def init_project(path: str):
     print(f"Created {json_path.absolute()}")
 
 
-def build_datapack(file_path: str):
+def build_datapack(file_path: str, cli_overrides: dict = None):
     p = Path(file_path).parent
     json_path = p / "flare.json"
 
@@ -50,12 +50,19 @@ def build_datapack(file_path: str):
         with open(json_path, "r") as f:
             config = json.load(f)
     else:
-        config = {"namespace": "flare", "pack_format": 15, "description": "A Flare datapack", "build_dir": "dist"}
+        config = {"namespace": "flare", "pack_format": 15, "description": "A Flare datapack", "build_dir": "dist",
+                  "validation_level": "strict", "minecraft_version": "1.20.4"}
+
+    if cli_overrides:
+        config.update(cli_overrides)
 
     namespace = config.get("namespace", "flare")
     build_dir = Path(config.get("build_dir", "dist"))
     if not build_dir.is_absolute():
         build_dir = p / build_dir
+
+    context.validation_level = config.get("validation_level", "strict")
+    context.minecraft_version = config.get("minecraft_version", "1.20.4")
 
     context.reset_context()
     context._current_namespace = namespace
@@ -88,8 +95,7 @@ def build_datapack(file_path: str):
             "from flare import _flare_assign, _flare_if, _flare_while, _flare_for, _flare_with, runcommand, _flare_return\n"
             "from flare.command_parser import interpolate_command\n"
             "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
-            "from flare import nbt, score, fixed, nbtintarray, dbg, export, namespace",
-            global_env)
+            "from flare import nbt, score, fixed, nbtintarray, dbg, export, namespace", global_env)
 
         exec(compile(tree, abs_path, "exec"), global_env)
         sys.path.pop(0)
@@ -196,7 +202,22 @@ def main():
     parser.add_argument("--run", nargs="?", const="-1", default=None,
                         help="Run the compiled datapack in mcemu. Optionally specify a timeout in seconds.")
 
-    args = parser.parse_args()
+    args, unknown_args = parser.parse_known_args()
+
+    cli_overrides = {}
+    i = 0
+    while i < len(unknown_args):
+        arg = unknown_args[i]
+        if arg.startswith("--"):
+            key = arg[2:].replace("-", "_")
+            if i + 1 < len(unknown_args) and not unknown_args[i + 1].startswith("--"):
+                cli_overrides[key] = unknown_args[i + 1]
+                i += 2
+            else:
+                cli_overrides[key] = True
+                i += 1
+        else:
+            i += 1
 
     is_init = args.target == "init"
     if is_init:
@@ -220,7 +241,7 @@ def main():
         print(f"Error: Target file {file_path} not found.")
         return
 
-    success, watch_files, build_dir = build_datapack(file_path)
+    success, watch_files, build_dir = build_datapack(file_path, cli_overrides)
 
     emu_thread = None
     running = True
@@ -271,7 +292,7 @@ def main():
                         running = False
                         emu_thread.join()
 
-                    success, new_watch_files, build_dir = build_datapack(file_path)
+                    success, new_watch_files, build_dir = build_datapack(file_path, cli_overrides)
 
                     if success and new_watch_files != watch_files:
                         observer.unschedule_all()

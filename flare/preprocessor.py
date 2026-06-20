@@ -262,6 +262,13 @@ def process_nbt_literals(source: str) -> str:
 
                     if bracket_count == 0:
                         nbt_str = source[j:curr]
+                        if nbt_str.startswith("["):
+                            inner = nbt_str[1:-1].strip()
+                            if inner in ("int", "float", "str", "bool", "list", "dict", "nbt", "score", "fixed"):
+                                out.append(source[i:curr])
+                                i = curr
+                                continue
+
                         safe_nbt = nbt_str.replace('"', '\\"')
                         out.append(f'interpolate_command("""{safe_nbt}""", locals(), globals())')
                         i = curr

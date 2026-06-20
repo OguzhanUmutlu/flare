@@ -30,9 +30,17 @@ def factorial(n: nbt[int]) -> nbt[int]:
     return n * factorial(n - 1)
 
 
-print(factorial(64))
+print(factorial(8))
 
-x = score(12)
-y = fixed(20.7)
-print(x * y)
-print(y * x)
+e = score(12)
+d = fixed(20.7)
+print(e * d)
+print(d * e)
+
+custom_model_data = nbt{CustomModelData: 7}
+give @s bow{**custom_model_data}
+
+kill @s[type=minecraft:zombie]
+tp @s 1 2 3
+
+# tp @z

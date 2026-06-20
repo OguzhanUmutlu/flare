@@ -30,21 +30,9 @@ def getscore(x: int | float, multiplier: float = 1.0):
 
 class score:
     def __init__(self, value: int | float | None = None, *, addr: str = None, multiplier: float = 1.0):
-        self.multiplier = multiplier
+        self.multiplier = float(multiplier)
         self.value_to_set = value if value is not None else (0 if addr is None else None)
         self.addr = addr
-
-    def _type_priority(self):
-        return -self.multiplier
-
-    def _alloc_temp(self):
-        t = score(addr=f"!t{ctx._temp_id} {temp_obj}", multiplier=self.multiplier)
-        ctx._temp_id += 1
-        return t
-
-    def _create_var(self, varid: str):
-        return score(addr=f"{varid} {vars_obj}", multiplier=self.multiplier)
-
         if addr is not None:
             parts = addr.split(" ", 1)
             if len(parts) == 2:
@@ -58,6 +46,17 @@ class score:
         else:
             self.name = ""
             self.objective = ""
+
+    def _type_priority(self):
+        return -self.multiplier
+
+    def _alloc_temp(self):
+        t = score(addr=f"!t{ctx._temp_id} {temp_obj}", multiplier=self.multiplier)
+        ctx._temp_id += 1
+        return t
+
+    def _create_var(self, varid: str):
+        return score(addr=f"{varid} {vars_obj}", multiplier=self.multiplier)
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
         if is_recursive:
