@@ -362,19 +362,6 @@ onMounted(async () => {
         await pyodideInstance.loadPackage("micropip");
         const micropip = pyodideInstance.pyimport("micropip");
 
-        // Stub out watchdog (used only for --watch CLI mode, unavailable in Pyodide)
-        await pyodideInstance.runPythonAsync(`
-import sys, types
-
-def _make_stub(name):
-    mod = types.ModuleType(name)
-    sys.modules[name] = mod
-    return mod
-
-for _pkg in ["watchdog", "watchdog.observers", "watchdog.events"]:
-    _make_stub(_pkg)
-`);
-
         await micropip.install("flaremc", { headers: { pragma: "no-cache", "cache-control": "no-cache" } });
 
         // Get version
