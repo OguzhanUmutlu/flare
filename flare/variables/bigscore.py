@@ -10,11 +10,17 @@ from ..control_flow import ScoreIfMatches
 
 BASE = 10000
 
-rem = score(addr=f"!rem {temp_obj}")
-val = score(addr=f"!val {temp_obj}")
-carry = score(addr=f"!carry {temp_obj}")
-borrow = score(addr=f"!borrow {temp_obj}")
-mul = score(addr=f"!mul {temp_obj}")
+
+def _get_temps():
+    from ..context import temp_obj
+    from .score import score
+    return (
+        score(addr=f"!rem {temp_obj}"),
+        score(addr=f"!val {temp_obj}"),
+        score(addr=f"!carry {temp_obj}"),
+        score(addr=f"!borrow {temp_obj}"),
+        score(addr=f"!mul {temp_obj}")
+    )
 
 
 class bigscore(ArithmeticSupported):
@@ -44,7 +50,7 @@ class bigscore(ArithmeticSupported):
             if len(addr.split(" ", 1)) > 1:
                 self._objective = addr.split(" ", 1)[1]
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
 
     def _create_var(self, varid: str):
         return self.__class__(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
@@ -78,12 +84,13 @@ class bigscore(ArithmeticSupported):
         if self._addr is None:
             self._parse_addr(f"!big{next_temp_id()}")
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
 
     def get_limb(self, i):
         return score(addr=f"{self._target}_{i} {self._objective}")
 
     def __iset__(self, other):
+        rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
         if isinstance(other, (int, float)):
             val_int = int(round(other * self._multiplier))
@@ -91,7 +98,7 @@ class bigscore(ArithmeticSupported):
                 val_int += self._base ** self.size
             for i in range(self.size):
                 limb_val = val_int % self._base
-                self.get_limb(i).__iset__(limb_val)
+                self.get_limb(i)[:] = limb_val
                 val_int //= self._base
             return self
         if isinstance(other, bigscore):
@@ -103,15 +110,15 @@ class bigscore(ArithmeticSupported):
             if self._multiplier != other._multiplier:
                 pass
             for i in range(other.size):
-                self.get_limb(i).__iset__(other.get_limb(i))
+                self.get_limb(i)[:] = other.get_limb(i)
             for i in range(other.size, self.size):
-                self.get_limb(i).__iset__(0)
+                self.get_limb(i)[:] = 0
             return self
         if isinstance(other, score):
             other._check_addr()
             first_limb = self.get_limb(0)
-            first_limb.__iset__(other)
-            carry.__iset__(0)
+            first_limb[:] = other
+            carry[:] = 0
             ScoreIfMatches(first_limb, (-inf, -1)).then([
                 lambda: carry.__isub__(1),
                 lambda: first_limb.__iadd__(self._base)
@@ -119,7 +126,7 @@ class bigscore(ArithmeticSupported):
 
             for i in range(1, self.size):
                 limb = self.get_limb(i)
-                limb.__iset__(carry)
+                limb[:] = carry
                 ScoreIfMatches(limb, (-inf, -1)).then(
                     lambda: limb.__iadd__(self._base)
                 )
@@ -128,7 +135,7 @@ class bigscore(ArithmeticSupported):
         raise UnsupportedOperandError(self, "=", other)
 
     def __iadd__(self, other):
-        global carry
+        rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
         if isinstance(other, (int, float)):
             t = self.__class__(other)
@@ -141,13 +148,13 @@ class bigscore(ArithmeticSupported):
             if self._base != other._base:
                 raise ValueError("Cannot add bigscores of different bases")
 
-            carry.__iset__(0)
+            carry[:] = 0
             for i in range(self.size):
                 limb = self.get_limb(i)
                 other_limb = other.get_limb(i)
                 limb += other_limb
                 limb += carry
-                carry.__iset__(limb)
+                carry[:] = limb
                 carry /= self._base
                 limb %= self._base
                 ScoreIfMatches(self.get_limb(i), (-inf, -1)).then([
@@ -158,6 +165,7 @@ class bigscore(ArithmeticSupported):
         raise UnsupportedOperandError(self, "+", other)
 
     def __isub__(self, other):
+        rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
         if isinstance(other, (int, float)):
             t = self.__class__(other)
@@ -170,13 +178,13 @@ class bigscore(ArithmeticSupported):
             if self._base != other._base:
                 raise ValueError("Cannot subtract bigscores of different bases")
 
-            borrow.__iset__(0)
+            borrow[:] = 0
             for i in range(self.size):
                 limb = self.get_limb(i)
                 other_limb = other.get_limb(i)
                 limb -= other_limb
                 limb -= borrow
-                borrow.__iset__(0)
+                borrow[:] = 0
                 ScoreIfMatches(self.get_limb(i), (-inf, -1)).then([
                     lambda: borrow.__iset__(1),
                     lambda: self.get_limb(i).__iadd__(self._base)
@@ -185,7 +193,7 @@ class bigscore(ArithmeticSupported):
         raise UnsupportedOperandError(self, "-", other)
 
     def __imul__(self, other):
-        global mul, rem, val, carry
+        rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
         if isinstance(other, (int, float)):
             t = self.__class__(other)
@@ -209,37 +217,37 @@ class bigscore(ArithmeticSupported):
                 for j in range(self.size):
                     limb = self.get_limb(i)
                     other_limb = other.get_limb(j)
-                    mul.__iset__(limb)
+                    mul[:] = limb
                     mul *= other_limb
                     temp_c[i + j] += mul
 
-            carry.__iset__(0)
+            carry[:] = 0
             for i in range(self.size * 2):
                 temp_c[i] += carry
-                carry.__iset__(temp_c[i])
+                carry[:] = temp_c[i]
                 carry /= self._base
                 temp_c[i] %= self._base
 
             m = int(round(self._multiplier))
             if m > 1:
-                rem.__iset__(0)
+                rem[:] = 0
                 for i in reversed(range(self.size)):
-                    val.__iset__(rem)
+                    val[:] = rem
                     val *= self._base
                     pass
                 for i in reversed(range(self.size * 2)):
-                    val.__iset__(rem)
+                    val[:] = rem
                     val *= self._base
                     val += temp_c[i]
 
-                    temp_c[i].__iset__(val)
+                    temp_c[i][:] = val
                     temp_c[i] /= m
 
-                    rem.__iset__(val)
+                    rem[:] = val
                     rem %= m
 
             for i in range(self.size):
-                self.get_limb(i).__iset__(temp_c[i])
+                self.get_limb(i)[:] = temp_c[i]
 
             return self
         raise UnsupportedOperandError(self, "*", other)
@@ -253,10 +261,10 @@ class bigscore(ArithmeticSupported):
             self._addr = f"{self._name} {self._objective}"
             ctx.ensure_objective(self._objective)
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
         else:
             dest = self.__class__(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
-            dest.__iset__(self)
+            dest[:] = self
             return dest
         return self
 
@@ -273,7 +281,7 @@ class bigscore(ArithmeticSupported):
         pass
 
     def __idiv__(self, other):
-        global rem, val
+        rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
 
         if isinstance(other, (int, float)):
@@ -282,47 +290,47 @@ class bigscore(ArithmeticSupported):
                 raise ZeroDivisionError("Division by zero")
             if m < 0:
                 self.__idiv__(-m)
-                borrow.__iset__(0)
+                borrow[:] = 0
                 for i in range(self.size):
                     limb = self.get_limb(i)
-                    val.__iset__(0)
+                    val[:] = 0
                     val -= limb
                     val -= borrow
-                    borrow.__iset__(0)
+                    borrow[:] = 0
                     ScoreIfMatches(val, (-inf, -1)).then([
                         lambda: borrow.__iset__(1),
                         lambda: val.__iadd__(self._base)
                     ])
-                    limb.__iset__(val)
+                    limb[:] = val
                 return self
-            rem.__iset__(0)
+            rem[:] = 0
             for i in reversed(range(self.size)):
                 limb = self.get_limb(i)
-                val.__iset__(rem)
+                val[:] = rem
                 val *= self._base
                 val += limb
-                limb.__iset__(val)
+                limb[:] = val
                 limb /= m
-                rem.__iset__(val)
+                rem[:] = val
                 rem %= m
             self._last_rem = self.__class__()
-            self._last_rem.__iset__(0)
-            self._last_rem.get_limb(0).__iset__(rem)
+            self._last_rem[:] = 0
+            self._last_rem.get_limb(0)[:] = rem
             return self
         if isinstance(other, score):
-            rem.__iset__(0)
+            rem[:] = 0
             for i in reversed(range(self.size)):
                 limb = self.get_limb(i)
-                val.__iset__(rem)
+                val[:] = rem
                 val *= self._base
                 val += limb
-                limb.__iset__(val)
+                limb[:] = val
                 limb /= other
-                rem.__iset__(val)
+                rem[:] = val
                 rem %= other
             self._last_rem = self.__class__()
-            self._last_rem.__iset__(0)
-            self._last_rem.get_limb(0).__iset__(rem)
+            self._last_rem[:] = 0
+            self._last_rem.get_limb(0)[:] = rem
             return self
         if isinstance(other, bigscore):
             if self.size != other.size or self._base != other._base:
@@ -330,34 +338,34 @@ class bigscore(ArithmeticSupported):
 
             q = self.__class__()
             r = self.__class__()
-            r.__iset__(0)
+            r[:] = 0
 
             d_shifted = self.__class__(size=self.size + 1)
-            d_shifted.__iset__(other)
+            d_shifted[:] = other
 
             total_bits = self.size * 14
             for _ in range(total_bits):
                 d_shifted.__idiv__(2)
 
             for _ in range(total_bits + 1):
-                borrow.__iset__(0)
+                borrow[:] = 0
                 for i in range(self.size):
                     r_limb = r.get_limb(i)
                     dsh_limb = d_shifted.get_limb(i)
                     r_limb -= dsh_limb
                     r_limb -= borrow
-                    borrow.__iset__(0)
+                    borrow[:] = 0
                     ScoreIfMatches(r.get_limb(i), (-inf, -1)).then([
                         lambda: borrow.__iset__(1),
                         lambda: r.get_limb(i).__iadd__(self._base)
                     ])
 
-                carry.__iset__(0)
+                carry[:] = 0
                 for i in range(self.size):
                     q_limb = q.get_limb(i)
                     q_limb *= 2
                     q_limb += carry
-                    carry.__iset__(0)
+                    carry[:] = 0
                     ScoreIfMatches(q.get_limb(i), (self._base, inf)).then([
                         lambda: carry.__iset__(1),
                         lambda: q.get_limb(i).__isub__(self._base)
@@ -366,12 +374,12 @@ class bigscore(ArithmeticSupported):
                 ScoreIfMatches(borrow, 0).then(lambda: q.get_limb(0).__iadd__(1))
 
                 def restore_borrow():
-                    carry.__iset__(0)
+                    carry[:] = 0
                     for i in range(self.size):
                         r_limb = r.get_limb(i)
                         r_limb += d_shifted.get_limb(i)
                         r_limb += carry
-                        carry.__iset__(0)
+                        carry[:] = 0
                         ScoreIfMatches(r_limb, (self._base, inf)).then([
                             lambda: carry.__iset__(1),
                             lambda: r_limb.__isub__(self._base)
@@ -379,19 +387,19 @@ class bigscore(ArithmeticSupported):
 
                 ScoreIfMatches(borrow, 1).then(restore_borrow)
 
-                carry.__iset__(0)
+                carry[:] = 0
                 for i in reversed(range(self.size)):
                     r_limb = r.get_limb(i)
-                    val.__iset__(r_limb)
+                    val[:] = r_limb
                     r_limb *= 2
                     r_limb += carry
-                    carry.__iset__(val)
+                    carry[:] = val
                     ScoreIfMatches(r_limb, (self._base, inf)).then(
                         lambda: r_limb.__isub__(self._base)
                     )
 
             for i in range(self.size):
-                self.get_limb(i).__iset__(q.get_limb(i))
+                self.get_limb(i)[:] = q.get_limb(i)
 
             self._last_rem = r
             return self
@@ -399,7 +407,7 @@ class bigscore(ArithmeticSupported):
         raise UnsupportedOperandError(self, "/", other)
 
     def __imod__(self, other):
-        global rem, val
+        rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
         if isinstance(other, (int, float)):
             m = int(round(other))
@@ -407,52 +415,54 @@ class bigscore(ArithmeticSupported):
                 raise ZeroDivisionError("Modulo by zero")
             if m < 0:
                 m = -m
-            val.__iset__(0)
-            rem.__iset__(0)
+            val[:] = 0
+            rem[:] = 0
             for i in reversed(range(self.size)):
-                val.__iset__(rem)
+                val[:] = rem
                 val *= self._base
                 val += self.get_limb(i)
-                rem.__iset__(val)
+                rem[:] = val
                 rem %= m
             for i in range(1, self.size):
-                self.get_limb(i).__iset__(0)
-            self.get_limb(0).__iset__(rem)
+                self.get_limb(i)[:] = 0
+            self.get_limb(0)[:] = rem
             return self
         if getattr(self, "_last_rem", None) is not None:
-            self.__iset__(self._last_rem)
+            self[:] = self._last_rem
             self._last_rem = None
             return self
         self.__idiv__(other)
         return self.__imod__(other)
 
     def __imax__(self, other):
+        borrow = _get_temps()[3]
         if isinstance(other, bigscore) and self.size == other.size and getattr(self, "multiplier", 1) == getattr(other,
                                                                                                                  "multiplier",
                                                                                                                  1):
             temp = self.__class__()
-            temp.__iset__(self)
+            temp[:] = self
             temp.__isub__(other)
 
             def do_imax():
                 for i in range(self.size):
-                    self.get_limb(i).__iset__(other.get_limb(i))
+                    self.get_limb(i)[:] = other.get_limb(i)
 
             ScoreIfMatches(borrow, 1).then(do_imax)
             return self
         return BinaryOp(self, other, "imax")
 
     def __imin__(self, other):
+        borrow = _get_temps()[3]
         if (isinstance(other, bigscore) and self.size == other.size and getattr(self, "multiplier", 1) == getattr(other,
                                                                                                                   "multiplier",
                                                                                                                   1)):
             temp = self.__class__()
-            temp.__iset__(self)
+            temp[:] = self
             temp.__isub__(other)
 
             def do_imin():
                 for i in range(self.size):
-                    self.get_limb(i).__iset__(other.get_limb(i))
+                    self.get_limb(i)[:] = other.get_limb(i)
 
             ScoreIfMatches(borrow, 0).then(do_imin)
             return self

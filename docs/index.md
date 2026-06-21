@@ -26,7 +26,7 @@ hero:
 features:
   - icon: 🐍
     title: Python-Native
-    details: Flare is just Python. Use any library, any logic - your full dev environment works out of the box.
+    details: Flare is just Python. Use any library and any logic, and your full dev environment works out of the box.
   - icon: ⚡
     title: Instant Compilation
     details: Generate optimized `.mcfunction` datapacks in milliseconds. Watch mode rebuilds on every save.
@@ -35,13 +35,13 @@ features:
     details: First-class score and NBT types with automatic path-chaining, type inference, and operator overloading.
   - icon: 🔁
     title: True Recursion
-    details: Flare's static Call Graph Analyzer detects recursion and automatically switches to an NBT stack - no setup required.
+    details: Flare's static Call Graph Analyzer detects recursion and automatically switches to an NBT stack without requiring setup.
   - icon: 🧮
     title: Advanced Math
     details: IEEE 754 float32/float64, big integers, and a full trig/log math library compiled to native scoreboard operations.
   - icon: 🕹️
     title: Live Playground
-    details: Try Flare right in your browser - no install needed. Powered by Pyodide.
+    details: Try Flare right in your browser without any installation needed. Powered by Pyodide.
 ---
 
 <style>

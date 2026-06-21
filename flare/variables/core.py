@@ -53,7 +53,7 @@ class BinaryOp:
         if isinstance(left_node, (BinaryOp, UnaryOp)):
             left_node._eval_into(dest)
         else:
-            dest.__iset__(left_node)
+            dest[:] = left_node
         if isinstance(right_node, (BinaryOp, UnaryOp)):
             temp = self._alloc_temp(dest)
             right_node._eval_into(temp)
@@ -184,7 +184,7 @@ class UnaryOp:
         if isinstance(self.operand, (BinaryOp, UnaryOp)):
             self.operand._eval_into(dest)
         else:
-            dest.__iset__(self.operand)
+            dest[:] = self.operand
         if hasattr(dest, iop):
             getattr(dest, iop)()
         elif self.op == "neg":
@@ -289,6 +289,12 @@ def addr(var):
 
 
 class ArithmeticSupported:
+    def __setitem__(self, key, value):
+        if isinstance(key, slice) and key.start is None and key.stop is None and key.step is None:
+            self.__iset__(value)
+            return
+        raise TypeError(f"'{self.__class__.__name__}' object does not support item assignment")
+
     def __add__(self, other):
         return BinaryOp(self, other, "add")
 

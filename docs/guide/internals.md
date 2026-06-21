@@ -2,7 +2,7 @@
 
 ## Attribute Interception
 
-Flare's `score` and `nbt` classes use Python's `__getattr__` / `__setattr__` hooks to intercept attribute access and translate it into Minecraft NBT path chains. This means that **any attribute you access on an `nbt` object** - such as `.name`, `.type`, `.child` - is treated as an NBT sub-path, not a Python property.
+Flare's `score` and `nbt` classes use Python's `__getattr__` / `__setattr__` hooks to intercept attribute access and translate it into Minecraft NBT path chains. This means that **any attribute you access on an `nbt` object** (such as `.name`, `.type`, or `.child`) is treated as an NBT sub-path, not a Python property.
 
 ## Internal `_` Prefix
 
@@ -23,7 +23,7 @@ Because these names are behind the `_` prefix, your NBT objects can freely expos
 from flare import storage
 
 item = storage.fs.root.child[0]
-item.type = "dir"   # Sets NBT path 'root.child[0].type' - no conflict!
+item.type = "dir"   # Sets NBT path 'root.child[0].type' with no conflict!
 item.name = "data"  # Sets 'root.child[0].name'
 ```
 
@@ -34,6 +34,6 @@ item.name = "data"  # Sets 'root.child[0].name'
 | Method | When triggered | What it does |
 |--------|---------------|-------------|
 | `__icopy__` | `y = x` (first use of `y`) | Creates a new Minecraft variable for `y` and copies `x`'s value into it |
-| `__iset__` | `y[:] = x` (existing `y`) | Updates `y`'s existing address with `x`'s value - no new variable created |
+| `__iset__` | `y = x` (existing `y`) | Updates `y`'s existing address with `x`'s value without creating a new variable. Intercepted automatically by the preprocessor! |
 
-Using `y = x` when `y` already exists will rebind the Python reference, losing track of `y`'s original scoreboard address. Always use `y[:] = x` to update an existing variable.
+Because Flare uses an AST preprocessor, you do **not** need to use slice notation (`y[:] = x`) to update an existing variable. `y = x` works perfectly and will not lose track of the original address.

@@ -1,6 +1,6 @@
 # Native Minecraft Commands
 
-Flare includes a smart preprocessor that lets you write literal Minecraft commands **directly** inside your Python script - no wrapping in strings, no special calls needed.
+Flare includes a smart preprocessor that lets you write literal Minecraft commands **directly** inside your Python script without wrapping them in strings or needing special calls.
 
 ```python
 from flare import namespace, score
@@ -32,7 +32,7 @@ scoreboard players set @s my_score ~x~   # Injects the scoreboard expression
 
 ## Multi-line Commands
 
-Flare natively supports multi-line commands - no quotes needed. The preprocessor tracks your bracket indentation:
+Flare natively supports multi-line commands without needing quotes. The preprocessor tracks your bracket indentation:
 
 ```python
 summon cow ~ ~ ~ {
@@ -43,7 +43,7 @@ summon cow ~ ~ ~ {
 
 ## Inline NBT Macros (`nbt{...}` and `nbt[...]`)
 
-Use `nbt{...}` and `nbt[...]` to construct raw NBT structures inline without allocating a persistent storage variable. This acts like an f-string macro - it evaluates in-place, strips whitespace, and embeds the raw string into the surrounding command:
+Use `nbt{...}` and `nbt[...]` to construct raw NBT structures inline without allocating a persistent storage variable. This acts like an f-string macro since it evaluates in-place, strips whitespace, and embeds the raw string into the surrounding command:
 
 ```python
 i = 10

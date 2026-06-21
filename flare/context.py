@@ -3,6 +3,9 @@ import json
 
 from .command_parser import interpolate_command
 
+def addr(var):
+    return var._addr
+
 files = {"main": []}
 current_file = "main"
 _current_namespace = "flare"
@@ -71,19 +74,21 @@ def next_func_id():
 
 
 def reset_context():
-    global files, current_file, _current_namespace, functions, constants, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, minecraft_version, nbt_schema_missing, _recursive_functions, _in_recursive_context, return_types, _logical_func
-    files = {"main": []}
+    global current_file, _current_namespace, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, minecraft_version, nbt_schema_missing, _in_recursive_context, _logical_func
+    files.clear()
+    files["main"] = []
     current_file = "main"
     _current_namespace = "flare"
-    functions = {}
-    constants = {}
+    functions.clear()
+    constants.clear()
     _temp_id = 0
     _func_id = 0
     _objective_offset = 0
     _constant_offset = 0
-    _recursive_functions = set()
+    _recursive_functions.clear()
     _in_recursive_context = False
-    return_types = {}
+    return_types.clear()
+    has_returns.clear()
     _logical_func = None
 
 

@@ -66,16 +66,17 @@ print(x, y, z)  # Output: 20 20 10
 
 Use `ref()` whenever you want to pass a variable around in Python *without* emitting a copy command.
 
-## `__icopy__` vs `__iset__`
+## Reassigning Variables (`__iset__`)
 
-Flare treats new and existing variable assignments differently:
-
-- **`__icopy__` (new variable)**: `y = x` when `y` hasn't been defined yet - creates a new Minecraft variable and copies `x`'s value into it.
-- **`__iset__` (existing variable)**: if `y` already exists and you want to update its value in-place, use `y[:] = x` (which calls `__iset__` internally). This updates `y`'s existing scoreboard/NBT address without creating a new one.
+Thanks to Flare's AST preprocessor, assigning to an already-existing variable automatically updates its value in-place without creating a new variable:
 
 ```python
 x = score(10)
 y = score(20)
 
-y[:] = x  # Updates y's existing address - no new variable created
+# Since y already exists, Flare detects this and safely updates
+# y's existing scoreboard address to match x (using __iset__).
+y = x
 ```
+
+You do **not** need to use slice notation (`y[:] = x`) or manually manage addresses when updating a variable.

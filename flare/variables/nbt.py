@@ -30,7 +30,7 @@ class nbt:
         if addr is not None:
             self._parse_addr(addr)
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
 
     def _alloc_temp(self):
         t = nbt(addr=f"flare:temp !t{ctx.next_temp_id()}", datatype=self._type, schema_node=self._schema_node)
@@ -55,7 +55,7 @@ class nbt:
                 runcommand(f"data modify {base_addr} append value {{}}")
                 self._parse_addr(f"flare:vars {varid}[-1]")
                 if self._value_to_set is not None:
-                    self.__iset__(self._value_to_set)
+                    self[:] = self._value_to_set
                 return self
             else:
                 dest = nbt(addr=f"flare:vars {varid}[-1]", datatype=self._type, schema_node=self._schema_node)
@@ -67,7 +67,7 @@ class nbt:
         if self._addr is None:
             self._parse_addr(f"flare:vars {varid}")
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
             return self
 
         dest = self._create_var(varid)
@@ -91,7 +91,7 @@ class nbt:
         temp_arr = nbt(addr=f"flare:temp !for_arr_{_id}", datatype=self._type)
         temp_var = nbt(addr=f"{addr(temp_arr)}[0]", datatype=elem_type)
 
-        temp_arr.__iset__(self)
+        temp_arr[:] = self
         length_score = temp_arr.length()
 
         func_name = f"{ctx._current_namespace}:for_{ctx.next_func_id()}"
@@ -128,7 +128,7 @@ class nbt:
 
         if has_break:
             break_score = _score()(addr=f"!break {ctx.temp_obj}")
-            break_score.__iset__(0)
+            break_score[:] = 0
 
         if _has_early_return(func_name):
             ret_temp_init = _score()(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
@@ -184,7 +184,7 @@ class nbt:
             super().__setattr__(name, value)
         else:
             target = getattr(self, name)
-            target.__iset__(value)
+            target[:] = value
 
     def __getitem__(self, item):
         if isinstance(item, type) or item is None:
@@ -275,6 +275,9 @@ class nbt:
             raise TypeError(f"Invalid NBT path index: {item}")
 
     def __setitem__(self, key, value):
+        if isinstance(key, slice) and key.start is None and key.stop is None and key.step is None:
+            self.__iset__(value)
+            return
         target = self[key]
         target.__iset__(value)
 
@@ -311,7 +314,7 @@ class nbt:
         if self._addr is None:
             self._parse_addr(f"flare:temp !{ctx.next_temp_id()}")
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
 
     @classmethod
     def __class_getitem__(cls, nbt_type):
@@ -841,5 +844,5 @@ class nbt:
         return f"NBT[{self._type}](addr=\"{addr(self)}\")"
 
     def __call__(self, *args, **kwargs):
-        self.__iset__(args[0])
+        self[:] = args[0]
         return self

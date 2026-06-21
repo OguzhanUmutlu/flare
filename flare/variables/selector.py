@@ -28,6 +28,12 @@ class tagged:
         runcommand(f"tag @e remove {self.tag_name}")
         runcommand(f"tag {target} add {self.tag_name}")
 
+    def __setitem__(self, key, value):
+        if isinstance(key, slice) and key.start is None and key.stop is None and key.step is None:
+            self.__iset__(value)
+            return
+        raise TypeError(f"'{self.__class__.__name__}' object does not support item assignment")
+
     def __str__(self):
         if self.tag_name:
             return f"@e[tag={self.tag_name}]"

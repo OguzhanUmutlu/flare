@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import Union, Any
 
 from . import context as ctx
-from .variables.score import score
+from .variables.core import addr
 from .variables.nbt import nbt
+from .variables.score import score
 from .variables.selector import selector
 
 

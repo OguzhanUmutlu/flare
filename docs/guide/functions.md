@@ -41,11 +41,11 @@ If you omit the `-> ReturnType` annotation, Flare infers it automatically from t
 
 ```python
 @export
-def greet():           # No annotation - Flare detects no return
+def greet():           # No annotation, so Flare detects no return
     say Hello!
 
 @export
-def double(x: score):  # Returns a score - Flare infers -> score automatically
+def double(x: score):  # Returns a score, which Flare infers automatically
     return x * 2
 
 @export

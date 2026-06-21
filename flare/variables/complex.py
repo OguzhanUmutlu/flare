@@ -40,17 +40,17 @@ class complex(ArithmeticSupported):
         if hasattr(self.real, "_eval_into"):
             self.real._eval_into(dest.real)
         else:
-            dest.real.__iset__(self.real)
+            dest.real[:] = self.real
 
         if hasattr(self.imag, "_eval_into"):
             self.imag._eval_into(dest.imag)
         else:
-            dest.imag.__iset__(self.imag)
+            dest.imag[:] = self.imag
 
     def __iset__(self, other):
         if isinstance(other, complex):
-            self.real.__iset__(other.real)
-            self.imag.__iset__(other.imag)
+            self.real[:] = other.real
+            self.imag[:] = other.imag
             return self
         raise UnsupportedOperandError(self, "=", other)
 
@@ -78,8 +78,8 @@ class complex(ArithmeticSupported):
             temp_real = a * c - b * d
             temp_imag = a * d + b * c
 
-            self.real.__iset__(temp_real)
-            self.imag.__iset__(temp_imag)
+            self.real[:] = temp_real
+            self.imag[:] = temp_imag
             return self
 
         self.real *= other
@@ -95,8 +95,8 @@ class complex(ArithmeticSupported):
             temp_real = (a * c + b * d) / denom
             temp_imag = (b * c - a * d) / denom
 
-            self.real.__iset__(temp_real)
-            self.imag.__iset__(temp_imag)
+            self.real[:] = temp_real
+            self.imag[:] = temp_imag
             return self
 
         self.real /= other

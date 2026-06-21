@@ -121,6 +121,8 @@ def _flare_if(*args):
         elif_temp = score(addr=f"!elif{next_temp_id()} {temp_obj}")
         elif_temp.__iset__(0)
 
+    is_dynamic_chain = None
+
     for cond_func, body_func in zip(conditions, bodies):
         if cond_func is None:
             if elif_temp is not None:
@@ -146,6 +148,12 @@ def _flare_if(*args):
         is_expand = isinstance(cond, expand)
         if is_expand:
             cond = cond.cond
+            
+        current_is_dynamic = not isinstance(cond, bool)
+        if is_dynamic_chain is None:
+            is_dynamic_chain = current_is_dynamic
+        elif is_dynamic_chain != current_is_dynamic:
+            raise TypeError("Cannot mix compile-time (static) and run-time (dynamic) conditions in the same if/elif chain. Please use nested if statements instead.")
 
         if isinstance(cond, bool):
             if not cond:

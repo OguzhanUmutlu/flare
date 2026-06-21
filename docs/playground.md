@@ -1,19 +1,19 @@
-# Playground
-
-Try Flare right in your browser - no installation needed! The playground loads Pyodide and installs `flaremc` automatically. This may take a moment on first visit.
-
-<Playground />
-
-<script type="module">
-// Ensure the Playground component mounts after Vue hydration
-</script>
-
+---
+layout: page
 ---
 
-::: tip Note
-The playground runs the **real** Flare compiler (via Pyodide / WebAssembly) in your browser. Not all features are available in the browser environment (e.g. `--run` with the emulator), but code compilation and `.mcfunction` generation work fully.
-:::
+<div class="pg-page">
+  <Playground />
+</div>
 
-## Example Snippets
+<style>
+.pg-page {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 32px 64px;
+}
 
-Click the **Examples** buttons inside the playground above to quickly load pre-written snippets demonstrating key features.
+@media (max-width: 768px) {
+    .pg-page { padding: 16px 16px 48px; }
+}
+</style>

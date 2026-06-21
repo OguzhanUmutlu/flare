@@ -38,7 +38,7 @@ class float32(ArithmeticSupported):
         if self._addr is None:
             self._parse_addr(f"!f32_{next_temp_id()}")
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
 
     def _create_var(self, varid: str):
         return self.__class__(addr=f"{varid} {vars_obj}")
@@ -50,10 +50,10 @@ class float32(ArithmeticSupported):
             self._parse_addr(f"{varid} {vars_obj}")
             ctx.ensure_objective(vars_obj)
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
         else:
             dest = self.__class__(addr=f"{varid} {vars_obj}")
-            dest.__iset__(self)
+            dest[:] = self
             return dest
         return self
 
@@ -61,9 +61,9 @@ class float32(ArithmeticSupported):
         self._check_addr()
         if isinstance(other, (int, float)):
             if other == 0.0:
-                self._sign.__iset__(1)
-                self._exp.__iset__(0)
-                self._mant.__iset__(0)
+                self._sign[:] = 1
+                self._exp[:] = 0
+                self._mant[:] = 0
                 return self
 
             m, e = math.frexp(other)
@@ -73,16 +73,16 @@ class float32(ArithmeticSupported):
             m = abs(m)
 
             mant_int = int(round(m * 8388608))
-            self._sign.__iset__(sign)
-            self._exp.__iset__(e)
-            self._mant.__iset__(mant_int)
+            self._sign[:] = sign
+            self._exp[:] = e
+            self._mant[:] = mant_int
             return self
 
         if isinstance(other, float32):
             other._check_addr()
-            self._sign.__iset__(other._sign)
-            self._exp.__iset__(other._exp)
-            self._mant.__iset__(other._mant)
+            self._sign[:] = other._sign
+            self._exp[:] = other._exp
+            self._mant[:] = other._mant
             return self
 
         if hasattr(type(other), "_eval_into"):
@@ -101,10 +101,10 @@ class float32(ArithmeticSupported):
         if isinstance(other, float32):
             other._check_addr()
             temp_b = float32(addr=f"!fb{next_temp_id()}")
-            temp_b.__iset__(other)
+            temp_b[:] = other
 
             diff = score(addr="!diff")
-            diff.__iset__(self._exp)
+            diff[:] = self._exp
             diff -= temp_b._exp
 
             ScoreIfMatches(diff, (-inf, -1)).then([
@@ -125,7 +125,7 @@ class float32(ArithmeticSupported):
             temp_b._mant *= temp_b._sign
             self._mant += temp_b._mant
 
-            self._sign.__iset__(1)
+            self._sign[:] = 1
             ScoreIfMatches(self._mant, (-inf, -1)).then([
                 lambda: self._sign.__iset__(-1),
                 lambda: self._mant.__imul__(-1)
@@ -178,7 +178,7 @@ class float32(ArithmeticSupported):
         if isinstance(other, float32):
             other._check_addr()
             temp_b = float32(addr=f"!fb{next_temp_id()}")
-            temp_b.__iset__(other)
+            temp_b[:] = other
             temp_b._sign *= -1
             return self.__iadd__(temp_b)
         raise UnsupportedOperandError(self, "-", other)
@@ -198,12 +198,12 @@ class float32(ArithmeticSupported):
             b_a = bigscore[2](addr=f"!ba{tid} {temp_obj}")
             b_b = bigscore[2](addr=f"!bb{tid} {temp_obj}")
 
-            b_a.__iset__(self._mant)
-            b_b.__iset__(other._mant)
+            b_a[:] = self._mant
+            b_b[:] = other._mant
             b_a *= b_b
             b_a /= 8388608
 
-            self._mant.__iset__(b_a.get_limb(2))
+            self._mant[:] = b_a.get_limb(2)
             self._mant *= 10000
             self._mant += b_a.get_limb(1)
             self._mant *= 10000
@@ -232,11 +232,11 @@ class float32(ArithmeticSupported):
 
             b_a = bigscore[2](addr=f"!ba{ctx.next_temp_id()} {temp_obj}")
 
-            b_a.__iset__(self._mant)
+            b_a[:] = self._mant
             b_a *= 8388608
             b_a /= other._mant
 
-            self._mant.__iset__(b_a.get_limb(2))
+            self._mant[:] = b_a.get_limb(2)
             self._mant *= 10000
             self._mant += b_a.get_limb(1)
             self._mant *= 10000
@@ -257,7 +257,7 @@ class float32(ArithmeticSupported):
             raise ValueError("Rounding to specific digits is unsupported to preserve minimalism")
         self._check_addr()
         res = self.__class__()
-        res.__iset__(self)
+        res[:] = self
 
         k = score(23, addr="!k")
         k -= res._exp
@@ -286,7 +286,7 @@ class float32(ArithmeticSupported):
             lambda: half_pow2.__idiv__(2),
             lambda: round_up.__iset__(0)
         ])
-        round_up.__iset__(0)
+        round_up[:] = 0
         (ScoreIfMatches(res._exp, (0, 22)) & ScoreIfScore(res._exp, ">=", half_pow2)).then(
             lambda: round_up.__iset__(1)
         )
@@ -303,7 +303,7 @@ class float32(ArithmeticSupported):
     def __floor__(self):
         self._check_addr()
         res = self.__class__()
-        res.__iset__(self)
+        res[:] = self
 
         k = score(23, addr="!k")
         k -= res._exp
@@ -341,7 +341,7 @@ class float32(ArithmeticSupported):
     def __ceil__(self):
         self._check_addr()
         res = self.__class__()
-        res.__iset__(self)
+        res[:] = self
 
         k = score(23, addr="!k")
         k -= res._exp

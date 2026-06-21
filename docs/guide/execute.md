@@ -28,7 +28,7 @@ with as(@a), at(@s), rotated(10, 20):
 
 ## Automatic Inlining
 
-If a `with` block contains a **single command**, Flare intelligently inlines the `execute` chain directly onto the command line - no extra `.mcfunction` file is generated:
+If a `with` block contains a **single command**, Flare intelligently inlines the `execute` chain directly onto the command line, meaning no extra `.mcfunction` file is generated:
 
 ```python
 with as(@a):
@@ -90,7 +90,7 @@ close_players = tagged("@a[distance=..5]")
 kill close_players
 
 # Reassign to move the tag
-close_players[:] = "@p"
+close_players = "@p"
 ```
 
 ## Supported Modifiers

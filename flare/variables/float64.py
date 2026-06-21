@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import math
+from math import inf, frexp
 
 from .bigscore import bigscore
 from .core import UnsupportedOperandError, BinaryOp, UnaryOp
@@ -19,6 +19,12 @@ class float64:
             self._parse_addr(addr)
             if self._value_to_set is not None:
                 self.__iset__(self._value_to_set)
+
+    def __setitem__(self, key, value):
+        if isinstance(key, slice) and key.start is None and key.stop is None and key.step is None:
+            self.__iset__(value)
+            return
+        raise TypeError(f"'{self.__class__.__name__}' object does not support item assignment")
 
     def _alloc_temp(self):
         t = self.__class__(addr=f"!t{ctx.next_temp_id()} {temp_obj}")
@@ -45,7 +51,7 @@ class float64:
         if self._addr is None:
             self._parse_addr(f"!f64_{ctx.next_temp_id()}")
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
         if is_recursive:
@@ -54,10 +60,10 @@ class float64:
             self._parse_addr(f"{varid} {vars_obj}")
             ctx.ensure_objective(vars_obj)
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
         else:
             dest = self.__class__(addr=f"{varid} {vars_obj}")
-            dest.__iset__(self)
+            dest[:] = self
             return dest
         return self
 
@@ -65,28 +71,28 @@ class float64:
         self._check_addr()
         if isinstance(other, (int, float)):
             if other == 0.0:
-                self._sign.__iset__(1)
-                self._exp.__iset__(0)
-                self._mant.__iset__(0)
+                self._sign[:] = 1
+                self._exp[:] = 0
+                self._mant[:] = 0
                 return self
 
-            m, e = math.frexp(other)
+            m, e = frexp(other)
             m = m * 2.0
             e = e - 1
             sign = 1 if m >= 0 else -1
             m = abs(m)
 
             mant_int = int(round(m * 4503599627370496))
-            self._sign.__iset__(sign)
-            self._exp.__iset__(e)
-            self._mant.__iset__(mant_int)
+            self._sign[:] = sign
+            self._exp[:] = e
+            self._mant[:] = mant_int
             return self
 
         if isinstance(other, float64):
             other._check_addr()
-            self._sign.__iset__(other._sign)
-            self._exp.__iset__(other._exp)
-            self._mant.__iset__(other._mant)
+            self._sign[:] = other._sign
+            self._exp[:] = other._exp
+            self._mant[:] = other._mant
             return self
 
         if hasattr(type(other), "_eval_into"):
@@ -104,35 +110,38 @@ class float64:
         if isinstance(other, float64):
             other._check_addr()
             temp_b = self.__class__(addr=f"!fb{ctx.next_temp_id()} {temp_obj}")
-            temp_b.__iset__(other)
+            temp_b[:] = other
 
             diff = score(addr=f"!diff {temp_obj}")
-            diff.__iset__(self._exp)
+            diff[:] = self._exp
             diff.__isub__(temp_b._exp)
 
             from ..control_flow import ScoreIfMatches  # Local import to avoid circular dependency
-            ScoreIfMatches(diff, ("..", -1)).then([
+            ScoreIfMatches(diff, (-inf, -1)).then([
                 lambda: runcommand(f"scoreboard players operation {self._sign._addr} >< {temp_b._sign._addr}"),
                 lambda: runcommand(f"scoreboard players operation {self._exp._addr} >< {temp_b._exp._addr}"),
             ])
 
             for i in range(4):
-                ScoreIfMatches(diff, ("..", -1)).then(
-                    lambda i=i: runcommand(f"scoreboard players operation {self._mant.get_limb(i)._addr} >< {temp_b._mant.get_limb(i)._addr}")
+                ScoreIfMatches(diff, (-inf, -1)).then(
+                    lambda i=i: runcommand(
+                        f"scoreboard players operation {self._mant.get_limb(i)._addr} >< {temp_b._mant.get_limb(i)._addr}")
                 )
 
             c_min1 = getscore(-1)
-            ScoreIfMatches(diff, ("..", -1)).then(lambda: diff.__imul__(c_min1))
+            ScoreIfMatches(diff, (-inf, -1)).then(lambda: diff.__imul__(c_min1))
 
             for _ in range(4):
-                ScoreIfMatches(diff, (16, float('inf'))).then(lambda: runcommand(f"scoreboard players operation !val {temp_obj} = {temp_b._mant.get_limb(0)._addr}"))
+                ScoreIfMatches(diff, (16, float('inf'))).then(lambda: runcommand(
+                    f"scoreboard players operation !val {temp_obj} = {temp_b._mant.get_limb(0)._addr}"))
                 temp_b._mant /= 65536
                 ScoreIfMatches(diff, (16, float('inf'))).then(lambda: diff.__isub__(16))
 
             for p in reversed(range(0, 4)):
                 shift = 1 << p
                 pow2 = 1 << shift
-                ScoreIfMatches(diff, (shift, float('inf'))).then(lambda: runcommand(f"scoreboard players operation !val {temp_obj} = {temp_b._mant.get_limb(0)._addr}"))
+                ScoreIfMatches(diff, (shift, float('inf'))).then(lambda: runcommand(
+                    f"scoreboard players operation !val {temp_obj} = {temp_b._mant.get_limb(0)._addr}"))
                 temp_b._mant /= pow2
                 ScoreIfMatches(diff, (shift, float('inf'))).then(lambda shift=shift: diff.__isub__(shift))
 
@@ -140,21 +149,23 @@ class float64:
             self._mant *= self._sign
             self._mant += temp_b._mant
 
-            self._sign.__iset__(1)
-            ScoreIfMatches(self._mant.get_limb(3), ("..", -1)).then(lambda: self._sign.__iset__(-1))
-            ScoreIfMatches(self._mant.get_limb(3), ("..", -1)).then(lambda: runcommand(f"scoreboard players operation !val {temp_obj} = {self._mant.get_limb(0)._addr}"))
+            self._sign[:] = 1
+            ScoreIfMatches(self._mant.get_limb(3), (-inf, -1)).then(lambda: self._sign.__iset__(-1))
+            ScoreIfMatches(self._mant.get_limb(3), (-inf, -1)).then(
+                lambda: runcommand(f"scoreboard players operation !val {temp_obj} = {self._mant.get_limb(0)._addr}"))
             self._mant *= -1
 
             shift_flag = score(addr=f"!shift {temp_obj}")
-            shift_flag.__iset__(0)
+            shift_flag[:] = 0
             ScoreIfMatches(self._mant.get_limb(3), (4503, float('inf'))).then(lambda: shift_flag.__iset__(1))
             ScoreIfMatches(self._mant.get_limb(3), (451, float('inf'))).then(lambda: shift_flag.__iset__(1))
-            ScoreIfMatches(shift_flag, 1).then(lambda: runcommand(f"scoreboard players operation !val {temp_obj} = {self._mant.get_limb(0)._addr}"))
+            ScoreIfMatches(shift_flag, 1).then(
+                lambda: runcommand(f"scoreboard players operation !val {temp_obj} = {self._mant.get_limb(0)._addr}"))
             self._mant /= 2
             ScoreIfMatches(shift_flag, 1).then(lambda: self._exp.__iadd__(1))
 
             is_zero = score(addr=f"!is_zero {temp_obj}")
-            is_zero.__iset__(0)
+            is_zero[:] = 0
             runcommand(
                 f"execute if score {self._mant.get_limb(3)._addr} matches 0 if score {self._mant.get_limb(2)._addr} matches 0 if score {self._mant.get_limb(1)._addr} matches 0 if score {self._mant.get_limb(0)._addr} matches 0 run scoreboard players set {is_zero._addr} 1")
             ScoreIfMatches(is_zero, 1).then(lambda: self._exp.__iset__(0))
@@ -188,7 +199,7 @@ class float64:
         if isinstance(other, float64):
             other._check_addr()
             temp_b = self.__class__(addr=f"!fb{ctx.next_temp_id()} {temp_obj}")
-            temp_b.__iset__(other)
+            temp_b[:] = other
             c_min1 = getscore(-1)
             temp_b._sign.__imul__(c_min1)
             return self.__iadd__(temp_b)
@@ -209,20 +220,21 @@ class float64:
             bA = bigscore[8](addr=f"!ba{_id} {temp_obj}")
             bB = bigscore[8](addr=f"!bb{_id} {temp_obj}")
 
-            bA.__iset__(self._mant)
-            bB.__iset__(other._mant)
+            bA[:] = self._mant
+            bB[:] = other._mant
             bA *= bB
             bA /= 67108864
             bA /= 67108864
 
             for i in range(4):
-                self._mant.get_limb(i).__iset__(bA.get_limb(i))
+                self._mant.get_limb(i)[:] = bA.get_limb(i)
 
             from ..control_flow import ScoreIfMatches  # Local import to avoid circular dependency
             shift_flag = score(addr=f"!shift {temp_obj}")
-            shift_flag.__iset__(0)
+            shift_flag[:] = 0
             ScoreIfMatches(self._mant.get_limb(3), (451, float('inf'))).then(lambda: shift_flag.__iset__(1))
-            ScoreIfMatches(shift_flag, 1).then(lambda: runcommand(f"scoreboard players operation !val {temp_obj} = {self._mant.get_limb(0)._addr}"))
+            ScoreIfMatches(shift_flag, 1).then(
+                lambda: runcommand(f"scoreboard players operation !val {temp_obj} = {self._mant.get_limb(0)._addr}"))
             self._mant /= 2
             ScoreIfMatches(shift_flag, 1).then(lambda: self._exp.__iadd__(1))
 
@@ -240,14 +252,12 @@ class float64:
             self._sign.__imul__(other._sign)
             self._exp.__isub__(other._exp)
 
-            raise NotImplementedError(
-                "Long division of bigscores is currently unsupported, so float64 division is not natively supported.")
-
             from ..control_flow import ScoreIfMatches  # Local import to avoid circular dependency
             shift_flag = score(addr=f"!shift {temp_obj}")
-            shift_flag.__iset__(0)
-            ScoreIfMatches(self._mant.get_limb(3), ("..", 449)).then(lambda: shift_flag.__iset__(1))
-            ScoreIfMatches(shift_flag, 1).then(lambda: runcommand(f"scoreboard players operation !val {temp_obj} = {self._mant.get_limb(0)._addr}"))
+            shift_flag[:] = 0
+            ScoreIfMatches(self._mant.get_limb(3), (-inf, 449)).then(lambda: shift_flag.__iset__(1))
+            ScoreIfMatches(shift_flag, 1).then(
+                lambda: runcommand(f"scoreboard players operation !val {temp_obj} = {self._mant.get_limb(0)._addr}"))
             self._mant *= 2
             ScoreIfMatches(shift_flag, 1).then(lambda: self._exp.__isub__(1))
 
@@ -285,23 +295,23 @@ class float64:
         if ndigits is not None and ndigits != 0:
             raise ValueError("Rounding to specific digits is unsupported to preserve minimalism")
         t = fixed(0.0)
-        t.__iset__(self)
+        t[:] = self
         t.__round__()
-        self.__iset__(t)
+        self[:] = t
         return self
 
     def __floor__(self):
         t = fixed(0.0)
-        t.__iset__(self)
+        t[:] = self
         t.__floor__()
-        self.__iset__(t)
+        self[:] = t
         return self
 
     def __ceil__(self):
         t = fixed(0.0)
-        t.__iset__(self)
+        t[:] = self
         t.__ceil__()
-        self.__iset__(t)
+        self[:] = t
         return self
 
     def __neg__(self):

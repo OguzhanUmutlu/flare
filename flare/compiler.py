@@ -24,7 +24,7 @@ def _compile_relational(node, invert=False):
             if isinstance(left, (BinaryOp, UnaryOp)):
                 left._eval_into(t)
             else:
-                t.__iset__(left)
+                t[:] = left
             left = t
 
     if not isinstance(right, score):
@@ -35,12 +35,12 @@ def _compile_relational(node, invert=False):
             if isinstance(right, (BinaryOp, UnaryOp)):
                 right._eval_into(t)
             else:
-                t.__iset__(right)
+                t[:] = right
             right = t
 
     if left._multiplier != right._multiplier:
         t = score(addr=f"!c{ctx.next_temp_id()} {temp_obj}", multiplier=left._multiplier)
-        t.__iset__(right)
+        t[:] = right
         right = t
 
     return f"{keyword} score {addr(left)} {mcop} {addr(right)}"

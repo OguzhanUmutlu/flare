@@ -25,7 +25,7 @@ for item in my_array:
 
 ## Compile-Time Optimization
 
-Flare is highly optimized - it checks conditions **at compile-time**.
+Flare is highly optimized and checks conditions **at compile-time**.
 
 If a condition relies purely on standard Python variables (not `score` or `nbt` objects), Flare resolves the logic natively and **never emits Minecraft commands** for branches it knows will never run:
 
@@ -33,20 +33,19 @@ If a condition relies purely on standard Python variables (not `score` or `nbt` 
 y = 5
 x = score(5)
 
-# 'x' is dynamic → Flare emits 'execute if score...' for this branch
-if x > 4:
-    print("Maybe!")
-
-# 'y' is a static Python int → Flare checks '5 > 4' at compile-time.
-# It evaluates to True, so this block runs unconditionally.
-elif y > 4:
-    print("Definitely!")
-
-# This block is physically discarded - it will NOT exist in the final datapack!
-else:
-    print("Never!")
+# 'y' is a static Python int. Flare evaluates '5 > 4' at compile-time.
+# Since it evaluates to True, this block is physically inserted into the datapack.
+if y > 4:
+    
+    # 'x' is dynamic, so Flare emits 'execute if score...' for this runtime branch
+    if x > 4:
+        print("Maybe!")
+    else:
+        print("Never!")
+        
+# If y was 3, the entire block above would be discarded and never compiled!
 ```
 
-::: tip Mixed conditions
-You can freely mix static Python variables and dynamic `score`/`nbt` variables in the same condition. Flare will evaluate the static part at compile-time and generate only what's necessary at runtime.
+::: tip Compile-time execution
+Because Flare evaluates static Python conditions at compile-time, you can use them to conditionally generate entire systems or commands in your datapack without wasting any runtime performance!
 :::

@@ -45,7 +45,7 @@ class score(ArithmeticSupported):
                 self._name = parts[0]
                 self._objective = ""
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
         else:
             self._name = ""
             self._objective = ""
@@ -69,10 +69,10 @@ class score(ArithmeticSupported):
             self._addr = f"{self._name} {self._objective}"
             ctx.ensure_objective(self._objective)
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
         else:
             dest = score(addr=f"{varid} {vars_obj}", multiplier=self._multiplier)
-            dest.__iset__(self)
+            dest[:] = self
             return dest
         return self
 
@@ -93,7 +93,7 @@ class score(ArithmeticSupported):
             self._addr = f"{self._name} {self._objective}"
             ctx.ensure_objective(self._objective)
             if self._value_to_set is not None:
-                self.__iset__(self._value_to_set)
+                self[:] = self._value_to_set
 
     def _check_writable(self):
         self._check_addr()
@@ -208,7 +208,7 @@ class score(ArithmeticSupported):
 
         result_op = term / ((5.0 / 16.0) * math.pi * math.pi - 0.25 * term)
         result = self._tmp()
-        result.__iset__(result_op)
+        result[:] = result_op
 
         runcommand(
             f"execute if score {addr(is_neg)} matches 1 run scoreboard players operation {addr(result)} *= {addr(getscore(-1))}")
@@ -220,7 +220,7 @@ class score(ArithmeticSupported):
     def __cos__(self):
         half_pi = getscore(math.pi / 2.0, multiplier=self._multiplier)
         temp = self._tmp()
-        temp.__iset__(self + half_pi)
+        temp[:] = self + half_pi
         return temp.__sin__()
 
     def __abs__(self):
@@ -254,15 +254,15 @@ class score(ArithmeticSupported):
         pi_2 = getscore(math.pi / 2.0, multiplier=self._multiplier)
         pi = getscore(math.pi, multiplier=self._multiplier)
 
-        res.__iset__(r)
+        res[:] = r
 
         temp1 = score(multiplier=self._multiplier)
-        temp1.__iset__(pi_2 - res)
+        temp1[:] = pi_2 - res
         runcommand(
             f"execute if score {addr(y_abs)} > {addr(x_abs)} run scoreboard players operation {addr(res)} = {temp1._addr}")
 
         temp2 = score(multiplier=self._multiplier)
-        temp2.__iset__(pi - res)
+        temp2[:] = pi - res
         runcommand(
             f"execute if score {addr(x)} matches ..-1 run scoreboard players operation {addr(res)} = {temp2._addr}")
 
@@ -553,13 +553,13 @@ class score(ArithmeticSupported):
                 runcommand(f"scoreboard players operation {addr(self)} >< {addr(other)}")
             else:
                 runcommand(f"scoreboard players operation {addr(temp)} = {addr(self)}")
-                self.__iset__(other)
-                other.__iset__(score(addr=temp._addr, multiplier=self._multiplier))
+                self[:] = other
+                other[:] = score(addr=temp._addr, multiplier=self._multiplier)
             return self
         raise UnsupportedOperandError(self, "><", other)
 
     def __call__(self, *args, **kwargs):
-        self.__iset__(args[0])
+        self[:] = args[0]
         return self
 
     def __repr__(self):

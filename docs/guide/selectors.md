@@ -45,7 +45,7 @@ inv = @s.Inventory         # NBT path: 'Inventory' on @s
 
 ### Automatic Type Inference
 
-Thanks to Flare's built-in **NBT Schema parser**, standard Minecraft entity paths have their types inferred automatically - no manual typecasting needed for known properties like `Count`, `Pos`, `Health`, etc.
+Thanks to Flare's built-in **NBT Schema parser**, standard Minecraft entity paths have their types inferred automatically, eliminating the need for manual typecasting for known properties like `Count`, `Pos`, `Health`, etc.
 
 For custom or unknown paths, use inline typecasting:
 
@@ -68,7 +68,7 @@ close_players = tagged("@a[distance=..5]")
 kill close_players
 
 # Reassign the tag to a new target
-close_players[:] = "@p"
+close_players = "@p"
 ```
 
 ## Selector Relations (`on`)

@@ -4,7 +4,7 @@
 
 Flare is a modern, programmatic framework for building Minecraft datapacks **natively in Python**.
 
-With Flare you write Minecraft commands and logic using standard Python syntax - variables, conditionals, loops - and compile them into highly-optimized `.mcfunction` datapacks. Because Flare is just Python, the full Python ecosystem is at your disposal!
+With Flare you write Minecraft commands and logic using standard Python syntax, such as variables, conditionals, and loops, and compile them into highly-optimized `.mcfunction` datapacks. Because Flare is just Python, the full Python ecosystem is at your disposal!
 
 ## Installation
 
