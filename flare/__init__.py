@@ -1,3 +1,10 @@
+try:
+    from importlib.metadata import version as _get_version
+
+    __version__ = _get_version("flaremc")
+except Exception:
+    __version__ = "latest"
+
 from .compiler import _flatten_and, _eval_to_bool_score, _compile_relational
 from .context import namespace, export, tick, push_context, runcommand, files, temp_obj, constant_obj, vars_obj, \
     constants, _flare_assign, _flare_aug_assign, _flare_print, dbg, _flare_return, _flare_in, _flare_notin
@@ -15,4 +22,4 @@ __all__ = ["round_", "floor", "ceil", "namespace", "export", "tick", "score", "n
            "nbtfloat", "nbtdouble", "nbtstr", "nbtlist", "nbtdict", "nbtbytearray", "nbtintarray", "nbtlongarray",
            "selector", "_as", "at", "positioned", "aligned", "facing", "anchored", "rotated", "dimension", "applyon",
            "on", "summon", "store", "ExecuteChain", "StoreExecuteChain", "array", "bigscore", "bigfixed", "float32",
-           "float64", "complex", "byte", "boolean", "short", "long", "double", "expand"]
+           "float64", "complex", "byte", "boolean", "short", "long", "double", "expand", ]
