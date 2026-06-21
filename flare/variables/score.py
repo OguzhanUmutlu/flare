@@ -17,6 +17,7 @@ def _nbt():
 
 
 def getscore(x: int | float, multiplier: float = 1.0):
+    multiplier = float(multiplier)
     if (x, multiplier) in constants:
         return constants[(x, multiplier)]
 
@@ -73,6 +74,12 @@ class score:
             dest.__iset__(self)
             return dest
         return self
+
+    def __str__(self):
+        return f"[Score {self.addr}]"
+
+    def __branch__(self, invert=False):
+        return BinaryOp(self, 0, "ne").__branch__(invert)
 
     def store(self):
         from ..execute_modifiers import store  # avoid circular import
@@ -557,21 +564,20 @@ class score:
                 raise TypeError("Cannot swap score with non-numeric NBT")
             runcommand(f"execute store result score {temp.addr} run data get {other.addr}" + (
                 f" {self.multiplier}" if self.multiplier != 1.0 else ""))
+            datatype = other.type.name.lower() if other.type else "double"
             runcommand(
-                f"execute store result {other.addr} {other.type.name.lower()} {1 / self.multiplier} run scoreboard players get {self.addr}")
-            self = temp
+                f"execute store result storage {other.target} {other.path} {datatype} {1 / self.multiplier} run scoreboard players get {self.addr}")
+            runcommand(f"scoreboard players operation {self.addr} = {temp.addr}")
             return self
         if isinstance(other, score):
-            if other.objective == constant_obj:
+            if getattr(other, "objective", None) == constant_obj:
                 raise ValueError(f"Cannot swap with a constant")
             if self.multiplier == other.multiplier:
                 runcommand(f"scoreboard players operation {self.addr} >< {other.addr}")
             else:
-                temp = self
-                runcommand(f"scoreboard players operation {self.addr} = {other.addr}")
-                self *= other.multiplier / self.multiplier
-                runcommand(f"scoreboard players operation {other.addr} = {temp.addr}")
-                other *= self.multiplier / other.multiplier
+                runcommand(f"scoreboard players operation {temp.addr} = {self.addr}")
+                self.__iset__(other)
+                other.__iset__(score(addr=temp.addr, multiplier=self.multiplier))
             return self
         raise UnsupportedOperandError(self, "><", other)
 

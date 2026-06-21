@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def get_schema(minecraft_version: str) -> dict:
-    cache_dir = Path(".flare/cache")
+    cache_dir = Path.home() / ".flare" / "cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_path = cache_dir / f"commands_{minecraft_version}.json"
 

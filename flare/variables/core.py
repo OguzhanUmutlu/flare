@@ -11,7 +11,7 @@ class BinaryOp:
         def get_priority(leaf):
             if hasattr(leaf, "_type_priority"):
                 return leaf._type_priority()
-            return 0
+            return -999999
 
         def traverse(node):
             if isinstance(node, BinaryOp):
@@ -35,10 +35,10 @@ class BinaryOp:
         if self.op in ("eq", "ne", "lt", "le", "gt", "ge", "and", "or", "not"):
             raise TypeError("Logical/Relational operators cannot be assigned directly.")
         iop = f"__i{self.op}__"
-        
+
         left_node = self.left
         right_node = self.right
-        
+
         if self.op in ("add", "mul"):
             def get_priority(node):
                 if hasattr(node, "_best_leaf"):
@@ -46,10 +46,10 @@ class BinaryOp:
                 if hasattr(node, "_type_priority"):
                     return node._type_priority()
                 return 0
-                
+
             if get_priority(right_node) > get_priority(left_node):
                 left_node, right_node = right_node, left_node
-                
+
         if isinstance(left_node, (BinaryOp, UnaryOp)):
             left_node._eval_into(dest)
         else:
@@ -67,6 +67,19 @@ class BinaryOp:
         dest = leaf._create_var(varid)
         self._eval_into(dest)
         return dest
+
+    def __branch__(self, invert=False):
+        from ..compiler import _flatten_and, _compile_relational, _eval_to_bool_score
+        if self.op == "and" and not invert:
+            return _flatten_and(self.left, invert) + _flatten_and(self.right, invert)
+        if self.op == "or" and invert:
+            return _flatten_and(self.left, invert) + _flatten_and(self.right, invert)
+        if self.op in ("eq", "ne", "lt", "le", "gt", "ge"):
+            return [_compile_relational(self, invert)]
+
+        dest = _eval_to_bool_score(self)
+        keyword = "unless" if invert else "if"
+        return [f"{keyword} score {dest.addr} matches 1"]
 
     def __add__(self, other):
         return BinaryOp(self, other, "add")
@@ -182,6 +195,17 @@ class UnaryOp:
         dest = leaf._create_var(varid)
         self._eval_into(dest)
         return dest
+
+    def __branch__(self, invert=False):
+        from ..compiler import _flatten_and, _eval_to_bool_score
+        if self.op == "not":
+            return _flatten_and(self.operand, not invert)
+        if self.op == "neg":
+            return BinaryOp(self, 0, "ne").__branch__(invert)
+
+        dest = _eval_to_bool_score(self)
+        keyword = "unless" if invert else "if"
+        return [f"{keyword} score {dest.addr} matches 1"]
 
     def __neg__(self):
         if self.op == "neg":

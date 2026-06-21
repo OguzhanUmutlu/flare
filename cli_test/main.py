@@ -43,4 +43,25 @@ give @s bow{**custom_model_data}
 kill @s[type=minecraft:zombie]
 tp @s 1 2 3
 
+hello = [[1], [2, 3]]
+
+f = nbt([1, 2, 3])
+f[0][int] += 5
+
+g = nbt(hello)
+g[0][0][int] += 5
+
+h = nbt[list[list[int]]](hello)
+h[0][0] += 5
+
 # tp @z
+
+
+@export
+def test(x: score):
+    return x + 5
+
+print(test(5))
+
+hello2 = nbt[int](10)
+print(test(y))

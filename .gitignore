@@ -10,3 +10,4 @@ venv
 dist
 build
 flaremc.egg-info
+.flare

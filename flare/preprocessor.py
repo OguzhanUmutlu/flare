@@ -1,8 +1,9 @@
 import ast
 import io
-import keyword
 import re
 import tokenize
+
+import flare
 
 
 class CallGraphAnalyzer(ast.NodeVisitor):
@@ -59,45 +60,88 @@ class FlareTransformer(ast.NodeTransformer):
         return f"__flare_{self.counter}"
 
     def visit_If(self, node):
-        self.generic_visit(node)
+        funcs = []
+        cond_args = []
+        body_args = []
 
-        name_body = self.gen_name()
-        name_orelse = self.gen_name()
+        curr = node
+        while True:
+            name_body = self.gen_name()
+            body_func = ast.FunctionDef(name=name_body, body=curr.body if curr.body else [ast.Pass()],
+                                        decorator_list=[],
+                                        args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
+                                                           defaults=[]))
+            ast.copy_location(body_func, curr)
+            self.generic_visit(body_func)
+            funcs.append(body_func)
 
-        body_func = ast.FunctionDef(name=name_body, body=node.body if node.body else [ast.Pass()], decorator_list=[],
-                                    args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
-                                                       defaults=[]))
-        ast.copy_location(body_func, node)
+            lambda_cond = ast.Lambda(
+                args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]), body=curr.test)
+            ast.copy_location(lambda_cond, curr.test)
+            self.generic_visit(lambda_cond)
+            cond_args.append(lambda_cond)
+            body_args.append(ast.Name(id=name_body, ctx=ast.Load()))
 
-        lambda_cond = ast.Lambda(
-            args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]), body=node.test)
-        ast.copy_location(lambda_cond, node.test)
+            if not curr.orelse:
+                break
+            elif len(curr.orelse) == 1 and isinstance(curr.orelse[0], ast.If):
+                curr = curr.orelse[0]
+            else:
+                name_orelse = self.gen_name()
+                orelse_func = ast.FunctionDef(name=name_orelse,
+                                              args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
+                                                                 defaults=[]), body=curr.orelse, decorator_list=[])
+                ast.copy_location(orelse_func, curr)
+                self.generic_visit(orelse_func)
+                funcs.append(orelse_func)
+                cond_args.append(ast.Constant(value=None))
+                body_args.append(ast.Name(id=name_orelse, ctx=ast.Load()))
+                break
 
-        funcs = [body_func]
-        call_args = [lambda_cond]
-
-        if node.orelse:
-            name_orelse = self.gen_name()
-            orelse_func = ast.FunctionDef(name=name_orelse,
-                                          args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
-                                                             defaults=[]), body=node.orelse, decorator_list=[])
-            ast.copy_location(orelse_func, node)
-            funcs.append(orelse_func)
-            call_args.append(ast.Constant(value=None))
-
-        call_args.append(ast.Name(id=name_body, ctx=ast.Load()))
-
-        if node.orelse:
-            call_args.append(ast.Name(id=name_orelse, ctx=ast.Load()))
-
-        call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_if", ctx=ast.Load()), args=call_args, keywords=[]))
+        call_expr = ast.Expr(
+            value=ast.Call(func=ast.Name(id="_flare_if", ctx=ast.Load()), args=cond_args + body_args, keywords=[]))
         ast.copy_location(call_expr, node)
-
         funcs.append(call_expr)
 
         return funcs
 
+    def visit_Break(self, node):
+        call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_break", ctx=ast.Load()), args=[], keywords=[]))
+        ast.copy_location(call_expr, node)
+        return call_expr
+
+    def visit_Continue(self, node):
+        call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_continue", ctx=ast.Load()), args=[], keywords=[]))
+        ast.copy_location(call_expr, node)
+        return call_expr
+
+    def visit_Try(self, node):
+        self.generic_visit(node)
+        return node
+
     def visit_While(self, node):
+        class BreakContinueVisitor(ast.NodeVisitor):
+            def __init__(self):
+                self.has_break = False
+                self.has_continue = False
+
+            def visit_Break(self, n): self.has_break = True
+
+            def visit_Continue(self, n): self.has_continue = True
+
+            def visit_FunctionDef(self, n): pass
+
+            def visit_ClassDef(self, n): pass
+
+            def visit_While(self, n): pass
+
+            def visit_For(self, n): pass
+
+        visitor = BreakContinueVisitor()
+        for stmt in node.body:
+            visitor.visit(stmt)
+        has_break, has_continue = visitor.has_break, visitor.has_continue
+
         self.generic_visit(node)
 
         name_cond = self.gen_name()
@@ -115,14 +159,53 @@ class FlareTransformer(ast.NodeTransformer):
                                     decorator_list=[])
         ast.copy_location(body_func, node)
 
+        funcs = [cond_func, body_func]
+        orelse_arg = ast.Constant(value=None)
+
+        if node.orelse:
+            name_orelse = self.gen_name()
+            orelse_func = ast.FunctionDef(name=name_orelse,
+                                          args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
+                                                             defaults=[]), body=node.orelse, decorator_list=[])
+            ast.copy_location(orelse_func, node)
+            funcs.append(orelse_func)
+            orelse_arg = ast.Name(id=name_orelse, ctx=ast.Load())
+
         call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_while", ctx=ast.Load()),
                                             args=[ast.Name(id=name_cond, ctx=ast.Load()),
-                                                  ast.Name(id=name_body, ctx=ast.Load())], keywords=[]))
+                                                  ast.Name(id=name_body, ctx=ast.Load())],
+                                            keywords=[ast.keyword(arg="orelse_func", value=orelse_arg),
+                                                      ast.keyword(arg="has_break", value=ast.Constant(value=has_break)),
+                                                      ast.keyword(arg="has_continue",
+                                                                  value=ast.Constant(value=has_continue))]))
         ast.copy_location(call_expr, node)
+        funcs.append(call_expr)
 
-        return [cond_func, body_func, call_expr]
+        return funcs
 
     def visit_For(self, node):
+        class BreakContinueVisitor(ast.NodeVisitor):
+            def __init__(self):
+                self.has_break = False
+                self.has_continue = False
+
+            def visit_Break(self, n): self.has_break = True
+
+            def visit_Continue(self, n): self.has_continue = True
+
+            def visit_FunctionDef(self, n): pass
+
+            def visit_ClassDef(self, n): pass
+
+            def visit_While(self, n): pass
+
+            def visit_For(self, n): pass
+
+        visitor = BreakContinueVisitor()
+        for stmt in node.body:
+            visitor.visit(stmt)
+        has_break, has_continue = visitor.has_break, visitor.has_continue
+
         self.generic_visit(node)
 
         name_body = self.gen_name()
@@ -145,11 +228,28 @@ class FlareTransformer(ast.NodeTransformer):
                                     decorator_list=[])
         ast.copy_location(body_func, node)
 
-        call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_for", ctx=ast.Load()),
-                                            args=[node.iter, ast.Name(id=name_body, ctx=ast.Load())], keywords=[]))
-        ast.copy_location(call_expr, node)
+        funcs = [body_func]
+        orelse_arg = ast.Constant(value=None)
 
-        return [body_func, call_expr]
+        if node.orelse:
+            name_orelse = self.gen_name()
+            orelse_func = ast.FunctionDef(name=name_orelse,
+                                          args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
+                                                             defaults=[]), body=node.orelse, decorator_list=[])
+            ast.copy_location(orelse_func, node)
+            funcs.append(orelse_func)
+            orelse_arg = ast.Name(id=name_orelse, ctx=ast.Load())
+
+        call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_for", ctx=ast.Load()),
+                                            args=[node.iter, ast.Name(id=name_body, ctx=ast.Load())],
+                                            keywords=[ast.keyword(arg="orelse_func", value=orelse_arg),
+                                                      ast.keyword(arg="has_break", value=ast.Constant(value=has_break)),
+                                                      ast.keyword(arg="has_continue",
+                                                                  value=ast.Constant(value=has_continue))]))
+        ast.copy_location(call_expr, node)
+        funcs.append(call_expr)
+
+        return funcs
 
     def visit_Assign(self, node):
         self.generic_visit(node)
@@ -172,13 +272,14 @@ class FlareTransformer(ast.NodeTransformer):
         self.generic_visit(node)
         if isinstance(node.target, ast.Name):
             var_name = node.target.id
-            op_map = {ast.Add: "__iadd__", ast.Sub: "__isub__", ast.Mult: "__imul__", ast.Div: "__itruediv__",
-                      ast.Mod: "__imod__"}
+            op_map = {ast.Add: "Add", ast.Sub: "Sub", ast.Mult: "Mult", ast.Div: "Div", ast.Mod: "Mod"}
             if type(node.op) in op_map:
                 method = op_map[type(node.op)]
-                call_expr = ast.Call(
-                    func=ast.Attribute(value=ast.Name(id=var_name, ctx=ast.Load()), attr=method, ctx=ast.Load()),
-                    args=[node.value], keywords=[])
+                call_expr = ast.Call(func=ast.Name(id="_flare_aug_assign", ctx=ast.Load()),
+                                     args=[ast.Constant(value=var_name), ast.Constant(value=method), node.value,
+                                           ast.Call(func=ast.Name(id="locals", ctx=ast.Load()), args=[], keywords=[]),
+                                           ast.Call(func=ast.Name(id="globals", ctx=ast.Load()), args=[], keywords=[])],
+                                     keywords=[])
                 expr = ast.Expr(value=call_expr)
                 ast.copy_location(expr, node)
                 return expr
@@ -264,7 +365,10 @@ def process_nbt_literals(source: str) -> str:
                         nbt_str = source[j:curr]
                         if nbt_str.startswith("["):
                             inner = nbt_str[1:-1].strip()
-                            if inner in ("int", "float", "str", "bool", "list", "dict", "nbt", "score", "fixed"):
+                            flare_types = [t for t in dir(flare) if not t.startswith("_")]
+                            if inner in ("int", "float", "str", "bool", "list", "dict", "nbt", "score",
+                                         "fixed") or inner in flare_types or inner.startswith(
+                                "list[") or inner.startswith("array["):
                                 out.append(source[i:curr])
                                 i = curr
                                 continue
@@ -291,11 +395,11 @@ def preprocess_minecraft_commands(source: str) -> str:
     except (tokenize.TokenError, IndentationError):
         pass
 
-    bracket_counts = {"{": 0, "[": 0, "(": 0}
     bracket_matches = {"}": "{", "]": "[", ")": "("}
 
     i = 0
     while i < len(lines):
+        bracket_counts = {"{": 0, "[": 0, "(": 0}
         line_num = i + 1
         if line_num in skip_lines:
             i += 1
@@ -432,33 +536,20 @@ def preprocess_minecraft_commands(source: str) -> str:
         if tok.type == tokenize.OP and tok.string == "@":
             prev_tok = None
             for j in range(i - 1, -1, -1):
-                if tokens[j].type not in (tokenize.NL, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT,
-                                          tokenize.COMMENT):
+                if tokens[j].type not in (tokenize.NL, tokenize.COMMENT):
                     prev_tok = tokens[j]
                     break
 
-            is_matrix_mult = False
             is_decorator = False
-
-            if prev_tok is None:
+            if prev_tok is None or prev_tok.type in (tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT):
                 is_decorator = True
-            elif prev_tok.type in (tokenize.NAME, tokenize.NUMBER, tokenize.STRING) and prev_tok.string not in ("True",
-                                                                                                                "False",
-                                                                                                                "None"):
-                if prev_tok.type == tokenize.NAME and keyword.iskeyword(prev_tok.string):
-                    is_matrix_mult = False
-                else:
-                    is_matrix_mult = True
-            elif prev_tok.type == tokenize.OP and prev_tok.string in ")]}":
-                is_matrix_mult = True
 
             if i + 1 < len(tokens) and tokens[i + 1].type == tokenize.NAME:
                 name_tok = tokens[i + 1]
                 if name_tok.string in ("a", "e", "p", "r", "s", "n", "c"):
                     is_decorator = False
-                    is_matrix_mult = False
 
-            if not is_matrix_mult and not is_decorator:
+            if not is_decorator:
                 if i + 1 < len(tokens) and tokens[i + 1].type == tokenize.NAME:
                     name_tok = tokens[i + 1]
                     selector_str = "@" + name_tok.string

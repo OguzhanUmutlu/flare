@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Union, Any
 
+from . import context as ctx
 from .variables import score, nbt, selector
 
 
@@ -71,6 +72,39 @@ class ExecuteChain:
 
     def __str__(self):
         return " ".join(self.fragments)
+
+    def __branch__(self, invert=False):
+        if invert:
+            raise ValueError("ExecuteChain cannot be inverted. Use 'unless' inside the chain.")
+        if self.fragments and self.fragments[0] == "execute":
+            return self.fragments[1:]
+        return self.fragments
+
+    def __with__(self, body_func):
+        prefix = " ".join(self.fragments)
+        func_name = f"{ctx._current_namespace}:with_{ctx._func_id}"
+        ctx._func_id += 1
+
+        with ctx.push_context(func_name):
+            body_func()
+
+        if ctx.files.get(func_name):
+            if len(ctx.files[func_name]) == 1:
+                cmd = ctx.files[func_name][0]
+                del ctx.files[func_name]
+                if cmd.startswith("execute "):
+                    ctx.runcommand(f"{prefix} {cmd[8:]}")
+                else:
+                    ctx.runcommand(f"{prefix} run {cmd}")
+            else:
+                ctx.files[func_name].append("return 0")
+                ret_temp = score(addr=f"!ret{ctx._temp_id} {ctx.temp_obj}")
+                ctx._temp_id += 1
+                if prefix.startswith("execute "):
+                    ctx.runcommand(f"execute store result score {ret_temp.addr} {prefix[8:]} run function {func_name}")
+                else:
+                    ctx.runcommand(f"execute store result score {ret_temp.addr} run function {func_name}")
+                ctx.runcommand(f"execute if score {ret_temp.addr} matches 1 run return 1")
 
 
 class StoreExecuteChain(ExecuteChain):

@@ -10,12 +10,13 @@ echo "Running tests before publishing..."
 echo "Tests passed! Building package..."
 rm -rf dist/
 rm -rf build/
-rm -rf src/*.egg-info/
+rm -rf *.egg-info/
 
 python -m pip install --upgrade build twine
 python -m build
 
 echo "Publishing to PyPI..."
 python -m twine upload dist/* --verbose
+rm -rf *.egg-info
 
 echo "Successfully published!"

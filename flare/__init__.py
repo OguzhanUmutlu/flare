@@ -1,7 +1,7 @@
 from .compiler import _flatten_and, _eval_to_bool_score, _compile_relational
 from .context import namespace, export, tick, push_context, runcommand, files, temp_obj, constant_obj, vars_obj, \
-    constants, _flare_assign, _flare_print, dbg, _flare_return
-from .control_flow import _flare_if, _flare_while, _flare_for, _flare_with
+    constants, _flare_assign, _flare_aug_assign, _flare_print, dbg, _flare_return
+from .control_flow import _flare_if, _flare_while, _flare_for, _flare_with, _flare_break, _flare_continue
 from .execute_modifiers import _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, \
     store, ExecuteChain, StoreExecuteChain
 from .math import round_, floor, ceil

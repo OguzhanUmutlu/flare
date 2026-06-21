@@ -1,7 +1,6 @@
 from . import context as ctx
 from .context import runcommand, temp_obj
-from .types import NBTType
-from .variables import score, nbt, BinaryOp, UnaryOp, getscore
+from .variables import score, BinaryOp, UnaryOp, getscore
 
 
 def _compile_relational(node, invert=False):
@@ -80,22 +79,8 @@ def _eval_to_bool_score(node):
 
 
 def _flatten_and(node, invert=False):
-    if not isinstance(node, (BinaryOp, UnaryOp)):
-        if isinstance(node, nbt) and (node.is_sequence() or node.type == NBTType.String):
-            node = BinaryOp(node.length(), 0, "ne")
-        else:
-            node = BinaryOp(node, 0, "ne")
-    if isinstance(node, UnaryOp) and node.op == "neg":
-        node = BinaryOp(node, 0, "ne")
-    if isinstance(node, UnaryOp) and node.op == "not":
-        return _flatten_and(node.operand, not invert)
-    if isinstance(node, BinaryOp):
-        if node.op == "and" and not invert:
-            return _flatten_and(node.left, invert) + _flatten_and(node.right, invert)
-        if node.op == "or" and invert:
-            return _flatten_and(node.left, invert) + _flatten_and(node.right, invert)
-        if node.op in ("eq", "ne", "lt", "le", "gt", "ge"):
-            return [_compile_relational(node, invert)]
+    if hasattr(node, "__branch__"):
+        return node.__branch__(invert)
 
     dest = _eval_to_bool_score(node)
     keyword = "unless" if invert else "if"

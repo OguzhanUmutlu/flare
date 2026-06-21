@@ -16,6 +16,8 @@ from watchdog.observers import Observer
 from . import context
 from .preprocessor import FlareTransformer, CallGraphAnalyzer, preprocess_minecraft_commands
 
+build_lock = threading.RLock()
+
 
 def init_project(path: str):
     p = Path(path)
@@ -42,7 +44,7 @@ def init_project(path: str):
     print(f"Created {json_path.absolute()}")
 
 
-def build_datapack(file_path: str, cli_overrides: dict = None):
+def _build_datapack_inner(file_path: str, cli_overrides: dict = None):
     p = Path(file_path).parent
     json_path = p / "flare.json"
 
@@ -63,6 +65,7 @@ def build_datapack(file_path: str, cli_overrides: dict = None):
 
     context.validation_level = config.get("validation_level", "strict")
     context.minecraft_version = config.get("minecraft_version", "1.20.4")
+    context.nbt_schema_missing = config.get("nbt_schema_missing", "error")
 
     context.reset_context()
     context._current_namespace = namespace
@@ -92,10 +95,14 @@ def build_datapack(file_path: str, cli_overrides: dict = None):
 
         global_env = {"__name__": "__main__", "__file__": abs_path}
         exec(
-            "from flare import _flare_assign, _flare_if, _flare_while, _flare_for, _flare_with, runcommand, _flare_return\n"
+            "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_with, runcommand, _flare_return, _flare_break, _flare_continue\n"
             "from flare.command_parser import interpolate_command\n"
             "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
-            "from flare import nbt, score, fixed, nbtintarray, dbg, export, namespace", global_env)
+            "from flare import nbt, score, fixed, tagged, ref, getscore, storage, array, byte, boolean, short, long, double\n"
+            "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtdict, nbtbytearray, nbtintarray, nbtlongarray\n"
+            "from flare import round_, floor, ceil\n"
+            "from flare.math import *\n"
+            "from flare import dbg, export, namespace, tick", global_env)
 
         exec(compile(tree, abs_path, "exec"), global_env)
         sys.path.pop(0)
@@ -106,6 +113,9 @@ def build_datapack(file_path: str, cli_overrides: dict = None):
 
     new_modules = set(sys.modules.keys()) - old_modules
     watch_files = {os.path.abspath(file_path)}
+    if os.path.exists(p / "flare.json"):
+        watch_files.add(os.path.abspath(p / "flare.json"))
+
     for mod_name in new_modules:
         mod = sys.modules.get(mod_name)
         if mod and getattr(mod, "__file__", None):
@@ -163,6 +173,11 @@ def build_datapack(file_path: str, cli_overrides: dict = None):
     return True, watch_files, build_dir
 
 
+def build_datapack(file_path: str, cli_overrides: dict = None):
+    with build_lock:
+        return _build_datapack_inner(file_path, cli_overrides)
+
+
 class WatcherHandler(FileSystemEventHandler):
     def __init__(self, cli_args, watch_files):
         self.cli_args = cli_args
@@ -201,10 +216,14 @@ def main():
     parser.add_argument("--watch", action="store_true", help="Watch for file changes and rebuild")
     parser.add_argument("--run", nargs="?", const="-1", default=None,
                         help="Run the compiled datapack in mcemu. Optionally specify a timeout in seconds.")
+    parser.add_argument("--nbt-schema-missing", choices=["error", "warning", "ignore"], default="error",
+                        help="Action when indexing an NBT path that does not exist in the attached schema.")
 
     args, unknown_args = parser.parse_known_args()
 
     cli_overrides = {}
+    if hasattr(args, 'nbt_schema_missing'):
+        cli_overrides["nbt_schema_missing"] = args.nbt_schema_missing
     i = 0
     while i < len(unknown_args):
         arg = unknown_args[i]

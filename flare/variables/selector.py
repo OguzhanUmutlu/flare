@@ -21,7 +21,7 @@ class tagged:
         if isinstance(other, tagged):
             target = other.target
         elif isinstance(other, selector):
-            target = other.target
+            target = other._target_str
         elif isinstance(other, str):
             target = other
         else:
@@ -38,16 +38,24 @@ class tagged:
 
 class selector:
     def __init__(self, target: str):
-        self.target = target
+        self._target_str = target
 
     def __str__(self):
-        return str(self.target)
+        return str(self._target_str)
 
     def __repr__(self):
-        return f'selector("{self.target}")'
+        return f'selector("{self._target_str}")'
 
     def __getattr__(self, name):
-        return _SelectorAttribute(self.target, name)
+        return _SelectorAttribute(self._target_str, name)
+
+    def __with__(self, body_func):
+        self._as().__with__(body_func)
+
+    def __for__(self, body_func, orelse_func=None, has_break=False, has_continue=False):
+        self.__with__(lambda: body_func(selector("@s")))
+        if orelse_func:
+            orelse_func()
 
     def _as(self):
         return _as(self)
@@ -87,26 +95,6 @@ class selector:
 
     def vehicle(self):
         return applyon("vehicle")
-
-
-class _SelectorAttribute(nbt):
-    def __init__(self, target, name):
-        schema_node = None
-        datatype = None
-        if name in ENTITY_SCHEMA["children"]:
-            schema_node = ENTITY_SCHEMA["children"][name]
-            datatype = schema_node.get("type", None)
-
-        super().__init__(addr=f"entity {target} {name}", datatype=datatype, schema_node=schema_node)
-        self._target = target
-        self._name = name
-
-    def __call__(self, *args):
-        args_str = " ".join(str(a) for a in args)
-        if args_str:
-            runcommand(f"{self._name} {self._target} {args_str}")
-        else:
-            runcommand(f"{self._name} {self._target}")
 
 
 class _SelectorAttribute(nbt):

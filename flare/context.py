@@ -18,14 +18,16 @@ _constant_offset = 0
 _recursive_functions = set()
 _in_recursive_context = False
 return_types = {}
+has_returns = {}
 _logical_func = None
 
 validation_level = "strict"
 minecraft_version = "1.20.4"
+nbt_schema_missing = "error"
 
 
 def reset_context():
-    global files, current_file, _current_namespace, functions, constants, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, minecraft_version
+    global files, current_file, _current_namespace, functions, constants, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, minecraft_version, nbt_schema_missing, _recursive_functions, _in_recursive_context, return_types, _logical_func
     files = {"main": []}
     current_file = "main"
     _current_namespace = "flare"
@@ -94,10 +96,6 @@ def namespace(name: str):
     _current_namespace = name
 
 
-def __float_prec(x: float) -> int:
-    return len(str(x).split(".")[-1])
-
-
 from .validator import validate_command, FlareCommandValidationError
 
 
@@ -134,7 +132,9 @@ def _flare_print(*args):
             components.append({"text": " "})
 
         if hasattr(arg, "__icopy__") and getattr(type(arg), "__name__", "") in ("BinaryOp", "UnaryOp"):
-            arg = arg.__icopy__(f"{_current_namespace}_temp_print_{i}")
+            global _temp_id
+            arg = arg.__icopy__(f"!print_{_temp_id}")
+            _temp_id += 1
 
         if isinstance(arg, score):
             if getattr(arg, "multiplier", 1.0) != 1.0:
@@ -219,7 +219,8 @@ def export(func=None, *, append=False):
     if sig.return_annotation is not inspect.Signature.empty:
         return_types[func_name] = sig.return_annotation
     else:
-        return_types[func_name] = None
+        return_types[func_name] = "UNKNOWN"
+    has_returns[func_name] = False
 
     global _in_recursive_context, _logical_func
     prev_recursive = _in_recursive_context
@@ -263,8 +264,10 @@ def export(func=None, *, append=False):
                         base_addr = f"storage flare:args {func.__name__}_{arg_name}"
                         runcommand(f"data remove {base_addr}[-1]")
 
-            ret_anno = sig.return_annotation
-            if ret_anno is not inspect.Signature.empty:
+            ret_anno = return_types.get(func_name, sig.return_annotation)
+            if ret_anno == "UNKNOWN":
+                return "UNKNOWN_RETURN"
+            elif ret_anno is not inspect.Signature.empty and ret_anno is not None:
                 if hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
                     temp_ret = score(addr=f"!ret{_temp_id} {temp_obj}")
                     _temp_id += 1
@@ -297,6 +300,13 @@ def export(func=None, *, append=False):
     else:
         func_globals.pop(func.__name__, None)
 
+    if return_types[func_name] == "UNKNOWN":
+        if has_returns.get(func_name, False):
+            raise TypeError(
+                f"Function {func_name} has returns but return type could not be auto-detected. Please add an explicit return type annotation.")
+        else:
+            return_types[func_name] = None
+
     return proxy
 
 
@@ -309,13 +319,45 @@ def _flare_assign(var_name, value, local_env, global_env):
         target = None
 
     if target is not None and hasattr(target, "__iset__"):
-        target.__iset__(value)
-        return target
+        try:
+            target.__iset__(value)
+            return target
+        except Exception:
+            pass
 
     if target is None and hasattr(value, "__icopy__"):
         if "is_recursive" in inspect.signature(value.__icopy__).parameters:
             return value.__icopy__(varid=f"{_current_namespace}_{var_name}", is_recursive=_in_recursive_context)
         return value.__icopy__(varid=f"{_current_namespace}_{var_name}")
+
+    return value
+
+
+def _flare_aug_assign(var_name, op_name, value, _locals, _globals):
+    if var_name in _locals:
+        var = _locals[var_name]
+    elif var_name in _globals:
+        var = _globals[var_name]
+    else:
+        raise NameError(f"name '{var_name}' is not defined")
+
+    op_map = {"Add": "__iadd__", "Sub": "__isub__", "Mult": "__imul__", "Div": "__itruediv__", "Mod": "__imod__"}
+    method_name = op_map.get(op_name)
+
+    if hasattr(var, method_name):
+        getattr(var, method_name)(value)
+    else:
+        if op_name == "Add":
+            var += value
+        elif op_name == "Sub":
+            var -= value
+        elif op_name == "Mult":
+            var *= value
+        elif op_name == "Div":
+            var /= value
+        elif op_name == "Mod":
+            var %= value
+        _flare_assign(var_name, var, _locals, _globals)
 
     return value
 
@@ -327,7 +369,30 @@ def _flare_return(value):
         raise Exception("Return outside of exported function")
     ret_anno = return_types.get(func_name, None)
 
-    if ret_anno is None:
+    if isinstance(value, str) and value == "UNKNOWN_RETURN":
+        has_returns[func_name] = True
+        return
+
+    ret_anno = return_types.get(func_name, None)
+
+    if ret_anno == "UNKNOWN":
+        if hasattr(value, "_best_leaf"):
+            leaf = value._best_leaf()
+        else:
+            leaf = value
+
+        if leaf is None:
+            ret_anno = type(None)
+        elif hasattr(type(leaf), "__name__") and type(leaf).__name__ in ("score", "fixed", "_PrecisionScore", "nbt",
+                                                                         "_TypedNBT"):
+            ret_anno = type(leaf)
+        else:
+            raise TypeError(f"Cannot auto-detect return type from value of type {type(leaf)}")
+        return_types[func_name] = ret_anno
+
+    has_returns[func_name] = True
+
+    if ret_anno is None or ret_anno == type(None):
         if value is not None:
             raise TypeError(f"Function {func_name} returned a value but has no return type annotation")
         return

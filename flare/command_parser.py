@@ -75,7 +75,7 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
                 elif hasattr(val, "target"):
                     output.append(val.target)
                 elif isinstance(val, dict) and output and output[-1].endswith("**"):
-                    output[-1] = output[-1][:-2]  # Remove the **
+                    output[-1] = output[-1][:-2]
                     items = []
                     for k, v in val.items():
                         if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-\.]+$', k):
@@ -92,7 +92,7 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
                 elif hasattr(val, "target"):
                     output.append(val.target)
                 elif isinstance(val, dict) and output and output[-1].endswith("**"):
-                    output[-1] = output[-1][:-2]  # Remove the **
+                    output[-1] = output[-1][:-2]
                     items = []
                     for k, v in val.items():
                         if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-\.]+$', k):

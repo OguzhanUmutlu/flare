@@ -1,10 +1,17 @@
 from . import context as ctx
-from .execute_modifiers import ExecuteChain, _as
 from .compiler import _flatten_and
 from .context import push_context, runcommand, temp_obj
-from .types import NBTType
-from .variables import score, nbt
-from .variables import selector
+from .execute_modifiers import ExecuteChain
+from .variables import score
+
+
+def _flare_break():
+    runcommand(f"scoreboard players set !break {temp_obj} 1")
+    runcommand("return 0")
+
+
+def _flare_continue():
+    runcommand("return 0")
 
 
 def _flare_if(*args):
@@ -107,12 +114,27 @@ def _flare_if(*args):
                 runcommand(f"execute if score {ret_temp.addr} matches 1 run return 1")
 
 
-def _flare_while(cond_func, body_func):
+def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_continue=False):
     func_name = f"{ctx._current_namespace}:while_{ctx._func_id}"
     ctx._func_id += 1
 
     with push_context(func_name):
-        body_func()
+        if has_break or has_continue:
+            func_body = f"{ctx._current_namespace}:while_body_{ctx._func_id}"
+            ctx._func_id += 1
+            with push_context(func_body):
+                body_func()
+
+            ret_body = score(addr=f"!ret{ctx._temp_id} {temp_obj}")
+            ctx._temp_id += 1
+            runcommand(f"execute store result score {ret_body.addr} run function {func_body}")
+            runcommand(f"execute if score {ret_body.addr} matches 1 run return 1")
+
+            if has_break:
+                runcommand(f"execute if score !break {temp_obj} matches 1 run return 0")
+        else:
+            body_func()
+
         cond = cond_func()
         conds = _flatten_and(cond)
         prefix = f"execute {' '.join(conds)}"
@@ -122,6 +144,9 @@ def _flare_while(cond_func, body_func):
         runcommand(f"execute store result score {ret_temp.addr} {' '.join(conds)} run function {func_name}")
         runcommand(f"execute if score {ret_temp.addr} matches 1 run return 1")
 
+    if has_break:
+        runcommand(f"scoreboard players set !break {temp_obj} 0")
+
     cond_init = cond_func()
     conds_init = _flatten_and(cond_init)
     prefix_init = f"execute {' '.join(conds_init)}"
@@ -130,91 +155,39 @@ def _flare_while(cond_func, body_func):
     runcommand(f"execute store result score {ret_temp_init.addr} {' '.join(conds_init)} run function {func_name}")
     runcommand(f"execute if score {ret_temp_init.addr} matches 1 run return 1")
 
-
-def _flare_for(iterable, body_func):
-    if isinstance(iterable, nbt) and iterable.is_sequence():
-        elem_type = None
-        if iterable.type == NBTType.ByteArray:
-            elem_type = NBTType.Byte
-        elif iterable.type == NBTType.IntArray:
-            elem_type = NBTType.Int
-        elif iterable.type == NBTType.LongArray:
-            elem_type = NBTType.Long
-
-        temp_arr = nbt(addr=f"flare:temp !for_arr_{ctx._temp_id}", datatype=iterable.type)
-        temp_var = nbt(addr=f"{temp_arr.addr}[0]", datatype=elem_type)
-        ctx._temp_id += 1
-
-        temp_arr.__iset__(iterable)
-        length_score = temp_arr.length()
-
-        func_name = f"{ctx._current_namespace}:for_{ctx._func_id}"
-        ctx._func_id += 1
-
-        with push_context(func_name):
-            body_func(temp_var)
-            runcommand(f"data remove {temp_arr.addr}[0]")
-
-            length_score -= 1
-            ctx.files[func_name].append("return 0")
-            ret_temp = score(addr=f"!ret{ctx._temp_id} {temp_obj}")
-            ctx._temp_id += 1
-            runcommand(
-                f"execute store result score {ret_temp.addr} if score {length_score.addr} matches 1.. run function {func_name}")
-            runcommand(f"execute if score {ret_temp.addr} matches 1 run return 1")
-
-        ret_temp_init = score(addr=f"!ret{ctx._temp_id} {temp_obj}")
-        ctx._temp_id += 1
-        runcommand(
-            f"execute store result score {ret_temp_init.addr} if score {length_score.addr} matches 1.. run function {func_name}")
-        runcommand(f"execute if score {ret_temp_init.addr} matches 1 run return 1")
-
-    else:
-        if isinstance(iterable, selector):
-            _flare_with(iterable, lambda: body_func(selector("@s")))
+    if orelse_func:
+        if has_break:
+            orelse_name = f"{ctx._current_namespace}:while_else_{ctx._func_id}"
+            ctx._func_id += 1
+            with push_context(orelse_name):
+                orelse_func()
+            runcommand(f"execute if score !break {temp_obj} matches 0 run function {orelse_name}")
         else:
-            for item in iterable:
-                body_func(item)
+            orelse_func()
+
+
+def _flare_for(iterable, body_func, orelse_func=None, has_break=False, has_continue=False):
+    if hasattr(iterable, "__for__"):
+        iterable.__for__(body_func, orelse_func, has_break, has_continue)
+    else:
+        for item in iterable:
+            body_func(item)
 
 
 def _flare_with(*args):
     body_func = args[-1]
     chains = args[:-1]
 
-    combined_fragments = ["execute"]
-    for chain in chains:
-        if isinstance(chain, selector):
-            chain = _as(chain)
-        if isinstance(chain, ExecuteChain):
-            if chain.fragments and chain.fragments[0] == "execute":
-                combined_fragments.extend(chain.fragments[1:])
-            else:
-                combined_fragments.extend(chain.fragments)
-        elif isinstance(chain, str):
-            combined_fragments.append(chain)
-
-    prefix = " ".join(combined_fragments)
-
-    func_name = f"{ctx._current_namespace}:with_{ctx._func_id}"
-    ctx._func_id += 1
-
-    with push_context(func_name):
-        body_func()
-
-    if ctx.files.get(func_name):
-        if len(ctx.files[func_name]) == 1:
-            cmd = ctx.files[func_name][0]
-            del ctx.files[func_name]
-            if cmd.startswith("execute "):
-                runcommand(f"{prefix} {cmd[8:]}")
-            else:
-                runcommand(f"{prefix} run {cmd}")
+    def wrap(idx):
+        if idx == len(chains):
+            body_func()
         else:
-            ctx.files[func_name].append("return 0")
-            ret_temp = score(addr=f"!ret{ctx._temp_id} {temp_obj}")
-            ctx._temp_id += 1
-            if prefix.startswith("execute "):
-                runcommand(f"execute store result score {ret_temp.addr} {prefix[8:]} run function {func_name}")
+            obj = chains[idx]
+            if hasattr(obj, "__with__"):
+                obj.__with__(lambda: wrap(idx + 1))
+            elif isinstance(obj, str):
+                ExecuteChain(obj).__with__(lambda: wrap(idx + 1))
             else:
-                runcommand(f"execute store result score {ret_temp.addr} run function {func_name}")
-            runcommand(f"execute if score {ret_temp.addr} matches 1 run return 1")
+                raise TypeError(f"Object of type {type(obj).__name__} does not support __with__")
+
+    wrap(0)
