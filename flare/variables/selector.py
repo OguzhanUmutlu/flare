@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from .nbt import nbt
 from ..context import runcommand
-from ..execute_modifiers import _as
-from ..execute_modifiers import applyon, at, positioned, facing, rotated
 from ..nbt_schema import ENTITY_SCHEMA
 
 
@@ -58,42 +56,55 @@ class selector:
             orelse_func()
 
     def _as(self):
+        from ..execute_modifiers import _as
         return _as(self)
 
     def at(self):
+        from ..execute_modifiers import at
         return at(self)
 
     def positioned(self):
+        from ..execute_modifiers import positioned
         return positioned(self)
 
     def facing(self, *args):
+        from ..execute_modifiers import facing
         return facing(self, *args)
 
     def rotated(self):
+        from ..execute_modifiers import rotated
         return rotated(self)
 
     def attacker(self):
+        from ..execute_modifiers import applyon
         return applyon("attacker")
 
     def controller(self):
+        from ..execute_modifiers import applyon
         return applyon("controller")
 
     def leasher(self):
+        from ..execute_modifiers import applyon
         return applyon("leasher")
 
     def origin(self):
+        from ..execute_modifiers import applyon
         return applyon("origin")
 
     def owner(self):
+        from ..execute_modifiers import applyon
         return applyon("owner")
 
     def passengers(self):
+        from ..execute_modifiers import applyon
         return applyon("passengers")
 
     def target(self):
+        from ..execute_modifiers import applyon
         return applyon("target")
 
     def vehicle(self):
+        from ..execute_modifiers import applyon
         return applyon("vehicle")
 
 

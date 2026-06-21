@@ -4,7 +4,6 @@ node_modules
 package-lock.json
 out
 .old
-docs
 __pycache__
 venv
 dist

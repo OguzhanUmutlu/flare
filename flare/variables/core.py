@@ -79,7 +79,7 @@ class BinaryOp:
 
         dest = _eval_to_bool_score(self)
         keyword = "unless" if invert else "if"
-        return [f"{keyword} score {dest._addr} matches 1"]
+        return [f"{keyword} score {addr(dest)} matches 1"]
 
     def __add__(self, other):
         return BinaryOp(self, other, "add")
@@ -144,6 +144,9 @@ class BinaryOp:
     def __invert__(self):
         return UnaryOp(self, "not")
 
+    def __bool__(self):
+        raise TypeError("Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
+
 
 class UnaryOp:
     def __init__(self, operand, op: str):
@@ -205,7 +208,7 @@ class UnaryOp:
 
         dest = _eval_to_bool_score(self)
         keyword = "unless" if invert else "if"
-        return [f"{keyword} score {dest._addr} matches 1"]
+        return [f"{keyword} score {addr(dest)} matches 1"]
 
     def __neg__(self):
         if self.op == "neg":
@@ -272,7 +275,85 @@ class UnaryOp:
     def __invert__(self):
         return UnaryOp(self, "not")
 
+    def __bool__(self):
+        raise TypeError("Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
+
 
 class UnsupportedOperandError(Exception):
     def __init__(self, a, op, b):
         super().__init__(f"Unsupported operand type(s) for {op}: '{type(a).__name__}' and '{type(b).__name__}'")
+
+
+def addr(var):
+    return var._addr
+
+
+class ArithmeticSupported:
+    def __add__(self, other):
+        return BinaryOp(self, other, "add")
+
+    def __radd__(self, other):
+        return BinaryOp(other, self, "add")
+
+    def __sub__(self, other):
+        return BinaryOp(self, other, "sub")
+
+    def __rsub__(self, other):
+        return BinaryOp(other, self, "sub")
+
+    def __mul__(self, other):
+        return BinaryOp(self, other, "mul")
+
+    def __rmul__(self, other):
+        return BinaryOp(other, self, "mul")
+
+    def __itruediv__(self, other):
+        return self.__idiv__(other)
+
+    def __neg__(self):
+        return UnaryOp(self, "neg")
+
+    def __pos__(self):
+        return self
+
+    def __eq__(self, other):
+        return BinaryOp(self, other, "eq")
+
+    def __ne__(self, other):
+        return BinaryOp(self, other, "ne")
+
+    def __lt__(self, other):
+        return BinaryOp(self, other, "lt")
+
+    def __le__(self, other):
+        return BinaryOp(self, other, "le")
+
+    def __gt__(self, other):
+        return BinaryOp(self, other, "gt")
+
+    def __ge__(self, other):
+        return BinaryOp(self, other, "ge")
+
+    def __and__(self, other):
+        return BinaryOp(self, other, "and")
+
+    def __or__(self, other):
+        return BinaryOp(self, other, "or")
+
+    def __invert__(self):
+        return UnaryOp(self, "not")
+
+    def __truediv__(self, other):
+        return BinaryOp(self, other, "truediv")
+
+    def __rtruediv__(self, other):
+        return BinaryOp(other, self, "truediv")
+
+    def __mod__(self, other):
+        return BinaryOp(self, other, "mod")
+
+    def __rmod__(self, other):
+        return BinaryOp(other, self, "mod")
+
+    def __bool__(self):
+        raise TypeError("Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")

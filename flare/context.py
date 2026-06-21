@@ -56,6 +56,20 @@ minecraft_version = "1.20.4"
 nbt_schema_missing = "error"
 
 
+def next_temp_id():
+    global _temp_id
+    got = _temp_id
+    _temp_id += 1
+    return got
+
+
+def next_func_id():
+    global _func_id
+    got = _func_id
+    _func_id += 1
+    return got
+
+
 def reset_context():
     global files, current_file, _current_namespace, functions, constants, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, minecraft_version, nbt_schema_missing, _recursive_functions, _in_recursive_context, return_types, _logical_func
     files = {"main": []}
@@ -121,9 +135,11 @@ def push_context(name: str):
     return _ContextManager(name)
 
 
-def namespace(name: str):
+def namespace(name: str | None = None):
     global _current_namespace
-    _current_namespace = name
+    if name is not None:
+        _current_namespace = name
+    return _current_namespace
 
 
 from .validator import validate_command, FlareCommandValidationError
@@ -172,7 +188,7 @@ def _flare_print(*args):
                 if scale_str.endswith("."):
                     scale_str += "0"
                 runcommand(
-                    f"execute store result storage {temp_storage} __flare_debug_{i} double {scale_str} run scoreboard players get {arg._addr}")
+                    f"execute store result storage {temp_storage} __flare_debug_{i} double {scale_str} run scoreboard players get {addr(arg)}")
                 components.append({"nbt": f"__flare_debug_{i}", "storage": str(temp_storage)})
             else:
                 name, obj = arg._addr.split(" ", 1)
@@ -271,6 +287,7 @@ def export(func=None, *, name=None, append=False):
             global _temp_id
             bound = sig.bind(*args, **call_kwargs)
             bound.apply_defaults()
+            from .variables.core import addr
             for arg_name, arg_val in bound.arguments.items():
                 target = kwargs[arg_name]
 
@@ -279,16 +296,16 @@ def export(func=None, *, name=None, append=False):
                     if isinstance(arg_val, (int, float, str)):
                         runcommand(f"data modify {base_addr} append value {json.dumps(arg_val)}")
                     elif isinstance(arg_val, nbt):
-                        runcommand(f"data modify {base_addr} append from {arg_val._addr}")
+                        runcommand(f"data modify {base_addr} append from {addr(arg_val)}")
                     elif isinstance(arg_val, score):
                         runcommand(f"data modify {base_addr} append value 0")
                         runcommand(
-                            f"execute store result {base_addr}[-1] int {1 / arg_val._multiplier} run scoreboard players get {arg_val._addr}")
+                            f"execute store result {base_addr}[-1] int {1 / arg_val._multiplier} run scoreboard players get {addr(arg_val)}")
                     elif hasattr(type(arg_val), "_eval_into"):
                         temp = nbt(addr=f"storage {temp_storage} !t{_temp_id}", datatype=target._type)
                         _temp_id += 1
                         arg_val._eval_into(temp)
-                        runcommand(f"data modify {base_addr} append from {temp._addr}")
+                        runcommand(f"data modify {base_addr} append from {addr(temp)}")
                 else:
                     target.__iset__(arg_val)
 
@@ -308,7 +325,7 @@ def export(func=None, *, name=None, append=False):
                     temp_ret = score(addr=f"!ret{_temp_id} {temp_obj}")
                     _temp_id += 1
                     runcommand(
-                        f"scoreboard players operation {temp_ret._addr} = {func_name.replace(":", "_")}_ret {vars_obj}")
+                        f"scoreboard players operation {addr(temp_ret)} = {func_name.replace(":", "_")}_ret {vars_obj}")
                     if ret_anno.__name__ in ("fixed", "_PrecisionScore"):
                         pass
                     return temp_ret
@@ -316,7 +333,7 @@ def export(func=None, *, name=None, append=False):
                     temp_ret = nbt(addr=f"storage {temp_storage} !ret{_temp_id}")
                     _temp_id += 1
                     runcommand(
-                        f"data modify {temp_ret._addr} set from storage {returns_storage} {func_name.replace(':', '_')}")
+                        f"data modify {addr(temp_ret)} set from storage {returns_storage} {func_name.replace(':', '_')}")
                     return temp_ret
 
     proxy = ProxyFunction()
@@ -345,6 +362,18 @@ def export(func=None, *, name=None, append=False):
 
     return proxy
 
+
+def _flare_in(item, container):
+    if hasattr(container, "__in__"):
+        return container.__in__(item)
+    return item in container
+
+def _flare_notin(item, container):
+    if hasattr(container, "__notin__"):
+        return container.__notin__(item)
+    if hasattr(container, "__in__"):
+        return ~container.__in__(item)
+    return item not in container
 
 def _flare_assign(var_name, value, local_env, global_env):
     if var_name in local_env:

@@ -77,10 +77,6 @@ class FlareTransformer(ast.NodeTransformer):
         return node
 
     def visit_If(self, node):
-        if not getattr(self, "in_flare_func", False):
-            self.generic_visit(node)
-            return node
-
         funcs = []
         cond_args = []
         body_args = []
@@ -127,15 +123,11 @@ class FlareTransformer(ast.NodeTransformer):
         return funcs
 
     def visit_Break(self, node):
-        if not getattr(self, "in_flare_func", False):
-            return node
         call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_break", ctx=ast.Load()), args=[], keywords=[]))
         ast.copy_location(call_expr, node)
         return call_expr
 
     def visit_Continue(self, node):
-        if not getattr(self, "in_flare_func", False):
-            return node
         call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_continue", ctx=ast.Load()), args=[], keywords=[]))
         ast.copy_location(call_expr, node)
         return call_expr
@@ -145,9 +137,6 @@ class FlareTransformer(ast.NodeTransformer):
         return node
 
     def visit_While(self, node):
-        if not getattr(self, "in_flare_func", False):
-            self.generic_visit(node)
-            return node
 
         class BreakContinueVisitor(ast.NodeVisitor):
             def __init__(self):
@@ -213,9 +202,6 @@ class FlareTransformer(ast.NodeTransformer):
         return funcs
 
     def visit_For(self, node):
-        if not getattr(self, "in_flare_func", False):
-            self.generic_visit(node)
-            return node
 
         class BreakContinueVisitor(ast.NodeVisitor):
             def __init__(self):
@@ -284,6 +270,28 @@ class FlareTransformer(ast.NodeTransformer):
 
         return funcs
 
+    def visit_Compare(self, node):
+
+        self.generic_visit(node)
+        if len(node.ops) == 1:
+            if isinstance(node.ops[0], ast.In):
+                call_expr = ast.Call(
+                    func=ast.Name(id="_flare_in", ctx=ast.Load()),
+                    args=[node.left, node.comparators[0]],
+                    keywords=[]
+                )
+                ast.copy_location(call_expr, node)
+                return call_expr
+            elif isinstance(node.ops[0], ast.NotIn):
+                call_expr = ast.Call(
+                    func=ast.Name(id="_flare_notin", ctx=ast.Load()),
+                    args=[node.left, node.comparators[0]],
+                    keywords=[]
+                )
+                ast.copy_location(call_expr, node)
+                return call_expr
+        return node
+
     def visit_Assign(self, node):
         self.generic_visit(node)
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
@@ -319,9 +327,6 @@ class FlareTransformer(ast.NodeTransformer):
         return node
 
     def visit_Return(self, node):
-        if not getattr(self, "in_flare_func", False):
-            self.generic_visit(node)
-            return node
 
         self.generic_visit(node)
 
@@ -337,9 +342,6 @@ class FlareTransformer(ast.NodeTransformer):
         return if_node
 
     def visit_With(self, node):
-        if not getattr(self, "in_flare_func", False):
-            self.generic_visit(node)
-            return node
 
         self.generic_visit(node)
 

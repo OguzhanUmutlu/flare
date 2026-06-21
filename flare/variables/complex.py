@@ -3,20 +3,19 @@ from __future__ import annotations
 import builtins
 import math
 
-from .core import UnsupportedOperandError, BinaryOp, UnaryOp
-from .. import context as ctx
-from ..context import temp_obj
+from .core import UnsupportedOperandError, ArithmeticSupported
+from ..context import temp_obj, next_temp_id
 
 
-class complex_type:
+class complex(ArithmeticSupported):
     def __init__(self, real, imag):
         self.real = real
         self.imag = imag
 
     def _alloc_temp(self):
-        t = self.__class__(self.real.__class__(addr=f"!tr{ctx._temp_id} {temp_obj}"),
-                           self.imag.__class__(addr=f"!ti{ctx._temp_id} {temp_obj}"))
-        ctx._temp_id += 1
+        tid = next_temp_id()
+        t = self.__class__(self.real.__class__(addr=f"!tr{tid} {temp_obj}"),
+                           self.imag.__class__(addr=f"!ti{tid} {temp_obj}"))
         return t
 
     def _create_var(self, varid: str):
@@ -33,10 +32,10 @@ class complex_type:
         else:
             dest_imag = self.imag
 
-        return complex_type(dest_real, dest_imag)
+        return complex(dest_real, dest_imag)
 
     def _eval_into(self, dest):
-        if not isinstance(dest, complex_type):
+        if not isinstance(dest, complex):
             raise TypeError("Cannot evaluate complex into non-complex destination")
         if hasattr(self.real, "_eval_into"):
             self.real._eval_into(dest.real)
@@ -49,14 +48,14 @@ class complex_type:
             dest.imag.__iset__(self.imag)
 
     def __iset__(self, other):
-        if isinstance(other, complex_type):
+        if isinstance(other, complex):
             self.real.__iset__(other.real)
             self.imag.__iset__(other.imag)
             return self
         raise UnsupportedOperandError(self, "=", other)
 
     def __iadd__(self, other):
-        if isinstance(other, complex_type):
+        if isinstance(other, complex):
             self.real += other.real
             self.imag += other.imag
             return self
@@ -64,7 +63,7 @@ class complex_type:
         return self
 
     def __isub__(self, other):
-        if isinstance(other, complex_type):
+        if isinstance(other, complex):
             self.real -= other.real
             self.imag -= other.imag
             return self
@@ -72,7 +71,7 @@ class complex_type:
         return self
 
     def __imul__(self, other):
-        if isinstance(other, complex_type):
+        if isinstance(other, complex):
             a, b = self.real, self.imag
             c, d = other.real, other.imag
 
@@ -88,7 +87,7 @@ class complex_type:
         return self
 
     def __idiv__(self, other):
-        if isinstance(other, complex_type):
+        if isinstance(other, complex):
             a, b = self.real, self.imag
             c, d = other.real, other.imag
 
@@ -104,50 +103,17 @@ class complex_type:
         self.imag /= other
         return self
 
-    def __itruediv__(self, other):
-        return self.__idiv__(other)
-
     def conjugate(self):
-        return complex_type(self.real, -self.imag)
-
-    def __truediv__(self, other):
-        return BinaryOp(self, other, "truediv")
-
-    def __rtruediv__(self, other):
-        return BinaryOp(other, self, "truediv")
+        return complex(self.real, -self.imag)
 
     def __round__(self, ndigits=None):
-        return complex_type(builtins.round(self.real, ndigits), builtins.round(self.imag, ndigits))
+        return complex(builtins.round(self.real, ndigits), builtins.round(self.imag, ndigits))
 
     def __floor__(self):
-        return complex_type(math.floor(self.real), math.floor(self.imag))
+        return complex(math.floor(self.real), math.floor(self.imag))
 
     def __ceil__(self):
-        return complex_type(math.ceil(self.real), math.ceil(self.imag))
-
-    def __neg__(self):
-        return UnaryOp(self, "neg")
-
-    def __pos__(self):
-        return self
-
-    def __add__(self, other):
-        return BinaryOp(self, other, "add")
-
-    def __radd__(self, other):
-        return BinaryOp(other, self, "add")
-
-    def __sub__(self, other):
-        return BinaryOp(self, other, "sub")
-
-    def __rsub__(self, other):
-        return BinaryOp(other, self, "sub")
-
-    def __mul__(self, other):
-        return BinaryOp(self, other, "mul")
-
-    def __rmul__(self, other):
-        return BinaryOp(other, self, "mul")
+        return complex(math.ceil(self.real), math.ceil(self.imag))
 
     def __repr__(self):
         return f"({self.real} + {self.imag}j)"

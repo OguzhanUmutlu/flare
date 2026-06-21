@@ -95,7 +95,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict = None):
 
         global_env = {"__name__": "__main__", "__file__": abs_path}
         exec(
-            "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_with, runcommand, _flare_return, _flare_break, _flare_continue\n"
+            "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_with, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin\n"
             "from flare import context as ctx\n"
             "from flare.command_parser import interpolate_command\n"
             "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\n"

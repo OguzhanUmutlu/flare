@@ -1,0 +1,20 @@
+{
+  "name": "flare-docs",
+  "version": "1.0.0",
+  "description": "Flare documentation site",
+  "main": "index.js",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "vitepress": "^1.6.4"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
+  }
+}

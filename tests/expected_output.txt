@@ -1,0 +1,34 @@
+375
+x is greater than 10
+this is spread across both commands
+1
+2
+3
+4
+bigger than 3
+5
+bigger than 3
+15000
+20000
+30000
+30000
+1
+5 is in myarray
+40320
+2484000
+2484000
+No entity was found for selector s
+No entity was found for selector s
+Killed 0 entities
+No entity was found for selector s
+--- Big Types ---
+bigscore(size=2, base=10000)
+bigfixed(size=2, multiplier=1.0)
+Double(addr=!print_X __pack__vars__)
+--- Math Functions ---
+0
+8402
+5399
+10
+10
+Successfully loaded datapack: dist

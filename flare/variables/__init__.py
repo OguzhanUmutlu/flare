@@ -1,5 +1,5 @@
 from .bigscore import bigscore, bigfixed
-from .complex import complex_type
+from .complex import complex
 from .core import UnsupportedOperandError, BinaryOp, UnaryOp
 from .float32 import float32
 from .float64 import float64

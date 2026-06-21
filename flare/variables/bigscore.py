@@ -1,20 +1,29 @@
 from __future__ import annotations
 
-from .core import UnsupportedOperandError, BinaryOp, UnaryOp
-from .score import score, getscore
+from math import inf
+
+from .core import UnsupportedOperandError, BinaryOp, ArithmeticSupported
+from .score import score
 from .. import context as ctx
-from ..context import runcommand, temp_obj, vars_obj
+from ..context import temp_obj, vars_obj, ensure_objective, next_temp_id
+from ..control_flow import ScoreIfMatches
 
 BASE = 10000
 
+rem = score(addr=f"!rem {temp_obj}")
+val = score(addr=f"!val {temp_obj}")
+carry = score(addr=f"!carry {temp_obj}")
+borrow = score(addr=f"!borrow {temp_obj}")
+mul = score(addr=f"!mul {temp_obj}")
 
-class bigscore:
+
+class bigscore(ArithmeticSupported):
     _size = 2
     _multiplier = 1.0
     _base = BASE
 
-    def __init__(self, value: int | float | None = None, *, addr: str = None, size: int = None,
-                 multiplier: float = None):
+    def __init__(self, value: int | float | None = None, *, addr: str | None = None, size: int | None = None,
+                 multiplier: float | None = None):
         if size is not None:
             self.size = size
         else:
@@ -29,11 +38,16 @@ class bigscore:
         self._addr = None
         self._target = ""
         self._objective = ""
-
         if addr is not None:
-            self._parse_addr(addr)
+            self._addr = addr
+            self._target = addr.split(" ", 1)[0]
+            if len(addr.split(" ", 1)) > 1:
+                self._objective = addr.split(" ", 1)[1]
             if self._value_to_set is not None:
                 self.__iset__(self._value_to_set)
+
+    def _create_var(self, varid: str):
+        return self.__class__(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
 
     @classmethod
     def __class_getitem__(cls, item):
@@ -58,27 +72,27 @@ class bigscore:
             self._target = addr
             self._objective = temp_obj
         self._addr = f"{self._target} {self._objective}"
+        ensure_objective(self._objective)
 
     def _check_addr(self):
         if self._addr is None:
-            self._parse_addr(f"!big{ctx._temp_id}")
-            ctx._temp_id += 1
+            self._parse_addr(f"!big{next_temp_id()}")
             if self._value_to_set is not None:
                 self.__iset__(self._value_to_set)
 
-    def _get_limb(self, i):
-        return f"{self._target}_{i} {self._objective}"
+    def get_limb(self, i):
+        return score(addr=f"{self._target}_{i} {self._objective}")
 
     def __iset__(self, other):
         self._check_addr()
         if isinstance(other, (int, float)):
-            val = int(round(other * self._multiplier))
-            if val < 0:
-                val += self._base ** self.size
+            val_int = int(round(other * self._multiplier))
+            if val_int < 0:
+                val_int += self._base ** self.size
             for i in range(self.size):
-                limb_val = val % self._base
-                runcommand(f"scoreboard players set {self._get_limb(i)} {limb_val}")
-                val //= self._base
+                limb_val = val_int % self._base
+                self.get_limb(i).__iset__(limb_val)
+                val_int //= self._base
             return self
         if isinstance(other, bigscore):
             other._check_addr()
@@ -89,29 +103,32 @@ class bigscore:
             if self._multiplier != other._multiplier:
                 pass
             for i in range(other.size):
-                runcommand(f"scoreboard players operation {self._get_limb(i)} = {other._get_limb(i)}")
+                self.get_limb(i).__iset__(other.get_limb(i))
             for i in range(other.size, self.size):
-                runcommand(f"scoreboard players set {self._get_limb(i)} 0")
+                self.get_limb(i).__iset__(0)
             return self
         if isinstance(other, score):
             other._check_addr()
-            runcommand(f"scoreboard players operation {self._get_limb(0)} = {other._addr}")
-
-            runcommand(f"scoreboard players set !carry {temp_obj} 0")
-            runcommand(
-                f"execute if score {self._get_limb(0)} matches ..-1 run scoreboard players remove !carry {temp_obj} 1")
-            runcommand(
-                f"execute if score {self._get_limb(0)} matches ..-1 run scoreboard players add {self._get_limb(0)} {self._base}")
+            first_limb = self.get_limb(0)
+            first_limb.__iset__(other)
+            carry.__iset__(0)
+            ScoreIfMatches(first_limb, (-inf, -1)).then([
+                lambda: carry.__isub__(1),
+                lambda: first_limb.__iadd__(self._base)
+            ])
 
             for i in range(1, self.size):
-                runcommand(f"scoreboard players operation {self._get_limb(i)} = !carry {temp_obj}")
-                runcommand(
-                    f"execute if score {self._get_limb(i)} matches ..-1 run scoreboard players add {self._get_limb(i)} {self._base}")
+                limb = self.get_limb(i)
+                limb.__iset__(carry)
+                ScoreIfMatches(limb, (-inf, -1)).then(
+                    lambda: limb.__iadd__(self._base)
+                )
             return self
 
         raise UnsupportedOperandError(self, "=", other)
 
     def __iadd__(self, other):
+        global carry
         self._check_addr()
         if isinstance(other, (int, float)):
             t = self.__class__(other)
@@ -124,20 +141,19 @@ class bigscore:
             if self._base != other._base:
                 raise ValueError("Cannot add bigscores of different bases")
 
-            runcommand(f"scoreboard players set !carry {temp_obj} 0")
+            carry.__iset__(0)
             for i in range(self.size):
-                runcommand(f"scoreboard players operation {self._get_limb(i)} += {other._get_limb(i)}")
-                runcommand(f"scoreboard players operation {self._get_limb(i)} += !carry {temp_obj}")
-
-                runcommand(f"scoreboard players operation !carry {temp_obj} = {self._get_limb(i)}")
-                runcommand(f"scoreboard players operation !carry {temp_obj} /= !BASE_{self._base} {temp_obj}")
-                ctx.ensure_constant(f"!BASE_{self._base}", "temp", self._base)
-
-                runcommand(f"scoreboard players operation {self._get_limb(i)} %= !BASE_{self._base} {temp_obj}")
-                runcommand(
-                    f"execute if score {self._get_limb(i)} matches ..-1 run scoreboard players remove !carry {temp_obj} 1")
-                runcommand(
-                    f"execute if score {self._get_limb(i)} matches ..-1 run scoreboard players add {self._get_limb(i)} {self._base}")
+                limb = self.get_limb(i)
+                other_limb = other.get_limb(i)
+                limb += other_limb
+                limb += carry
+                carry.__iset__(limb)
+                carry /= self._base
+                limb %= self._base
+                ScoreIfMatches(self.get_limb(i), (-inf, -1)).then([
+                    lambda: carry.__isub__(1),
+                    lambda: self.get_limb(i).__iadd__(self._base)
+                ])
             return self
         raise UnsupportedOperandError(self, "+", other)
 
@@ -154,20 +170,22 @@ class bigscore:
             if self._base != other._base:
                 raise ValueError("Cannot subtract bigscores of different bases")
 
-            runcommand(f"scoreboard players set !borrow {temp_obj} 0")
+            borrow.__iset__(0)
             for i in range(self.size):
-                runcommand(f"scoreboard players operation {self._get_limb(i)} -= {other._get_limb(i)}")
-                runcommand(f"scoreboard players operation {self._get_limb(i)} -= !borrow {temp_obj}")
-
-                runcommand(f"scoreboard players set !borrow {temp_obj} 0")
-                runcommand(
-                    f"execute if score {self._get_limb(i)} matches ..-1 run scoreboard players set !borrow {temp_obj} 1")
-                runcommand(
-                    f"execute if score {self._get_limb(i)} matches ..-1 run scoreboard players add {self._get_limb(i)} {self._base}")
+                limb = self.get_limb(i)
+                other_limb = other.get_limb(i)
+                limb -= other_limb
+                limb -= borrow
+                borrow.__iset__(0)
+                ScoreIfMatches(self.get_limb(i), (-inf, -1)).then([
+                    lambda: borrow.__iset__(1),
+                    lambda: self.get_limb(i).__iadd__(self._base)
+                ])
             return self
         raise UnsupportedOperandError(self, "-", other)
 
     def __imul__(self, other):
+        global mul, rem, val, carry
         self._check_addr()
         if isinstance(other, (int, float)):
             t = self.__class__(other)
@@ -180,50 +198,48 @@ class bigscore:
             if self._base != other._base:
                 raise ValueError("Cannot multiply bigscores of different bases")
 
-            temp_C = [f"!C_{i} {temp_obj}" for i in range(self.size * 2)]
-            for i in range(self.size * 2):
-                runcommand(f"scoreboard players set {temp_C[i]} 0")
+            temp_c = [score(0, addr=f"!C_{i} {temp_obj}") for i in range(self.size * 2)]
 
             for i in range(self.size):
                 for j in range(self.size):
                     if i + j < self.size:
                         pass
 
-            ctx.ensure_constant(f"!BASE_{self._base}", "temp", self._base)
             for i in range(self.size):
                 for j in range(self.size):
-                    runcommand(f"scoreboard players operation !mul {temp_obj} = {self._get_limb(i)}")
-                    runcommand(f"scoreboard players operation !mul {temp_obj} *= {other._get_limb(j)}")
-                    runcommand(f"scoreboard players operation {temp_C[i + j]} += !mul {temp_obj}")
+                    limb = self.get_limb(i)
+                    other_limb = other.get_limb(j)
+                    mul.__iset__(limb)
+                    mul *= other_limb
+                    temp_c[i + j] += mul
 
-            runcommand(f"scoreboard players set !carry {temp_obj} 0")
+            carry.__iset__(0)
             for i in range(self.size * 2):
-                runcommand(f"scoreboard players operation {temp_C[i]} += !carry {temp_obj}")
-                runcommand(f"scoreboard players operation !carry {temp_obj} = {temp_C[i]}")
-                runcommand(f"scoreboard players operation !carry {temp_obj} /= !BASE_{self._base} {temp_obj}")
-                runcommand(f"scoreboard players operation {temp_C[i]} %= !BASE_{self._base} {temp_obj}")
+                temp_c[i] += carry
+                carry.__iset__(temp_c[i])
+                carry /= self._base
+                temp_c[i] %= self._base
 
-            M = int(round(self._multiplier))
-            if M > 1:
-                runcommand(f"scoreboard players set !rem {temp_obj} 0")
-                ctx.ensure_constant("!M", "temp", M)
+            m = int(round(self._multiplier))
+            if m > 1:
+                rem.__iset__(0)
                 for i in reversed(range(self.size)):
-                    runcommand(f"scoreboard players operation !val {temp_obj} = !rem {temp_obj}")
-                    runcommand(f"scoreboard players operation !val {temp_obj} *= !BASE_{self._base} {temp_obj}")
+                    val.__iset__(rem)
+                    val *= self._base
                     pass
                 for i in reversed(range(self.size * 2)):
-                    runcommand(f"scoreboard players operation !val {temp_obj} = !rem {temp_obj}")
-                    runcommand(f"scoreboard players operation !val {temp_obj} *= !BASE_{self._base} {temp_obj}")
-                    runcommand(f"scoreboard players operation !val {temp_obj} += {temp_C[i]}")
+                    val.__iset__(rem)
+                    val *= self._base
+                    val += temp_c[i]
 
-                    runcommand(f"scoreboard players operation {temp_C[i]} = !val {temp_obj}")
-                    runcommand(f"scoreboard players operation {temp_C[i]} /= !M {temp_obj}")
+                    temp_c[i].__iset__(val)
+                    temp_c[i] /= m
 
-                    runcommand(f"scoreboard players operation !rem {temp_obj} = !val {temp_obj}")
-                    runcommand(f"scoreboard players operation !rem {temp_obj} %= !M {temp_obj}")
+                    rem.__iset__(val)
+                    rem %= m
 
             for i in range(self.size):
-                runcommand(f"scoreboard players operation {self._get_limb(i)} = {temp_C[i]}")
+                self.get_limb(i).__iset__(temp_c[i])
 
             return self
         raise UnsupportedOperandError(self, "*", other)
@@ -244,230 +260,164 @@ class bigscore:
             return dest
         return self
 
-    def __truediv__(self, other):
-        return BinaryOp(self, other, "truediv")
-
-    def __rtruediv__(self, other):
-        return BinaryOp(other, self, "truediv")
-
-    def __mod__(self, other):
-        return BinaryOp(self, other, "mod")
-
-    def __rmod__(self, other):
-        return BinaryOp(other, self, "mod")
-
     def __round__(self, ndigits=None):
-        if ndigits is not None:
-            raise NotImplementedError("Rounding to specific digits is unsupported for Flare variables")
-        M = int(round(self._multiplier))
-        if M == 1:
-            return self
-        temp = self.__icopy__(f"!math_{ctx._temp_id}")
-        ctx._temp_id += 1
-        half = M // 2
-        temp += half
-        temp /= M
-        temp *= M
-        return temp
+        # todo
+        pass
 
     def __floor__(self):
-        M = int(round(self._multiplier))
-        if M == 1:
-            return self
-        temp = self.__icopy__(f"!math_{ctx._temp_id}")
-        ctx._temp_id += 1
-        temp /= M
-        temp *= M
-        return temp
+        # todo
+        pass
 
     def __ceil__(self):
-        M = int(round(self._multiplier))
-        if M == 1:
-            return self
-        temp = self.__icopy__(f"!math_{ctx._temp_id}")
-        ctx._temp_id += 1
-        temp += M - 1
-        temp /= M
-        temp *= M
-        return temp
-
-    def __neg__(self):
-        return UnaryOp(self, "neg")
-
-    def __pos__(self):
-        return self
-
-    def __eq__(self, other):
-        return BinaryOp(self, other, "eq")
-
-    def __ne__(self, other):
-        return BinaryOp(self, other, "ne")
-
-    def __lt__(self, other):
-        return BinaryOp(self, other, "lt")
-
-    def __le__(self, other):
-        return BinaryOp(self, other, "le")
-
-    def __gt__(self, other):
-        return BinaryOp(self, other, "gt")
-
-    def __ge__(self, other):
-        return BinaryOp(self, other, "ge")
-
-    def __and__(self, other):
-        return BinaryOp(self, other, "and")
-
-    def __or__(self, other):
-        return BinaryOp(self, other, "or")
-
-    def __invert__(self):
-        return UnaryOp(self, "not")
+        # todo
+        pass
 
     def __idiv__(self, other):
+        global rem, val
         self._check_addr()
 
         if isinstance(other, (int, float)):
-            M = int(round(other))
-            if M == 0:
+            m = int(round(other))
+            if m == 0:
                 raise ZeroDivisionError("Division by zero")
-            if M < 0:
-                self.__idiv__(-M)
-                zero = getscore(0)._addr
-                runcommand(f"scoreboard players set !borrow {temp_obj} 0")
+            if m < 0:
+                self.__idiv__(-m)
+                borrow.__iset__(0)
                 for i in range(self.size):
-                    runcommand(f"scoreboard players operation !val {temp_obj} = {zero}")
-                    runcommand(f"scoreboard players operation !val {temp_obj} -= {self._get_limb(i)}")
-                    runcommand(f"scoreboard players operation !val {temp_obj} -= !borrow {temp_obj}")
-                    runcommand(f"scoreboard players set !borrow {temp_obj} 0")
-                    runcommand(
-                        f"execute if score !val {temp_obj} matches ..-1 run scoreboard players set !borrow {temp_obj} 1")
-                    runcommand(
-                        f"execute if score !val {temp_obj} matches ..-1 run scoreboard players add !val {temp_obj} {self._base}")
-                    runcommand(f"scoreboard players operation {self._get_limb(i)} = !val {temp_obj}")
+                    limb = self.get_limb(i)
+                    val.__iset__(0)
+                    val -= limb
+                    val -= borrow
+                    borrow.__iset__(0)
+                    ScoreIfMatches(val, (-inf, -1)).then([
+                        lambda: borrow.__iset__(1),
+                        lambda: val.__iadd__(self._base)
+                    ])
+                    limb.__iset__(val)
                 return self
-            runcommand(f"scoreboard players set !rem {temp_obj} 0")
-            M_addr = getscore(M)._addr
+            rem.__iset__(0)
             for i in reversed(range(self.size)):
-                runcommand(f"scoreboard players operation !val {temp_obj} = !rem {temp_obj}")
-                runcommand(f"scoreboard players operation !val {temp_obj} *= !BASE_{self._base} {temp_obj}")
-                runcommand(f"scoreboard players operation !val {temp_obj} += {self._get_limb(i)}")
-                runcommand(f"scoreboard players operation {self._get_limb(i)} = !val {temp_obj}")
-                runcommand(f"scoreboard players operation {self._get_limb(i)} /= {M_addr}")
-                runcommand(f"scoreboard players operation !rem {temp_obj} = !val {temp_obj}")
-                runcommand(f"scoreboard players operation !rem {temp_obj} %= {M_addr}")
+                limb = self.get_limb(i)
+                val.__iset__(rem)
+                val *= self._base
+                val += limb
+                limb.__iset__(val)
+                limb /= m
+                rem.__iset__(val)
+                rem %= m
             self._last_rem = self.__class__()
             self._last_rem.__iset__(0)
-            runcommand(f"scoreboard players operation {self._last_rem._get_limb(0)} = !rem {temp_obj}")
+            self._last_rem.get_limb(0).__iset__(rem)
             return self
         if isinstance(other, score):
-            runcommand(f"scoreboard players set !rem {temp_obj} 0")
+            rem.__iset__(0)
             for i in reversed(range(self.size)):
-                runcommand(f"scoreboard players operation !val {temp_obj} = !rem {temp_obj}")
-                runcommand(f"scoreboard players operation !val {temp_obj} *= !BASE_{self._base} {temp_obj}")
-                runcommand(f"scoreboard players operation !val {temp_obj} += {self._get_limb(i)}")
-                runcommand(f"scoreboard players operation {self._get_limb(i)} = !val {temp_obj}")
-                runcommand(f"scoreboard players operation {self._get_limb(i)} /= {other._addr}")
-                runcommand(f"scoreboard players operation !rem {temp_obj} = !val {temp_obj}")
-                runcommand(f"scoreboard players operation !rem {temp_obj} %= {other._addr}")
+                limb = self.get_limb(i)
+                val.__iset__(rem)
+                val *= self._base
+                val += limb
+                limb.__iset__(val)
+                limb /= other
+                rem.__iset__(val)
+                rem %= other
             self._last_rem = self.__class__()
             self._last_rem.__iset__(0)
-            runcommand(f"scoreboard players operation {self._last_rem._get_limb(0)} = !rem {temp_obj}")
+            self._last_rem.get_limb(0).__iset__(rem)
             return self
         if isinstance(other, bigscore):
             if self.size != other.size or self._base != other._base:
                 raise ValueError("Incompatible bigscore division")
 
-            Q = self.__class__()
-            R = self.__class__()
-            R.__iset__(0)
+            q = self.__class__()
+            r = self.__class__()
+            r.__iset__(0)
 
-            D_shifted = self.__class__(size=self.size + 1)
-            D_shifted.__iset__(other)
+            d_shifted = self.__class__(size=self.size + 1)
+            d_shifted.__iset__(other)
 
             total_bits = self.size * 14
             for _ in range(total_bits):
-                D_shifted.__idiv__(2)
+                d_shifted.__idiv__(2)
 
             for _ in range(total_bits + 1):
-                runcommand(f"scoreboard players set !borrow {temp_obj} 0")
+                borrow.__iset__(0)
                 for i in range(self.size):
-                    runcommand(f"scoreboard players operation {R._get_limb(i)} -= {D_shifted._get_limb(i)}")
-                    runcommand(f"scoreboard players operation {R._get_limb(i)} -= !borrow {temp_obj}")
-                    runcommand(f"scoreboard players set !borrow {temp_obj} 0")
-                    runcommand(
-                        f"execute if score {R._get_limb(i)} matches ..-1 run scoreboard players set !borrow {temp_obj} 1")
-                    runcommand(
-                        f"execute if score {R._get_limb(i)} matches ..-1 run scoreboard players add {R._get_limb(i)} {self._base}")
+                    r_limb = r.get_limb(i)
+                    dsh_limb = d_shifted.get_limb(i)
+                    r_limb -= dsh_limb
+                    r_limb -= borrow
+                    borrow.__iset__(0)
+                    ScoreIfMatches(r.get_limb(i), (-inf, -1)).then([
+                        lambda: borrow.__iset__(1),
+                        lambda: r.get_limb(i).__iadd__(self._base)
+                    ])
 
-                runcommand(f"scoreboard players set !carry {temp_obj} 0")
+                carry.__iset__(0)
                 for i in range(self.size):
-                    two_addr = getscore(2)._addr
-                    runcommand(f"scoreboard players operation {Q._get_limb(i)} *= {two_addr}")
-                    runcommand(f"scoreboard players operation {Q._get_limb(i)} += !carry {temp_obj}")
-                    runcommand(f"scoreboard players set !carry {temp_obj} 0")
-                    runcommand(
-                        f"execute if score {Q._get_limb(i)} matches {self._base}.. run scoreboard players set !carry {temp_obj} 1")
-                    runcommand(
-                        f"execute if score {Q._get_limb(i)} matches {self._base}.. run scoreboard players remove {Q._get_limb(i)} {self._base}")
+                    q_limb = q.get_limb(i)
+                    q_limb *= 2
+                    q_limb += carry
+                    carry.__iset__(0)
+                    ScoreIfMatches(q.get_limb(i), (self._base, inf)).then([
+                        lambda: carry.__iset__(1),
+                        lambda: q.get_limb(i).__isub__(self._base)
+                    ])
 
-                runcommand(
-                    f"execute if score !borrow {temp_obj} matches 0 run scoreboard players add {Q._get_limb(0)} 1")
+                ScoreIfMatches(borrow, 0).then(lambda: q.get_limb(0).__iadd__(1))
 
-                runcommand(
-                    f"execute if score !borrow {temp_obj} matches 1 run scoreboard players set !carry {temp_obj} 0")
-                for i in range(self.size):
-                    runcommand(
-                        f"execute if score !borrow {temp_obj} matches 1 run scoreboard players operation {R._get_limb(i)} += {D_shifted._get_limb(i)}")
-                    runcommand(
-                        f"execute if score !borrow {temp_obj} matches 1 run scoreboard players operation {R._get_limb(i)} += !carry {temp_obj}")
-                    runcommand(
-                        f"execute if score !borrow {temp_obj} matches 1 run scoreboard players set !carry {temp_obj} 0")
-                    runcommand(
-                        f"execute if score !borrow {temp_obj} matches 1 if score {R._get_limb(i)} matches {self._base}.. run scoreboard players set !carry {temp_obj} 1")
-                    runcommand(
-                        f"execute if score !borrow {temp_obj} matches 1 if score {R._get_limb(i)} matches {self._base}.. run scoreboard players remove {R._get_limb(i)} {self._base}")
+                def restore_borrow():
+                    carry.__iset__(0)
+                    for i in range(self.size):
+                        r_limb = r.get_limb(i)
+                        r_limb += d_shifted.get_limb(i)
+                        r_limb += carry
+                        carry.__iset__(0)
+                        ScoreIfMatches(r_limb, (self._base, inf)).then([
+                            lambda: carry.__iset__(1),
+                            lambda: r_limb.__isub__(self._base)
+                        ])
 
-                runcommand(f"scoreboard players set !carry {temp_obj} 0")
+                ScoreIfMatches(borrow, 1).then(restore_borrow)
+
+                carry.__iset__(0)
                 for i in reversed(range(self.size)):
-                    runcommand(f"scoreboard players operation !val {temp_obj} = {R._get_limb(i)}")
-                    two_addr = getscore(2)._addr
-                    runcommand(f"scoreboard players operation {R._get_limb(i)} *= {two_addr}")
-                    runcommand(f"scoreboard players operation {R._get_limb(i)} += !carry {temp_obj}")
-                    runcommand(f"scoreboard players operation !carry {temp_obj} = !val {temp_obj}")
-                    runcommand(
-                        f"execute if score {R._get_limb(i)} matches {self._base}.. run scoreboard players remove {R._get_limb(i)} {self._base}")
+                    r_limb = r.get_limb(i)
+                    val.__iset__(r_limb)
+                    r_limb *= 2
+                    r_limb += carry
+                    carry.__iset__(val)
+                    ScoreIfMatches(r_limb, (self._base, inf)).then(
+                        lambda: r_limb.__isub__(self._base)
+                    )
 
             for i in range(self.size):
-                runcommand(f"scoreboard players operation {self._get_limb(i)} = {Q._get_limb(i)}")
+                self.get_limb(i).__iset__(q.get_limb(i))
 
-            self._last_rem = R
+            self._last_rem = r
             return self
 
         raise UnsupportedOperandError(self, "/", other)
 
-    def __itruediv__(self, other):
-        return self.__idiv__(other)
-
     def __imod__(self, other):
+        global rem, val
         self._check_addr()
         if isinstance(other, (int, float)):
-            M = int(round(other))
-            if M == 0:
+            m = int(round(other))
+            if m == 0:
                 raise ZeroDivisionError("Modulo by zero")
-            if M < 0:
-                M = -M
-            M_addr = getscore(M)._addr
-            runcommand(f"scoreboard players set !rem {temp_obj} 0")
+            if m < 0:
+                m = -m
+            val.__iset__(0)
+            rem.__iset__(0)
             for i in reversed(range(self.size)):
-                runcommand(f"scoreboard players operation !val {temp_obj} = !rem {temp_obj}")
-                runcommand(f"scoreboard players operation !val {temp_obj} *= !BASE_{self._base} {temp_obj}")
-                runcommand(f"scoreboard players operation !val {temp_obj} += {self._get_limb(i)}")
-                runcommand(f"scoreboard players operation !rem {temp_obj} = !val {temp_obj}")
-                runcommand(f"scoreboard players operation !rem {temp_obj} %= {M_addr}")
+                val.__iset__(rem)
+                val *= self._base
+                val += self.get_limb(i)
+                rem.__iset__(val)
+                rem %= m
             for i in range(1, self.size):
-                runcommand(f"scoreboard players set {self._get_limb(i)} 0")
-            runcommand(f"scoreboard players operation {self._get_limb(0)} = !rem {temp_obj}")
+                self.get_limb(i).__iset__(0)
+            self.get_limb(0).__iset__(rem)
             return self
         if getattr(self, "_last_rem", None) is not None:
             self.__iset__(self._last_rem)
@@ -476,24 +426,6 @@ class bigscore:
         self.__idiv__(other)
         return self.__imod__(other)
 
-    def __add__(self, other):
-        return BinaryOp(self, other, "add")
-
-    def __radd__(self, other):
-        return BinaryOp(other, self, "add")
-
-    def __sub__(self, other):
-        return BinaryOp(self, other, "sub")
-
-    def __rsub__(self, other):
-        return BinaryOp(other, self, "sub")
-
-    def __mul__(self, other):
-        return BinaryOp(self, other, "mul")
-
-    def __rmul__(self, other):
-        return BinaryOp(other, self, "mul")
-
     def __imax__(self, other):
         if isinstance(other, bigscore) and self.size == other.size and getattr(self, "multiplier", 1) == getattr(other,
                                                                                                                  "multiplier",
@@ -501,26 +433,28 @@ class bigscore:
             temp = self.__class__()
             temp.__iset__(self)
             temp.__isub__(other)
-            runcommand(
-                f"execute if score !borrow {temp_obj} matches 1 run scoreboard players operation {self._get_limb(0)} = {other._get_limb(0)}")
-            for i in range(1, self.size):
-                runcommand(
-                    f"execute if score !borrow {temp_obj} matches 1 run scoreboard players operation {self._get_limb(i)} = {other._get_limb(i)}")
+
+            def do_imax():
+                for i in range(self.size):
+                    self.get_limb(i).__iset__(other.get_limb(i))
+
+            ScoreIfMatches(borrow, 1).then(do_imax)
             return self
         return BinaryOp(self, other, "imax")
 
     def __imin__(self, other):
-        if isinstance(other, bigscore) and self.size == other.size and getattr(self, "multiplier", 1) == getattr(other,
-                                                                                                                 "multiplier",
-                                                                                                                 1):
+        if (isinstance(other, bigscore) and self.size == other.size and getattr(self, "multiplier", 1) == getattr(other,
+                                                                                                                  "multiplier",
+                                                                                                                  1)):
             temp = self.__class__()
             temp.__iset__(self)
             temp.__isub__(other)
-            runcommand(
-                f"execute if score !borrow {temp_obj} matches 0 run scoreboard players operation {self._get_limb(0)} = {other._get_limb(0)}")
-            for i in range(1, self.size):
-                runcommand(
-                    f"execute if score !borrow {temp_obj} matches 0 run scoreboard players operation {self._get_limb(i)} = {other._get_limb(i)}")
+
+            def do_imin():
+                for i in range(self.size):
+                    self.get_limb(i).__iset__(other.get_limb(i))
+
+            ScoreIfMatches(borrow, 0).then(do_imin)
             return self
         return BinaryOp(self, other, "imin")
 
@@ -529,7 +463,7 @@ class bigscore:
                                                                                                                  "multiplier",
                                                                                                                  1):
             for i in range(self.size):
-                runcommand(f"scoreboard players operation {self._get_limb(i)} >< {other._get_limb(i)}")
+                self.get_limb(i).__swap__(other.get_limb(i))
             return self
         raise UnsupportedOperandError(self, "><", other)
 

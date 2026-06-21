@@ -1,28 +1,24 @@
 from __future__ import annotations
 
 import math
+from math import inf
 
-from . import bigscore
-from .core import UnsupportedOperandError, BinaryOp, UnaryOp
+from .bigscore import bigscore
+from .core import UnsupportedOperandError, ArithmeticSupported, addr
 from .score import score, getscore
 from .. import context as ctx
-from ..context import runcommand, temp_obj, vars_obj
+from ..context import runcommand, temp_obj, vars_obj, next_temp_id
+from ..control_flow import ScoreIfMatches, ScoreIfScore
 
 
-class float32:
-    def __init__(self, value: float | int | None = None, *, addr: str = None):
+class float32(ArithmeticSupported):
+    def __init__(self, value: float | int | None = None, *, addr: str | None = None):
         self._value_to_set = value
         self._addr = None
         self._target = ""
         self._objective = ""
-
-    def _alloc_temp(self):
-        t = self.__class__(addr=f"!t{ctx._temp_id} {temp_obj}")
-        ctx._temp_id += 1
-        return t
-
-    def _create_var(self, varid: str):
-        return self.__class__(addr=f"{varid} {vars_obj}")
+        if addr is not None:
+            self._parse_addr(addr)
 
     def _parse_addr(self, addr: str):
         parts = addr.rsplit(" ", 1)
@@ -40,10 +36,12 @@ class float32:
 
     def _check_addr(self):
         if self._addr is None:
-            self._parse_addr(f"!f32_{ctx._temp_id}")
-            ctx._temp_id += 1
+            self._parse_addr(f"!f32_{next_temp_id()}")
             if self._value_to_set is not None:
                 self.__iset__(self._value_to_set)
+
+    def _create_var(self, varid: str):
+        return self.__class__(addr=f"{varid} {vars_obj}")
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
         if is_recursive:
@@ -96,89 +94,77 @@ class float32:
     def __iadd__(self, other):
         self._check_addr()
         if isinstance(other, (int, float)):
-            t = self.__class__(other)
+            # todo: optimize this
+            t = float32(other)
             return self.__iadd__(t)
 
         if isinstance(other, float32):
             other._check_addr()
-            temp_b = self.__class__(addr=f"!fb{ctx._temp_id} {temp_obj}")
-            ctx._temp_id += 1
+            temp_b = float32(addr=f"!fb{next_temp_id()}")
             temp_b.__iset__(other)
 
-            runcommand(f"scoreboard players operation !diff {temp_obj} = {self._exp._addr}")
-            runcommand(f"scoreboard players operation !diff {temp_obj} -= {temp_b._exp._addr}")
+            diff = score(addr="!diff")
+            diff.__iset__(self._exp)
+            diff -= temp_b._exp
 
-            runcommand(
-                f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation {self._sign._addr} >< {temp_b._sign._addr}")
-            runcommand(
-                f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation {self._exp._addr} >< {temp_b._exp._addr}")
-            runcommand(
-                f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation {self._mant._addr} >< {temp_b._mant._addr}")
-            c_min1_addr = getscore(-1)._addr
-            runcommand(
-                f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation !diff {temp_obj} *= {c_min1_addr}")
+            ScoreIfMatches(diff, (-inf, -1)).then([
+                lambda: self._sign.__swap__(temp_b._sign),
+                lambda: self._exp.__swap__(temp_b._exp),
+                lambda: self._mant.__swap__(temp_b._mant),
+                lambda: diff.__imul__(-1)
+            ])
 
             for p in reversed(range(0, 5)):
-                shift = 1 << p
-                pow2 = 1 << shift
-                ctx.ensure_constant(f"!pow{pow2}", "temp", pow2)
-                runcommand(
-                    f"execute if score !diff {temp_obj} matches {shift}.. run scoreboard players operation {temp_b._mant._addr} /= !pow{pow2} {temp_obj}")
-                runcommand(
-                    f"execute if score !diff {temp_obj} matches {shift}.. run scoreboard players remove !diff {temp_obj} {shift}")
+                shift_v = 1 << p
+                ScoreIfMatches(diff, (shift_v, inf)).then([
+                    lambda: temp_b._mant.__idiv__(1 << shift_v),
+                    lambda: diff.__isub__(shift_v)
+                ])
 
-            runcommand(f"scoreboard players operation {self._mant._addr} *= {self._sign._addr}")
-            runcommand(f"scoreboard players operation {temp_b._mant._addr} *= {temp_b._sign._addr}")
-            runcommand(f"scoreboard players operation {self._mant._addr} += {temp_b._mant._addr}")
+            self._mant *= self._sign
+            temp_b._mant *= temp_b._sign
+            self._mant += temp_b._mant
 
-            runcommand(f"scoreboard players set {self._sign._addr} 1")
-            runcommand(
-                f"execute if score {self._mant._addr} matches ..-1 run scoreboard players set {self._sign._addr} -1")
-            runcommand(
-                f"execute if score {self._mant._addr} matches ..-1 run scoreboard players operation {self._mant._addr} *= {c_min1_addr}")
+            self._sign.__iset__(1)
+            ScoreIfMatches(self._mant, (-inf, -1)).then([
+                lambda: self._sign.__iset__(-1),
+                lambda: self._mant.__imul__(-1)
+            ])
 
-            c_pow2_addr = getscore(2)._addr
-            runcommand(f"scoreboard players set !shift {temp_obj} 0")
-            runcommand(
-                f"execute if score {self._mant._addr} matches 16777216.. run scoreboard players set !shift {temp_obj} 1")
-            runcommand(
-                f"execute if score !shift {temp_obj} matches 1 run scoreboard players operation {self._mant._addr} /= {c_pow2_addr}")
-            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players add {self._exp._addr} 1")
+            shift = score(0, addr=f"!shift {temp_obj}")
+            ScoreIfMatches(self._mant, (16777216, inf)).then(lambda: shift.__iset__(1))
+            ScoreIfMatches(shift, 1).then([
+                lambda: self._mant.__idiv__(2),
+                lambda: self._exp.__iadd__(1)
+            ])
 
-            runcommand(f"scoreboard players set !is_zero {temp_obj} 0")
-            runcommand(f"execute if score {self._mant._addr} matches 0 run scoreboard players set !is_zero {temp_obj} 1")
-            runcommand(f"execute if score !is_zero {temp_obj} matches 1 run scoreboard players set {self._exp._addr} 0")
-            runcommand(f"execute if score !is_zero {temp_obj} matches 1 run scoreboard players set {self._sign._addr} 1")
+            is_zero = score(0, addr="!is_zero")
+            ScoreIfMatches(self._mant, 0).then(lambda: is_zero.__iset__(1))
+            ScoreIfMatches(is_zero, 1).then([
+                lambda: self._exp.__iset__(0),
+                lambda: self._sign.__iset__(1)
+            ])
 
-            c_pow65536_addr = getscore(65536)._addr
-            c_pow256_addr = getscore(256)._addr
-            c_pow16_addr = getscore(16)._addr
-            c_pow4_addr = getscore(4)._addr
-
-            runcommand(
-                f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._addr} matches ..127 run scoreboard players operation {self._mant._addr} *= {c_pow65536_addr}")
-            runcommand(
-                f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._addr} matches ..127 run scoreboard players remove {self._exp._addr} 16")
-
-            runcommand(
-                f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._addr} matches ..32767 run scoreboard players operation {self._mant._addr} *= {c_pow256_addr}")
-            runcommand(
-                f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._addr} matches ..32767 run scoreboard players remove {self._exp._addr} 8")
-
-            runcommand(
-                f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._addr} matches ..524287 run scoreboard players operation {self._mant._addr} *= {c_pow16_addr}")
-            runcommand(
-                f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._addr} matches ..524287 run scoreboard players remove {self._exp._addr} 4")
-
-            runcommand(
-                f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._addr} matches ..2097151 run scoreboard players operation {self._mant._addr} *= {c_pow4_addr}")
-            runcommand(
-                f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._addr} matches ..2097151 run scoreboard players remove {self._exp._addr} 2")
-
-            runcommand(
-                f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._addr} matches ..8388607 run scoreboard players operation {self._mant._addr} *= {c_pow2_addr}")
-            runcommand(
-                f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._addr} matches ..8388607 run scoreboard players remove {self._exp._addr} 1")
+            (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(self._mant, (-inf, 127))).then([
+                lambda: self._mant.__imul__(65536),
+                lambda: self._exp.__isub__(16)
+            ])
+            (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(self._mant, (-inf, 32767))).then([
+                lambda: self._mant.__imul__(256),
+                lambda: self._exp.__isub__(8)
+            ])
+            (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(self._mant, (-inf, 524287))).then([
+                lambda: self._mant.__imul__(16),
+                lambda: self._exp.__isub__(4)
+            ])
+            (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(self._mant, (-inf, 2097151))).then([
+                lambda: self._mant.__imul__(4),
+                lambda: self._exp.__isub__(2)
+            ])
+            (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(self._mant, (-inf, 8388607))).then([
+                lambda: self._mant.__imul__(2),
+                lambda: self._exp.__isub__(1)
+            ])
 
             return self
         raise UnsupportedOperandError(self, "+", other)
@@ -186,16 +172,14 @@ class float32:
     def __isub__(self, other):
         self._check_addr()
         if isinstance(other, (int, float)):
-            t = self.__class__(other)
+            t = float32(other)
             return self.__isub__(t)
 
         if isinstance(other, float32):
             other._check_addr()
-            temp_b = self.__class__(addr=f"!fb{ctx._temp_id} {temp_obj}")
-            ctx._temp_id += 1
+            temp_b = float32(addr=f"!fb{next_temp_id()}")
             temp_b.__iset__(other)
-            c_min1_addr = getscore(-1)._addr
-            runcommand(f"scoreboard players operation {temp_b._sign._addr} *= {c_min1_addr}")
+            temp_b._sign *= -1
             return self.__iadd__(temp_b)
         raise UnsupportedOperandError(self, "-", other)
 
@@ -207,32 +191,30 @@ class float32:
 
         if isinstance(other, float32):
             other._check_addr()
-            runcommand(f"scoreboard players operation {self._sign._addr} *= {other._sign._addr}")
-            runcommand(f"scoreboard players operation {self._exp._addr} += {other._exp._addr}")
+            self._sign.__imul__(other._sign)
+            self._exp.__iadd__(other._exp)
 
-            bA = bigscore[2](addr=f"!ba{ctx._temp_id} {temp_obj}")
-            bB = bigscore[2](addr=f"!bb{ctx._temp_id} {temp_obj}")
-            ctx._temp_id += 1
+            tid = next_temp_id()
+            b_a = bigscore[2](addr=f"!ba{tid} {temp_obj}")
+            b_b = bigscore[2](addr=f"!bb{tid} {temp_obj}")
 
-            bA.__iset__(self._mant)
-            bB.__iset__(other._mant)
-            bA *= bB
-            bA /= 8388608
+            b_a.__iset__(self._mant)
+            b_b.__iset__(other._mant)
+            b_a *= b_b
+            b_a /= 8388608
 
-            c_10000_addr = getscore(10000)._addr
-            runcommand(f"scoreboard players operation {self._mant._addr} = {bA._get_limb(2)}")
-            runcommand(f"scoreboard players operation {self._mant._addr} *= {c_10000_addr}")
-            runcommand(f"scoreboard players operation {self._mant._addr} += {bA._get_limb(1)}")
-            runcommand(f"scoreboard players operation {self._mant._addr} *= {c_10000_addr}")
-            runcommand(f"scoreboard players operation {self._mant._addr} += {bA._get_limb(0)}")
+            self._mant.__iset__(b_a.get_limb(2))
+            self._mant *= 10000
+            self._mant += b_a.get_limb(1)
+            self._mant *= 10000
+            self._mant += b_a.get_limb(0)
 
-            c_pow2_addr = getscore(2)._addr
-            runcommand(f"scoreboard players set !shift {temp_obj} 0")
-            runcommand(
-                f"execute if score {self._mant._addr} matches 16777216.. run scoreboard players set !shift {temp_obj} 1")
-            runcommand(
-                f"execute if score !shift {temp_obj} matches 1 run scoreboard players operation {self._mant._addr} /= {c_pow2_addr}")
-            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players add {self._exp._addr} 1")
+            shift = score(0, addr=f"!shift {temp_obj}")
+            ScoreIfMatches(self._mant, (16777216, inf)).then(lambda: shift.__iset__(1))
+            ScoreIfMatches(shift, 1).then([
+                lambda: self._mant.__idiv__(2),
+                lambda: self._exp.__iadd__(1)
+            ])
 
             return self
         raise UnsupportedOperandError(self, "*", other)
@@ -245,190 +227,154 @@ class float32:
 
         if isinstance(other, float32):
             other._check_addr()
-            runcommand(f"scoreboard players operation {self._sign._addr} *= {other._sign._addr}")
-            runcommand(f"scoreboard players operation {self._exp._addr} -= {other._exp._addr}")
+            self._sign *= other._sign
+            self._exp -= other._exp
 
-            bA = bigscore[2](addr=f"!ba{ctx._temp_id} {temp_obj}")
-            ctx._temp_id += 1
+            b_a = bigscore[2](addr=f"!ba{ctx.next_temp_id()} {temp_obj}")
 
-            bA.__iset__(self._mant)
-            bA *= 8388608
-            bA /= other._mant
+            b_a.__iset__(self._mant)
+            b_a *= 8388608
+            b_a /= other._mant
 
-            c_10000_addr = getscore(10000)._addr
-            runcommand(f"scoreboard players operation {self._mant._addr} = {bA._get_limb(2)}")
-            runcommand(f"scoreboard players operation {self._mant._addr} *= {c_10000_addr}")
-            runcommand(f"scoreboard players operation {self._mant._addr} += {bA._get_limb(1)}")
-            runcommand(f"scoreboard players operation {self._mant._addr} *= {c_10000_addr}")
-            runcommand(f"scoreboard players operation {self._mant._addr} += {bA._get_limb(0)}")
+            self._mant.__iset__(b_a.get_limb(2))
+            self._mant *= 10000
+            self._mant += b_a.get_limb(1)
+            self._mant *= 10000
+            self._mant += b_a.get_limb(0)
 
-            runcommand(f"scoreboard players set !shift {temp_obj} 0")
-            runcommand(
-                f"execute if score {self._mant._addr} matches ..8388607 run scoreboard players set !shift {temp_obj} 1")
-            runcommand(
-                f"execute if score !shift {temp_obj} matches 1 run scoreboard players operation {self._mant._addr} *= {c_pow2_addr}")
-            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players remove {self._exp._addr} 1")
+            shift = score(0, addr=f"!shift {temp_obj}")
+            ScoreIfMatches(self._mant, (-inf, 8388607)).then(lambda: shift.__iset__(1))
+            ScoreIfMatches(shift, 1).then([
+                lambda: self._mant.__imul__(2),
+                lambda: self._exp.__isub__(1)
+            ])
 
             return self
         raise UnsupportedOperandError(self, "/", other)
-
-    def __itruediv__(self, other):
-        return self.__idiv__(other)
-
-    def __add__(self, other):
-        return BinaryOp(self, other, "add")
-
-    def __radd__(self, other):
-        return BinaryOp(other, self, "add")
-
-    def __sub__(self, other):
-        return BinaryOp(self, other, "sub")
-
-    def __rsub__(self, other):
-        return BinaryOp(other, self, "sub")
-
-    def __mul__(self, other):
-        return BinaryOp(self, other, "mul")
-
-    def __rmul__(self, other):
-        return BinaryOp(other, self, "mul")
-
-    def __truediv__(self, other):
-        return BinaryOp(self, other, "truediv")
-
-    def __rtruediv__(self, other):
-        return BinaryOp(other, self, "truediv")
 
     def __round__(self, ndigits=None):
         if ndigits is not None and ndigits != 0:
             raise ValueError("Rounding to specific digits is unsupported to preserve minimalism")
         self._check_addr()
-        c_two_addr = getscore(2)._addr
         res = self.__class__()
         res.__iset__(self)
 
-        runcommand(f"scoreboard players set !k {temp_obj} 23")
-        runcommand(f"scoreboard players operation !k {temp_obj} -= {res._exp._addr}")
+        k = score(23, addr="!k")
+        k -= res._exp
 
-        runcommand(f"execute if score {res._exp._addr} matches -1 run scoreboard players set {res._mant._addr} 8388608")
-        runcommand(f"execute if score {res._exp._addr} matches -1 run scoreboard players set {res._exp._addr} 0")
-        runcommand(f"execute if score {res._exp._addr} matches ..-2 run scoreboard players set {res._mant._addr} 0")
+        ScoreIfMatches(res._exp, -1).then([
+            lambda: res._mant.__iset__(8388608),
+            lambda: res._exp.__iset__(0)
+        ])
+        ScoreIfMatches(res._exp, (-inf, -2)).then(lambda: res._mant.__iset__(0))
 
-        runcommand(f"scoreboard players set !pow2 {temp_obj} 1")
+        pow2 = score(1, addr="!pow2")
         for i in range(1, 24):
-            runcommand(
-                f"execute if score {res._exp._addr} matches 0..22 if score !k {temp_obj} matches {i}.. run scoreboard players operation !pow2 {temp_obj} *= {c_two_addr}")
+            (ScoreIfMatches(res._exp, (0, 22)) & ScoreIfMatches(k, (i, inf))).then(
+                lambda: pow2.__imul__(2)
+            )
 
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation !frac {temp_obj} = {res._mant._addr}")
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation !frac {temp_obj} %= !pow2 {temp_obj}")
+        frac = score(addr="!frac")
+        half_pow2 = score(addr="!half_pow2")
+        round_up = score(addr="!round_up")
+        ScoreIfMatches(res._exp, (0, 22)).then([
+            lambda: frac.__iset__(res._mant),
+            lambda: frac.__imod__(pow2),
+            lambda: res._mant.__idiv__(pow2),
+            lambda: res._mant.__imul__(pow2),
+            lambda: half_pow2.__iset__(pow2),
+            lambda: half_pow2.__idiv__(2),
+            lambda: round_up.__iset__(0)
+        ])
+        round_up.__iset__(0)
+        (ScoreIfMatches(res._exp, (0, 22)) & ScoreIfScore(res._exp, ">=", half_pow2)).then(
+            lambda: round_up.__iset__(1)
+        )
+        (ScoreIfMatches(res._exp, (0, 22)) & ScoreIfMatches(round_up, 1)).then(
+            lambda: res._mant.__iadd__(pow2)
+        )
+        ScoreIfMatches(res._mant, (16777216, inf)).then([
+            lambda: res._mant.__idiv__(2),
+            lambda: res._exp.__iadd__(1)
+        ])
 
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation {res._mant._addr} /= !pow2 {temp_obj}")
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation {res._mant._addr} *= !pow2 {temp_obj}")
-
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation !half_pow2 {temp_obj} = !pow2 {temp_obj}")
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation !half_pow2 {temp_obj} /= {c_two_addr}")
-
-        runcommand(f"scoreboard players set !round_up {temp_obj} 0")
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 if score !frac {temp_obj} >= !half_pow2 {temp_obj} run scoreboard players set !round_up {temp_obj} 1")
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 if score !round_up {temp_obj} matches 1 run scoreboard players operation {res._mant._addr} += !pow2 {temp_obj}")
-
-        runcommand(
-            f"execute if score {res._mant._addr} matches 16777216.. run scoreboard players operation {res._mant._addr} /= {c_two_addr}")
-        runcommand(f"execute if score {res._mant._addr} matches 16777216.. run scoreboard players add {res._exp._addr} 1")
         return res
 
     def __floor__(self):
         self._check_addr()
-        c_two_addr = getscore(2)._addr
         res = self.__class__()
         res.__iset__(self)
 
-        runcommand(f"scoreboard players set !k {temp_obj} 23")
-        runcommand(f"scoreboard players operation !k {temp_obj} -= {res._exp._addr}")
+        k = score(23, addr="!k")
+        k -= res._exp
 
-        runcommand(
-            f"execute if score {res._exp._addr} matches ..-1 if score {res._sign._addr} matches 1 run scoreboard players set {res._mant._addr} 0")
-        runcommand(
-            f"execute if score {res._exp._addr} matches ..-1 if score {res._sign._addr} matches -1 run scoreboard players set {res._mant._addr} 8388608")
-        runcommand(
-            f"execute if score {res._exp._addr} matches ..-1 if score {res._sign._addr} matches -1 run scoreboard players set {res._exp._addr} 0")
+        (ScoreIfMatches(res._exp, (-inf, -1)) & ScoreIfMatches(res._sign, 1)).then(lambda: res._mant.__iset__(0))
+        (ScoreIfMatches(res._exp, (-inf, -1)) & ScoreIfMatches(res._sign, -1)).then([
+            lambda: res._mant.__iset__(8388608),
+            lambda: res._exp.__iset__(0)
+        ])
 
-        runcommand(f"scoreboard players set !pow2 {temp_obj} 1")
+        pow2 = score(1, addr="!pow2")
         for i in range(1, 24):
-            runcommand(
-                f"execute if score {res._exp._addr} matches 0..22 if score !k {temp_obj} matches {i}.. run scoreboard players operation !pow2 {temp_obj} *= {c_two_addr}")
+            (ScoreIfMatches(res._exp, (0, 22)) & ScoreIfMatches(k, (i, inf))).then(
+                lambda: pow2.__imul__(2)
+            )
 
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation !frac {temp_obj} = {res._mant._addr}")
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation !frac {temp_obj} %= !pow2 {temp_obj}")
+        frac = score(addr="!frac")
+        ScoreIfMatches(res._exp, (0, 22)).then([
+            lambda: frac.__iset__(res._mant),
+            lambda: frac.__imod__(pow2),
+            lambda: res._mant.__idiv__(pow2),
+            lambda: res._mant.__imul__(pow2)
+        ])
 
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation {res._mant._addr} /= !pow2 {temp_obj}")
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation {res._mant._addr} *= !pow2 {temp_obj}")
+        (ScoreIfMatches(res._exp, (0, 22)) & ScoreIfMatches(res._sign, -1) & ScoreIfMatches(frac, (1, inf))).then(
+            lambda: res._mant.__isub__(pow2)
+        )
 
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 if score {res._sign._addr} matches -1 unless score !frac {temp_obj} matches 0 run scoreboard players operation {res._mant._addr} -= !pow2 {temp_obj}")
-
-        runcommand(
-            f"execute if score {res._mant._addr} matches 1..8388607 run scoreboard players operation {res._mant._addr} *= {c_two_addr}")
-        runcommand(
-            f"execute if score {res._mant._addr} matches 1..8388607 run scoreboard players remove {res._exp._addr} 1")
+        ScoreIfMatches(res._mant, (1, 8388607)).then([
+            lambda: res._mant.__imul__(2),
+            lambda: res._exp.__isub__(1)
+        ])
         return res
 
     def __ceil__(self):
         self._check_addr()
-        c_two_addr = getscore(2)._addr
         res = self.__class__()
         res.__iset__(self)
 
-        runcommand(f"scoreboard players set !k {temp_obj} 23")
-        runcommand(f"scoreboard players operation !k {temp_obj} -= {res._exp._addr}")
+        k = score(23, addr="!k")
+        k -= res._exp
 
-        runcommand(
-            f"execute if score {res._exp._addr} matches ..-1 if score {res._sign._addr} matches -1 run scoreboard players set {res._mant._addr} 0")
-        runcommand(
-            f"execute if score {res._exp._addr} matches ..-1 if score {res._sign._addr} matches 1 run scoreboard players set {res._mant._addr} 8388608")
-        runcommand(
-            f"execute if score {res._exp._addr} matches ..-1 if score {res._sign._addr} matches 1 run scoreboard players set {res._exp._addr} 0")
+        (ScoreIfMatches(res._exp, (-inf, -1)) & ScoreIfMatches(res._sign, -1)).then(lambda: res._mant.__iset__(0))
+        (ScoreIfMatches(res._exp, (-inf, -1)) & ScoreIfMatches(res._sign, 1)).then([
+            lambda: res._mant.__iset__(8388608),
+            lambda: res._exp.__iset__(0)
+        ])
 
-        runcommand(f"scoreboard players set !pow2 {temp_obj} 1")
+        pow2 = score(1, addr="!pow2")
         for i in range(1, 24):
-            runcommand(
-                f"execute if score {res._exp._addr} matches 0..22 if score !k {temp_obj} matches {i}.. run scoreboard players operation !pow2 {temp_obj} *= {c_two_addr}")
+            (ScoreIfMatches(res._exp, (0, 22)) & ScoreIfMatches(k, (i, inf))).then(
+                lambda: pow2.__imul__(2)
+            )
 
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation !frac {temp_obj} = {res._mant._addr}")
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation !frac {temp_obj} %= !pow2 {temp_obj}")
+        frac = score(addr="!frac")
+        ScoreIfMatches(res._exp, (0, 22)).then([
+            lambda: frac.__iset__(res._mant),
+            lambda: frac.__imod__(pow2),
+            lambda: res._mant.__idiv__(pow2),
+            lambda: res._mant.__imul__(pow2)
+        ])
 
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation {res._mant._addr} /= !pow2 {temp_obj}")
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 run scoreboard players operation {res._mant._addr} *= !pow2 {temp_obj}")
+        (ScoreIfMatches(res._exp, (0, 22)) & ScoreIfMatches(res._sign, 1) & ScoreIfMatches(frac, (1, inf))).then(
+            lambda: res._mant.__iadd__(pow2)
+        )
 
-        runcommand(
-            f"execute if score {res._exp._addr} matches 0..22 if score {res._sign._addr} matches 1 unless score !frac {temp_obj} matches 0 run scoreboard players operation {res._mant._addr} += !pow2 {temp_obj}")
-
-        runcommand(
-            f"execute if score {res._mant._addr} matches 16777216.. run scoreboard players operation {res._mant._addr} /= {c_two_addr}")
-        runcommand(f"execute if score {res._mant._addr} matches 16777216.. run scoreboard players add {res._exp._addr} 1")
+        ScoreIfMatches(res._mant, (16777216, inf)).then([
+            lambda: res._mant.__idiv__(2),
+            lambda: res._exp.__iadd__(1)
+        ])
         return res
-
-    def __neg__(self):
-        return UnaryOp(self, "neg")
-
-    def __pos__(self):
-        return self
 
     def __repr__(self):
         return f"Float(exp={self._exp}, sign={self._sign}, mant={self._mant})"

@@ -1,0 +1,64 @@
+/* Typography */
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+code, pre {
+    font-family: 'Fira Code', monospace;
+}
+
+/* Hero image float animation */
+.image-container > .VPImage {
+    animation-name: upDown;
+    animation-duration: 2.5s !important;
+    animation-iteration-count: infinite !important;
+    animation-timing-function: ease-in-out;
+}
+
+@keyframes upDown {
+    0%   { translate: 0 0; }
+    50%  { translate: 0 -20px; }
+    100% { translate: 0 0; }
+}
+
+/* Sidebar font sizing */
+.VPSidebarItem > .item > .VPLink > p {
+    font-size: 14.5px;
+}
+
+.VPSidebarItem > .item > h2 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-clip: content-box;
+    background-color: rgba(255, 107, 53, 0.35);
+    border: 0.3rem solid transparent;
+    border-radius: 20px;
+}
+
+::-webkit-scrollbar {
+    width: 0.9rem;
+}
+
+/* Code block language badge for Python */
+.language-python > span.lang::before {
+    content: "🐍 ";
+}
+
+/* Inline code brand color hint */
+.vp-doc :not(pre) > code {
+    color: var(--vp-c-brand-dark);
+}
+
+.dark .vp-doc :not(pre) > code {
+    color: var(--vp-c-brand-lighter);
+}

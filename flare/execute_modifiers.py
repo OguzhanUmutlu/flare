@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Union, Any
 
 from . import context as ctx
-from .variables import score, nbt, selector
+from .variables.score import score
+from .variables.nbt import nbt
+from .variables.selector import selector
 
 
 class ExecuteChain:
@@ -64,7 +66,7 @@ class ExecuteChain:
     def store(self, target: Union[score, nbt, str]) -> ExecuteChain:
         if isinstance(target, score):
             target._check_addr()
-            return self._add(f"store result score {target._addr}")
+            return self._add(f"store result score {addr(target)}")
         elif isinstance(target, nbt):
             target._check_addr()
             return StoreExecuteChain(self.fragments.copy(), target)
@@ -82,8 +84,7 @@ class ExecuteChain:
 
     def __with__(self, body_func):
         prefix = " ".join(self.fragments)
-        func_name = f"{ctx._current_namespace}:with_{ctx._func_id}"
-        ctx._func_id += 1
+        func_name = f"{ctx._current_namespace}:with_{ctx.next_func_id()}"
 
         with ctx.push_context(func_name):
             body_func()
@@ -98,13 +99,12 @@ class ExecuteChain:
                     ctx.runcommand(f"{prefix} run {cmd}")
             else:
                 ctx.files[func_name].append("return 0")
-                ret_temp = score(addr=f"!ret{ctx._temp_id} {ctx.temp_obj}")
-                ctx._temp_id += 1
+                ret_temp = score(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
                 if prefix.startswith("execute "):
-                    ctx.runcommand(f"execute store result score {ret_temp._addr} {prefix[8:]} run function {func_name}")
+                    ctx.runcommand(f"execute store result score {addr(ret_temp)} {prefix[8:]} run function {func_name}")
                 else:
-                    ctx.runcommand(f"execute store result score {ret_temp._addr} run function {func_name}")
-                ctx.runcommand(f"execute if score {ret_temp._addr} matches 1 run return 1")
+                    ctx.runcommand(f"execute store result score {addr(ret_temp)} run function {func_name}")
+                ctx.runcommand(f"execute if score {addr(ret_temp)} matches 1 run return 1")
 
 
 class StoreExecuteChain(ExecuteChain):

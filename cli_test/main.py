@@ -1,4 +1,4 @@
-from flare import namespace, score, nbtintarray, fixed, dbg, export, nbt
+from flare import namespace, score, nbtintarray, fixed, dbg, export, nbt, bigscore, bigfixed, float32, float64, expand
 
 namespace("pack")
 
@@ -6,6 +6,10 @@ x = score(20)
 y = score(5)
 t = (x + y) * (x - y)
 print(t)
+
+if expand(x > 10):
+    print("x is greater than 10")
+    print("this is spread across both commands")
 
 myarray = nbtintarray([1, 2, 3, 4])
 myarray.append(5)
@@ -17,11 +21,15 @@ for x in myarray:
 a = fixed[4](1.5)
 b = fixed[4](2.0)
 c = a * b
-print(score(addr=a.addr))
-print(score(addr=b.addr))
+print(score(addr=a._addr))
+print(score(addr=b._addr))
 print(c)
 dbg(c)
 
+res = _flare_in(5, myarray)
+print(res)
+if res:
+    print("5 is in myarray")
 
 @export
 def factorial(n: nbt[int]) -> nbt[int]:
@@ -53,6 +61,35 @@ g[0][0][int] += 5
 
 h = nbt[list[list[int]]](hello)
 h[0][0] += 5
+
+print("--- Big Types ---")
+
+bs1 = bigscore(10_000_000_000, size=2)
+bs2 = bigscore(2, size=2)
+bs1 *= bs2
+print(bs1)
+
+bf1 = bigfixed(1.5, size=2)
+bf2 = bigfixed(2.0, size=2)
+print(bf1 * bf2)
+
+f32_1 = float32(3.14)
+f32_2 = float32(2.0)
+print(f32_1 * f32_2)
+
+f64_1 = float64(2.718)
+f64_2 = float64(1.5)
+print(f64_1 * f64_2)
+
+print("--- Math Functions ---")
+from flare.math import sqrt, sin, cos
+
+m_s = score(16)
+print(sqrt(m_s))
+
+m_f = fixed(1.0)
+print(sin(m_f))
+print(cos(m_f))
 
 # tp @z
 

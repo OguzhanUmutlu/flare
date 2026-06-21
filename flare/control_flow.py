@@ -1,9 +1,75 @@
-from . import context as ctx
-from .compiler import _flatten_and
-from .context import push_context, runcommand, temp_obj
-from .execute_modifiers import ExecuteChain
-from .variables import score
+from __future__ import annotations
 
+from typing import Callable
+from math import isinf
+
+from . import context as ctx
+from .context import namespace
+
+from .context import push_context, runcommand, temp_obj, next_temp_id, next_func_id
+from .execute_modifiers import ExecuteChain
+from .variables.score import score
+from .variables.core import addr
+
+
+class ScoreIf:
+    def __init__(self, t: list[ScoreIf]):
+        self.t = t
+
+    def __and__(self, other):
+        if isinstance(self.t, score):
+            return ScoreIf([self, other])
+        return ScoreIf([*self.t, other])
+
+    def then(self, s: str | Callable | list[str | Callable]):
+        if not isinstance(s, list): s = [s]
+        for i in range(len(s)):
+            if callable(s[i]):
+                file_len = len(ctx.files[ctx.current_file])
+                s[i]()
+                commands = ctx.files[ctx.current_file][file_len:]
+                if len(commands) != 1:
+                    raise AssertionError("Expected a single command in ScoreIf .then action")
+                ctx.files[ctx.current_file] = ctx.files[ctx.current_file][:file_len]
+                s[i] = commands[0]
+
+        str_self = str(self)
+        for x in s:
+            runcommand(str_self + str(x))
+
+    def __str__(self):
+        raise NotImplementedError("ScoreIf.__str__ is not implemented")
+
+
+class ScoreIfMatches(ScoreIf):
+    def __init__(self, t: score, rng: tuple[float, float] | float):
+        super().__init__([])
+        self.t = t
+        if isinstance(rng, (int, float)): rng = (rng, rng)
+        self.rng = rng
+
+    def __str__(self):
+        a, b = self.rng
+        if not isinf(a): a = int(a * self.t._multiplier)
+        if not isinf(b): b = int(b * self.t._multiplier)
+        st = f"{a}..{b}"
+        if a == b:
+            st = f"{a}"
+        elif isinf(a):
+            st = f"..{b}"
+        elif isinf(b):
+            st = f"{a}.."
+        return f"execute if score {addr(self.t)} matches {st} run "
+
+class ScoreIfScore(ScoreIf):
+    def __init__(self, t: score, op: str, t2: score):
+        super().__init__([])
+        self.t = t
+        self.op = op
+        self.t2 = t2
+
+    def __str__(self):
+        return f"execute if score {addr(self.t)} {self.op} {addr(self.t2)} run "
 
 def _has_early_return(func_name):
     for cmd in ctx.files.get(func_name, []):
@@ -16,14 +82,13 @@ def _invoke_block(func_name, cond_str):
     if _has_early_return(func_name):
         if not (ctx.files[func_name] and ctx.files[func_name][-1] in ("return 0", "return 1")):
             ctx.files[func_name].append("return 0")
-        ret_temp = score(addr=f"!ret{ctx._temp_id} {ctx.temp_obj}")
-        ctx._temp_id += 1
+        ret_temp = score(addr=f"!ret{next_temp_id()} {temp_obj}")
 
         if cond_str:
-            runcommand(f"execute store result score {ret_temp._addr} {cond_str} run function {func_name}")
+            runcommand(f"execute store result score {addr(ret_temp)} {cond_str} run function {func_name}")
         else:
-            runcommand(f"execute store result score {ret_temp._addr} run function {func_name}")
-        runcommand(f"execute if score {ret_temp._addr} matches 1 run return 1")
+            runcommand(f"execute store result score {addr(ret_temp)} run function {func_name}")
+        runcommand(f"execute if score {addr(ret_temp)} matches 1 run return 1")
     else:
         if cond_str:
             runcommand(f"execute {cond_str} run function {func_name}")
@@ -40,24 +105,26 @@ def _flare_continue():
     runcommand("return 0")
 
 
+class expand:
+    def __init__(self, cond):
+        self.cond = cond
+
 def _flare_if(*args):
     n = len(args) // 2
     conditions = args[:n]
     bodies = args[n:]
 
-    sometemp = None
+    elif_temp = None
     has_else_or_elif = len(conditions) > 1 or conditions[0] is None
 
     if has_else_or_elif:
-        sometemp = score(addr=f"!elif{ctx._temp_id} {temp_obj}")
-        ctx._temp_id += 1
-        runcommand(f"scoreboard players set {sometemp._addr} 0")
+        elif_temp = score(addr=f"!elif{next_temp_id()} {temp_obj}")
+        elif_temp.__iset__(0)
 
     for cond_func, body_func in zip(conditions, bodies):
         if cond_func is None:
-            if sometemp is not None:
-                func_name = f"{ctx._current_namespace}:generated_{ctx._func_id}"
-                ctx._func_id += 1
+            if elif_temp is not None:
+                func_name = f"{namespace()}:generated_{next_func_id()}"
                 with push_context(func_name):
                     body_func()
                 if ctx.files[func_name]:
@@ -65,23 +132,27 @@ def _flare_if(*args):
                         cmd = ctx.files[func_name][0]
                         del ctx.files[func_name]
                         if cmd.startswith("execute "):
-                            runcommand(f"execute if score {sometemp._addr} matches 0 {cmd[8:]}")
+                            runcommand(f"execute if score {addr(elif_temp)} matches 0 {cmd[8:]}")
                         else:
-                            runcommand(f"execute if score {sometemp._addr} matches 0 run {cmd}")
+                            runcommand(f"execute if score {addr(elif_temp)} matches 0 run {cmd}")
                     else:
-                        _invoke_block(func_name, f"if score {sometemp._addr} matches 0")
+                        _invoke_block(func_name, f"if score {addr(elif_temp)} matches 0")
             else:
                 body_func()
             break
 
         cond = cond_func()
+        
+        is_expand = isinstance(cond, expand)
+        if is_expand:
+            cond = cond.cond
+
         if isinstance(cond, bool):
-            if cond is False:
+            if not cond:
                 continue
             else:
-                if sometemp is not None:
-                    func_name = f"{ctx._current_namespace}:generated_{ctx._func_id}"
-                    ctx._func_id += 1
+                if elif_temp is not None:
+                    func_name = f"{namespace()}:generated_{ctx.next_func_id()}"
                     with push_context(func_name):
                         body_func()
                     if ctx.files.get(func_name):
@@ -89,48 +160,58 @@ def _flare_if(*args):
                             cmd = ctx.files[func_name][0]
                             del ctx.files[func_name]
                             if cmd.startswith("execute "):
-                                runcommand(f"execute if score {sometemp._addr} matches 0 {cmd[8:]}")
+                                runcommand(f"execute if score {addr(elif_temp)} matches 0 {cmd[8:]}")
                             else:
-                                runcommand(f"execute if score {sometemp._addr} matches 0 run {cmd}")
+                                runcommand(f"execute if score {addr(elif_temp)} matches 0 run {cmd}")
                         else:
-                            _invoke_block(func_name, f"if score {sometemp._addr} matches 0")
+                            _invoke_block(func_name, f"if score {addr(elif_temp)} matches 0")
                 else:
                     body_func()
                 break
 
+        from .compiler import _flatten_and
         conds = _flatten_and(cond)
         prefix = f"execute {' '.join(conds)}"
 
-        if sometemp is not None:
-            prefix = f"execute if score {sometemp._addr} matches 0 {' '.join(conds)}"
+        if elif_temp is not None:
+            prefix = f"execute if score {addr(elif_temp)} matches 0 {' '.join(conds)}"
 
-        func_name = f"{ctx._current_namespace}:generated_{ctx._func_id}"
-        ctx._func_id += 1
-        with push_context(func_name):
-            if sometemp is not None:
-                runcommand(f"scoreboard players set {sometemp._addr} 1")
+        if is_expand:
+            start_len = len(ctx.files[ctx.current_file])
+            if elif_temp is not None:
+                runcommand(f"scoreboard players set {addr(elif_temp)} 1")
             body_func()
-
-        if ctx.files.get(func_name):
-            if len(ctx.files[func_name]) == 1:
-                cmd = ctx.files[func_name][0]
-                del ctx.files[func_name]
+            for i in range(start_len, len(ctx.files[ctx.current_file])):
+                cmd = ctx.files[ctx.current_file][i]
                 if cmd.startswith("execute "):
-                    runcommand(f"{prefix} {cmd[8:]}")
+                    ctx.files[ctx.current_file][i] = f"{prefix} {cmd[8:]}"
                 else:
-                    runcommand(f"{prefix} run {cmd}")
-            else:
-                _invoke_block(func_name, prefix[8:] if prefix.startswith("execute ") else "")
+                    ctx.files[ctx.current_file][i] = f"{prefix} run {cmd}"
+        else:
+            func_name = f"{ctx._current_namespace}:generated_{ctx.next_func_id()}"
+            with push_context(func_name):
+                if elif_temp is not None:
+                    runcommand(f"scoreboard players set {addr(elif_temp)} 1")
+                body_func()
+
+            if ctx.files.get(func_name):
+                if len(ctx.files[func_name]) == 1:
+                    cmd = ctx.files[func_name][0]
+                    del ctx.files[func_name]
+                    if cmd.startswith("execute "):
+                        runcommand(f"{prefix} {cmd[8:]}")
+                    else:
+                        runcommand(f"{prefix} run {cmd}")
+                else:
+                    _invoke_block(func_name, prefix[8:] if prefix.startswith("execute ") else "")
 
 
 def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_continue=False):
-    func_name = f"{ctx._current_namespace}:while_{ctx._func_id}"
-    ctx._func_id += 1
+    func_name = f"{ctx._current_namespace}:while_{ctx.next_func_id()}"
 
     with push_context(func_name):
         if has_break or has_continue:
-            func_body = f"{ctx._current_namespace}:while_body_{ctx._func_id}"
-            ctx._func_id += 1
+            func_body = f"{ctx._current_namespace}:while_body_{ctx.next_func_id()}"
             with push_context(func_body):
                 body_func()
 
@@ -142,6 +223,7 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
             body_func()
 
         cond = cond_func()
+        from .compiler import _flatten_and
         conds = _flatten_and(cond)
         prefix = f"execute {' '.join(conds)}"
         _invoke_block(func_name, " ".join(conds))
@@ -150,17 +232,16 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
         runcommand(f"scoreboard players set !break {temp_obj} 0")
 
     cond_init = cond_func()
+    from .compiler import _flatten_and
     conds_init = _flatten_and(cond_init)
     prefix_init = f"execute {' '.join(conds_init)}"
-    ret_temp_init = score(addr=f"!ret{ctx._temp_id} {temp_obj}")
-    ctx._temp_id += 1
-    runcommand(f"execute store result score {ret_temp_init._addr} {' '.join(conds_init)} run function {func_name}")
-    runcommand(f"execute if score {ret_temp_init._addr} matches 1 run return 1")
+    ret_temp_init = score(addr=f"!ret{ctx.next_temp_id()} {temp_obj}")
+    runcommand(f"execute store result score {addr(ret_temp_init)} {' '.join(conds_init)} run function {func_name}")
+    runcommand(f"execute if score {addr(ret_temp_init)} matches 1 run return 1")
 
     if orelse_func:
         if has_break:
-            orelse_name = f"{ctx._current_namespace}:while_else_{ctx._func_id}"
-            ctx._func_id += 1
+            orelse_name = f"{ctx._current_namespace}:while_else_{ctx.next_func_id()}"
             with push_context(orelse_name):
                 orelse_func()
             runcommand(f"execute if score !break {temp_obj} matches 0 run function {orelse_name}")

@@ -1,0 +1,117 @@
+/**
+ * Flare brand colors (orange/amber fire palette)
+ * -------------------------------------------------------------------------- */
+
+:root {
+    --vp-c-brand-1: #ff6b35;
+    --vp-c-brand-2: #ff8c00;
+    --vp-c-brand-3: #ffa500;
+    --vp-c-brand-soft: rgba(255, 107, 53, 0.14);
+
+    /* Legacy compat */
+    --vp-c-brand: #ff6b35;
+    --vp-c-brand-light: #ff8c00;
+    --vp-c-brand-lighter: #ffaa55;
+    --vp-c-brand-lightest: #ffcc88;
+    --vp-c-brand-dark: #e55a28;
+    --vp-c-brand-darker: #cc4d1e;
+    --vp-c-brand-dimm: rgba(255, 107, 53, 0.08);
+}
+
+/**
+ * Component: Button
+ * -------------------------------------------------------------------------- */
+
+:root {
+    --vp-button-brand-border: var(--vp-c-brand-light);
+    --vp-button-brand-text: var(--vp-c-white);
+    --vp-button-brand-bg: var(--vp-c-brand);
+    --vp-button-brand-hover-border: var(--vp-c-brand-light);
+    --vp-button-brand-hover-text: var(--vp-c-white);
+    --vp-button-brand-hover-bg: var(--vp-c-brand-light);
+    --vp-button-brand-active-border: var(--vp-c-brand-light);
+    --vp-button-brand-active-text: var(--vp-c-white);
+    --vp-button-brand-active-bg: var(--vp-button-brand-bg);
+}
+
+/**
+ * Component: Home Hero
+ * -------------------------------------------------------------------------- */
+
+:root {
+    --vp-home-hero-name-color: transparent;
+    --vp-home-hero-name-background: -webkit-linear-gradient(
+        120deg,
+        #ff6b35 20%,
+        #ff8c00 50%,
+        #ffd700 80%
+    );
+
+    --vp-home-hero-image-background-image: linear-gradient(
+        -45deg,
+        #ff6b35 30%,
+        #ffd700 70%
+    );
+    --vp-home-hero-image-filter: blur(44px);
+}
+
+@media (min-width: 640px) {
+    :root {
+        --vp-home-hero-image-filter: blur(56px);
+    }
+}
+
+@media (min-width: 960px) {
+    :root {
+        --vp-home-hero-image-filter: blur(68px);
+    }
+}
+
+/**
+ * Component: Custom Block
+ * -------------------------------------------------------------------------- */
+
+:root {
+    --vp-custom-block-tip-border: var(--vp-c-brand);
+    --vp-custom-block-tip-text: var(--vp-c-brand-darker);
+    --vp-custom-block-tip-bg: var(--vp-c-brand-dimm);
+}
+
+.dark {
+    --vp-custom-block-tip-border: var(--vp-c-brand);
+    --vp-custom-block-tip-text: var(--vp-c-brand-lightest);
+    --vp-custom-block-tip-bg: var(--vp-c-brand-dimm);
+}
+
+/**
+ * DocSearch
+ * -------------------------------------------------------------------------- */
+
+.DocSearch {
+    --docsearch-primary-color: var(--vp-c-brand) !important;
+}
+
+/**
+ * Dark mode link colors
+ * -------------------------------------------------------------------------- */
+
+.dark .vp-doc a,
+.dark .vp-doc a > code,
+.dark .VPNavBarMenuLink.VPNavBarMenuLink:hover,
+.dark .VPNavBarMenuLink.VPNavBarMenuLink.active,
+.dark .link.link:hover,
+.dark .link.link.active,
+.dark .edit-link-button.edit-link-button,
+.dark .pager-link .title {
+    color: var(--vp-c-brand-lighter);
+}
+
+.dark .vp-doc a:hover,
+.dark .vp-doc a > code:hover {
+    color: var(--vp-c-brand-lightest);
+    opacity: 1;
+}
+
+.dark .vp-doc .custom-block a {
+    transition: color 0.25s;
+}
