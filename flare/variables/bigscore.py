@@ -21,19 +21,19 @@ class bigscore:
             self.size = self.__class__._size
 
         if multiplier is not None:
-            self.multiplier = multiplier
+            self._multiplier = multiplier
         else:
-            self.multiplier = self.__class__._multiplier
+            self._multiplier = self.__class__._multiplier
 
-        self.value_to_set = value
-        self.addr = None
-        self.target = ""
-        self.objective = ""
+        self._value_to_set = value
+        self._addr = None
+        self._target = ""
+        self._objective = ""
 
         if addr is not None:
             self._parse_addr(addr)
-            if self.value_to_set is not None:
-                self.__iset__(self.value_to_set)
+            if self._value_to_set is not None:
+                self.__iset__(self._value_to_set)
 
     @classmethod
     def __class_getitem__(cls, item):
@@ -52,27 +52,27 @@ class bigscore:
     def _parse_addr(self, addr: str):
         parts = addr.rsplit(" ", 1)
         if len(parts) > 1:
-            self.target = parts[0]
-            self.objective = parts[1]
+            self._target = parts[0]
+            self._objective = parts[1]
         else:
-            self.target = addr
-            self.objective = temp_obj
-        self.addr = f"{self.target} {self.objective}"
+            self._target = addr
+            self._objective = temp_obj
+        self._addr = f"{self._target} {self._objective}"
 
     def _check_addr(self):
-        if self.addr is None:
+        if self._addr is None:
             self._parse_addr(f"!big{ctx._temp_id}")
             ctx._temp_id += 1
-            if self.value_to_set is not None:
-                self.__iset__(self.value_to_set)
+            if self._value_to_set is not None:
+                self.__iset__(self._value_to_set)
 
     def _get_limb(self, i):
-        return f"{self.target}_{i} {self.objective}"
+        return f"{self._target}_{i} {self._objective}"
 
     def __iset__(self, other):
         self._check_addr()
         if isinstance(other, (int, float)):
-            val = int(round(other * self.multiplier))
+            val = int(round(other * self._multiplier))
             if val < 0:
                 val += self._base ** self.size
             for i in range(self.size):
@@ -86,7 +86,7 @@ class bigscore:
                 raise ValueError("Cannot assign larger bigscore to smaller bigscore")
             if self._base != other._base:
                 raise ValueError("Cannot assign bigscores of different bases")
-            if self.multiplier != other.multiplier:
+            if self._multiplier != other._multiplier:
                 pass
             for i in range(other.size):
                 runcommand(f"scoreboard players operation {self._get_limb(i)} = {other._get_limb(i)}")
@@ -95,7 +95,7 @@ class bigscore:
             return self
         if isinstance(other, score):
             other._check_addr()
-            runcommand(f"scoreboard players operation {self._get_limb(0)} = {other.addr}")
+            runcommand(f"scoreboard players operation {self._get_limb(0)} = {other._addr}")
 
             runcommand(f"scoreboard players set !carry {temp_obj} 0")
             runcommand(
@@ -203,7 +203,7 @@ class bigscore:
                 runcommand(f"scoreboard players operation !carry {temp_obj} /= !BASE_{self._base} {temp_obj}")
                 runcommand(f"scoreboard players operation {temp_C[i]} %= !BASE_{self._base} {temp_obj}")
 
-            M = int(round(self.multiplier))
+            M = int(round(self._multiplier))
             if M > 1:
                 runcommand(f"scoreboard players set !rem {temp_obj} 0")
                 ctx.ensure_constant("!M", "temp", M)
@@ -231,15 +231,15 @@ class bigscore:
     def __icopy__(self, varid: str, is_recursive: bool = False):
         if is_recursive:
             raise TypeError("Local variable needs a stack in recursive context, but it's a bigscore")
-        if self.addr is None:
-            self.objective = vars_obj
-            self.name = f"{varid}"
-            self.addr = f"{self.name} {self.objective}"
-            ctx.ensure_objective(self.objective)
-            if self.value_to_set is not None:
-                self.__iset__(self.value_to_set)
+        if self._addr is None:
+            self._objective = vars_obj
+            self._name = f"{varid}"
+            self._addr = f"{self._name} {self._objective}"
+            ctx.ensure_objective(self._objective)
+            if self._value_to_set is not None:
+                self.__iset__(self._value_to_set)
         else:
-            dest = self.__class__(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self.multiplier)
+            dest = self.__class__(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
             dest.__iset__(self)
             return dest
         return self
@@ -259,7 +259,7 @@ class bigscore:
     def __round__(self, ndigits=None):
         if ndigits is not None:
             raise NotImplementedError("Rounding to specific digits is unsupported for Flare variables")
-        M = int(round(self.multiplier))
+        M = int(round(self._multiplier))
         if M == 1:
             return self
         temp = self.__icopy__(f"!math_{ctx._temp_id}")
@@ -271,7 +271,7 @@ class bigscore:
         return temp
 
     def __floor__(self):
-        M = int(round(self.multiplier))
+        M = int(round(self._multiplier))
         if M == 1:
             return self
         temp = self.__icopy__(f"!math_{ctx._temp_id}")
@@ -281,7 +281,7 @@ class bigscore:
         return temp
 
     def __ceil__(self):
-        M = int(round(self.multiplier))
+        M = int(round(self._multiplier))
         if M == 1:
             return self
         temp = self.__icopy__(f"!math_{ctx._temp_id}")
@@ -333,7 +333,7 @@ class bigscore:
                 raise ZeroDivisionError("Division by zero")
             if M < 0:
                 self.__idiv__(-M)
-                zero = getscore(0).addr
+                zero = getscore(0)._addr
                 runcommand(f"scoreboard players set !borrow {temp_obj} 0")
                 for i in range(self.size):
                     runcommand(f"scoreboard players operation !val {temp_obj} = {zero}")
@@ -347,7 +347,7 @@ class bigscore:
                     runcommand(f"scoreboard players operation {self._get_limb(i)} = !val {temp_obj}")
                 return self
             runcommand(f"scoreboard players set !rem {temp_obj} 0")
-            M_addr = getscore(M).addr
+            M_addr = getscore(M)._addr
             for i in reversed(range(self.size)):
                 runcommand(f"scoreboard players operation !val {temp_obj} = !rem {temp_obj}")
                 runcommand(f"scoreboard players operation !val {temp_obj} *= !BASE_{self._base} {temp_obj}")
@@ -367,9 +367,9 @@ class bigscore:
                 runcommand(f"scoreboard players operation !val {temp_obj} *= !BASE_{self._base} {temp_obj}")
                 runcommand(f"scoreboard players operation !val {temp_obj} += {self._get_limb(i)}")
                 runcommand(f"scoreboard players operation {self._get_limb(i)} = !val {temp_obj}")
-                runcommand(f"scoreboard players operation {self._get_limb(i)} /= {other.addr}")
+                runcommand(f"scoreboard players operation {self._get_limb(i)} /= {other._addr}")
                 runcommand(f"scoreboard players operation !rem {temp_obj} = !val {temp_obj}")
-                runcommand(f"scoreboard players operation !rem {temp_obj} %= {other.addr}")
+                runcommand(f"scoreboard players operation !rem {temp_obj} %= {other._addr}")
             self._last_rem = self.__class__()
             self._last_rem.__iset__(0)
             runcommand(f"scoreboard players operation {self._last_rem._get_limb(0)} = !rem {temp_obj}")
@@ -402,7 +402,7 @@ class bigscore:
 
                 runcommand(f"scoreboard players set !carry {temp_obj} 0")
                 for i in range(self.size):
-                    two_addr = getscore(2).addr
+                    two_addr = getscore(2)._addr
                     runcommand(f"scoreboard players operation {Q._get_limb(i)} *= {two_addr}")
                     runcommand(f"scoreboard players operation {Q._get_limb(i)} += !carry {temp_obj}")
                     runcommand(f"scoreboard players set !carry {temp_obj} 0")
@@ -431,7 +431,7 @@ class bigscore:
                 runcommand(f"scoreboard players set !carry {temp_obj} 0")
                 for i in reversed(range(self.size)):
                     runcommand(f"scoreboard players operation !val {temp_obj} = {R._get_limb(i)}")
-                    two_addr = getscore(2).addr
+                    two_addr = getscore(2)._addr
                     runcommand(f"scoreboard players operation {R._get_limb(i)} *= {two_addr}")
                     runcommand(f"scoreboard players operation {R._get_limb(i)} += !carry {temp_obj}")
                     runcommand(f"scoreboard players operation !carry {temp_obj} = !val {temp_obj}")
@@ -457,7 +457,7 @@ class bigscore:
                 raise ZeroDivisionError("Modulo by zero")
             if M < 0:
                 M = -M
-            M_addr = getscore(M).addr
+            M_addr = getscore(M)._addr
             runcommand(f"scoreboard players set !rem {temp_obj} 0")
             for i in reversed(range(self.size)):
                 runcommand(f"scoreboard players operation !val {temp_obj} = !rem {temp_obj}")
@@ -555,4 +555,4 @@ class bigfixed(bigscore):
         return _TypedBigFixed
 
     def __repr__(self):
-        return f"bigfixed(size={self.size}, multiplier={self.multiplier})"
+        return f"bigfixed(size={self.size}, multiplier={self._multiplier})"

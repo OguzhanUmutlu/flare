@@ -31,44 +31,44 @@ def getscore(x: int | float, multiplier: float = 1.0):
 
 class score:
     def __init__(self, value: int | float | None = None, *, addr: str = None, multiplier: float = 1.0):
-        self.multiplier = float(multiplier)
-        self.value_to_set = value if value is not None else (0 if addr is None else None)
-        self.addr = addr
+        self._multiplier = float(multiplier)
+        self._value_to_set = value if value is not None else (0 if addr is None else None)
+        self._addr = addr
         if addr is not None:
             parts = addr.split(" ", 1)
             if len(parts) == 2:
-                self.name, self.objective = parts[0], parts[1]
-                ctx.ensure_objective(self.objective)
+                self._name, self._objective = parts[0], parts[1]
+                ctx.ensure_objective(self._objective)
             else:
-                self.name = parts[0]
-                self.objective = ""
-            if self.value_to_set is not None:
-                self.__iset__(self.value_to_set)
+                self._name = parts[0]
+                self._objective = ""
+            if self._value_to_set is not None:
+                self.__iset__(self._value_to_set)
         else:
-            self.name = ""
-            self.objective = ""
+            self._name = ""
+            self._objective = ""
 
     def _type_priority(self):
-        return -self.multiplier
+        return -self._multiplier
 
     def _alloc_temp(self):
-        t = score(addr=f"!t{ctx._temp_id} {temp_obj}", multiplier=self.multiplier)
+        t = score(addr=f"!t{ctx._temp_id} {temp_obj}", multiplier=self._multiplier)
         ctx._temp_id += 1
         return t
 
     def _create_var(self, varid: str):
-        return score(addr=f"{varid} {vars_obj}", multiplier=self.multiplier)
+        return score(addr=f"{varid} {vars_obj}", multiplier=self._multiplier)
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
         if is_recursive:
             raise TypeError("Local variable needs a stack in recursive context, but it's a score")
-        if self.addr is None:
-            self.objective = vars_obj
-            self.name = f"{varid}"
-            self.addr = f"{self.name} {self.objective}"
-            ctx.ensure_objective(self.objective)
-            if self.value_to_set is not None:
-                self.__iset__(self.value_to_set)
+        if self._addr is None:
+            self._objective = vars_obj
+            self._name = f"{varid}"
+            self._addr = f"{self._name} {self._objective}"
+            ctx.ensure_objective(self._objective)
+            if self._value_to_set is not None:
+                self.__iset__(self._value_to_set)
         else:
             dest = score(addr=f"{varid} {vars_obj}")
             dest.__iset__(self)
@@ -76,7 +76,7 @@ class score:
         return self
 
     def __str__(self):
-        return f"[Score {self.addr}]"
+        return f"[Score {self._addr}]"
 
     def __branch__(self, invert=False):
         return BinaryOp(self, 0, "ne").__branch__(invert)
@@ -86,14 +86,14 @@ class score:
         return store(self)
 
     def _check_addr(self):
-        if self.addr is None:
-            self.objective = temp_obj
-            self.name = f"!{ctx._temp_id}"
+        if self._addr is None:
+            self._objective = temp_obj
+            self._name = f"!{ctx._temp_id}"
             ctx._temp_id += 1
-            self.addr = f"{self.name} {self.objective}"
-            ctx.ensure_objective(self.objective)
-            if self.value_to_set is not None:
-                self.__iset__(self.value_to_set)
+            self._addr = f"{self._name} {self._objective}"
+            ctx.ensure_objective(self._objective)
+            if self._value_to_set is not None:
+                self.__iset__(self._value_to_set)
 
     @classmethod
     def __class_getitem__(cls, multiplier: int):
@@ -111,18 +111,18 @@ class score:
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
-            val = int(round(other / self.multiplier))
-            runcommand(f"scoreboard players set {self.addr} {val}")
+            val = int(round(other / self._multiplier))
+            runcommand(f"scoreboard players set {self._addr} {val}")
             return self
         if isinstance(other, _nbt()):
-            if other.type is not None and not other.is_number():
+            if other._type is not None and not other.is_number():
                 raise TypeError("Cannot set score with non-numeric NBT")
-            runcommand(f"execute store result score {self.addr} run data get {other.addr}" + (
-                f" {self.multiplier}" if self.multiplier != 1.0 else ""))
+            runcommand(f"execute store result score {self._addr} run data get {other._addr}" + (
+                f" {self._multiplier}" if self._multiplier != 1.0 else ""))
             return self
         if isinstance(other, score):
-            runcommand(f"scoreboard players operation {self.addr} = {other.addr}")
-            self *= other.multiplier / self.multiplier
+            runcommand(f"scoreboard players operation {self._addr} = {other._addr}")
+            self *= other._multiplier / self._multiplier
             return self
         raise UnsupportedOperandError(self, "=", other)
 
@@ -159,7 +159,7 @@ class score:
     def __round__(self, ndigits=None):
         if ndigits is not None:
             raise ValueError("Rounding to specific digits is unsupported for Flare variables")
-        M = int(round(1.0 / self.multiplier))
+        M = int(round(1.0 / self._multiplier))
         if M == 1:
             return self
         temp = self.__icopy__(f"!math_{ctx._temp_id}")
@@ -167,48 +167,48 @@ class score:
         M_addr = f"!{M} temp"
         ctx.ensure_constant(f"!{M}", "temp", M)
         half = M // 2
-        runcommand(f"scoreboard players add {temp.addr} {half}")
-        runcommand(f"execute if score {temp.addr} matches 0.. run scoreboard players operation {temp.addr} /= {M_addr}")
-        runcommand(f"execute if score {temp.addr} matches 0.. run scoreboard players operation {temp.addr} *= {M_addr}")
-        runcommand(f"execute if score {temp.addr} matches ..-1 run scoreboard players remove {temp.addr} {M - 1}")
+        runcommand(f"scoreboard players add {temp._addr} {half}")
+        runcommand(f"execute if score {temp._addr} matches 0.. run scoreboard players operation {temp._addr} /= {M_addr}")
+        runcommand(f"execute if score {temp._addr} matches 0.. run scoreboard players operation {temp._addr} *= {M_addr}")
+        runcommand(f"execute if score {temp._addr} matches ..-1 run scoreboard players remove {temp._addr} {M - 1}")
         runcommand(
-            f"execute if score {temp.addr} matches ..-1 run scoreboard players operation {temp.addr} /= {M_addr}")
+            f"execute if score {temp._addr} matches ..-1 run scoreboard players operation {temp._addr} /= {M_addr}")
         runcommand(
-            f"execute if score {temp.addr} matches ..-1 run scoreboard players operation {temp.addr} *= {M_addr}")
+            f"execute if score {temp._addr} matches ..-1 run scoreboard players operation {temp._addr} *= {M_addr}")
         return temp
 
     def __floor__(self):
-        M = int(round(1.0 / self.multiplier))
+        M = int(round(1.0 / self._multiplier))
         if M == 1:
             return self
         temp = self.__icopy__(f"!math_{ctx._temp_id}")
         ctx._temp_id += 1
         M_addr = f"!{M} temp"
         ctx.ensure_constant(f"!{M}", "temp", M)
-        runcommand(f"execute if score {temp.addr} matches 0.. run scoreboard players operation {temp.addr} /= {M_addr}")
-        runcommand(f"execute if score {temp.addr} matches 0.. run scoreboard players operation {temp.addr} *= {M_addr}")
-        runcommand(f"execute if score {temp.addr} matches ..-1 run scoreboard players remove {temp.addr} {M - 1}")
+        runcommand(f"execute if score {temp._addr} matches 0.. run scoreboard players operation {temp._addr} /= {M_addr}")
+        runcommand(f"execute if score {temp._addr} matches 0.. run scoreboard players operation {temp._addr} *= {M_addr}")
+        runcommand(f"execute if score {temp._addr} matches ..-1 run scoreboard players remove {temp._addr} {M - 1}")
         runcommand(
-            f"execute if score {temp.addr} matches ..-1 run scoreboard players operation {temp.addr} /= {M_addr}")
+            f"execute if score {temp._addr} matches ..-1 run scoreboard players operation {temp._addr} /= {M_addr}")
         runcommand(
-            f"execute if score {temp.addr} matches ..-1 run scoreboard players operation {temp.addr} *= {M_addr}")
+            f"execute if score {temp._addr} matches ..-1 run scoreboard players operation {temp._addr} *= {M_addr}")
         return temp
 
     def __ceil__(self):
-        M = int(round(1.0 / self.multiplier))
+        M = int(round(1.0 / self._multiplier))
         if M == 1:
             return self
         temp = self.__icopy__(f"!math_{ctx._temp_id}")
         ctx._temp_id += 1
         M_addr = f"!{M} temp"
         ctx.ensure_constant(f"!{M}", "temp", M)
-        runcommand(f"execute if score {temp.addr} matches 0.. run scoreboard players add {temp.addr} {M - 1}")
-        runcommand(f"execute if score {temp.addr} matches 0.. run scoreboard players operation {temp.addr} /= {M_addr}")
-        runcommand(f"execute if score {temp.addr} matches 0.. run scoreboard players operation {temp.addr} *= {M_addr}")
+        runcommand(f"execute if score {temp._addr} matches 0.. run scoreboard players add {temp._addr} {M - 1}")
+        runcommand(f"execute if score {temp._addr} matches 0.. run scoreboard players operation {temp._addr} /= {M_addr}")
+        runcommand(f"execute if score {temp._addr} matches 0.. run scoreboard players operation {temp._addr} *= {M_addr}")
         runcommand(
-            f"execute if score {temp.addr} matches ..-1 run scoreboard players operation {temp.addr} /= {M_addr}")
+            f"execute if score {temp._addr} matches ..-1 run scoreboard players operation {temp._addr} /= {M_addr}")
         runcommand(
-            f"execute if score {temp.addr} matches ..-1 run scoreboard players operation {temp.addr} *= {M_addr}")
+            f"execute if score {temp._addr} matches ..-1 run scoreboard players operation {temp._addr} *= {M_addr}")
         return temp
 
     def __fastsin__(self):
@@ -220,8 +220,8 @@ class score:
         x %= two_pi
 
         is_neg = cls(0)
-        runcommand(f"execute if score {x.addr} > {pi.addr} run scoreboard players set {is_neg.addr} 1")
-        runcommand(f"execute if score {x.addr} > {pi.addr} run scoreboard players operation {x.addr} -= {pi.addr}")
+        runcommand(f"execute if score {x._addr} > {pi._addr} run scoreboard players set {is_neg._addr} 1")
+        runcommand(f"execute if score {x._addr} > {pi._addr} run scoreboard players operation {x._addr} -= {pi._addr}")
 
         term = x * (pi - x)
         five_pi_sq = cls(5 * math.pi * math.pi)
@@ -233,7 +233,7 @@ class score:
         result.__iset__(result_op)
 
         runcommand(
-            f"execute if score {is_neg.addr} matches 1 run scoreboard players operation {result.addr} *= !-1 temp")
+            f"execute if score {is_neg._addr} matches 1 run scoreboard players operation {result._addr} *= !-1 temp")
         return result
 
     def __sin__(self):
@@ -247,7 +247,7 @@ class score:
         temp = self.__icopy__("!abs")
         ensure_constant("!-1", "temp", -1)
         runcommand(
-            f"execute if score {temp.addr} matches ..-1 run scoreboard players operation {temp.addr} *= !-1 temp")
+            f"execute if score {temp._addr} matches ..-1 run scoreboard players operation {temp._addr} *= !-1 temp")
         return temp
 
     def __atan2__(self, x):
@@ -258,13 +258,13 @@ class score:
         x_abs = x.__abs__()
 
         a = cls()
-        runcommand(f"scoreboard players operation {a.addr} = {y_abs.addr}")
+        runcommand(f"scoreboard players operation {a._addr} = {y_abs._addr}")
         runcommand(
-            f"execute if score {x_abs.addr} < {y_abs.addr} run scoreboard players operation {a.addr} /= {y_abs.addr}")
+            f"execute if score {x_abs._addr} < {y_abs._addr} run scoreboard players operation {a._addr} /= {y_abs._addr}")
         runcommand(
-            f"execute if score {x_abs.addr} >= {y_abs.addr} run scoreboard players operation {a.addr} = {y_abs.addr}")
+            f"execute if score {x_abs._addr} >= {y_abs._addr} run scoreboard players operation {a._addr} = {y_abs._addr}")
         runcommand(
-            f"execute if score {x_abs.addr} >= {y_abs.addr} run scoreboard players operation {a.addr} /= {x_abs.addr}")
+            f"execute if score {x_abs._addr} >= {y_abs._addr} run scoreboard players operation {a._addr} /= {x_abs._addr}")
 
         s = a * a
         c1 = cls(-0.0464964749)
@@ -281,14 +281,14 @@ class score:
         temp1 = cls()
         temp1.__iset__(pi_2 - res)
         runcommand(
-            f"execute if score {y_abs.addr} > {x_abs.addr} run scoreboard players operation {res.addr} = {temp1.addr}")
+            f"execute if score {y_abs._addr} > {x_abs._addr} run scoreboard players operation {res._addr} = {temp1._addr}")
 
         temp2 = cls()
         temp2.__iset__(pi - res)
-        runcommand(f"execute if score {x.addr} matches ..-1 run scoreboard players operation {res.addr} = {temp2.addr}")
+        runcommand(f"execute if score {x._addr} matches ..-1 run scoreboard players operation {res._addr} = {temp2._addr}")
 
         ensure_constant("!-1", "temp", -1)
-        runcommand(f"execute if score {self.addr} matches ..-1 run scoreboard players operation {res.addr} *= !-1 temp")
+        runcommand(f"execute if score {self._addr} matches ..-1 run scoreboard players operation {res._addr} *= !-1 temp")
 
         return res
 
@@ -372,23 +372,23 @@ class score:
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
-            val = int(round(other / self.multiplier))
+            val = int(round(other / self._multiplier))
             if val >= 0:
-                runcommand(f"scoreboard players add {self.addr} {val}")
+                runcommand(f"scoreboard players add {self._addr} {val}")
             else:
-                runcommand(f"scoreboard players remove {self.addr} {-val}")
+                runcommand(f"scoreboard players remove {self._addr} {-val}")
             return self
         if isinstance(other, _nbt()):
-            if other.type is not None and not other.is_number():
+            if other._type is not None and not other.is_number():
                 raise TypeError("Cannot add non-numeric NBT to score")
-            runcommand(f"execute store result score {temp.addr} run data get {other.addr}" + (
-                f" {self.multiplier}" if self.multiplier != 1.0 else ""))
-            runcommand(f"scoreboard players operation {self.addr} += {temp.addr}")
+            runcommand(f"execute store result score {temp._addr} run data get {other._addr}" + (
+                f" {self._multiplier}" if self._multiplier != 1.0 else ""))
+            runcommand(f"scoreboard players operation {self._addr} += {temp._addr}")
             return self
         if isinstance(other, score):
-            runcommand(f"scoreboard players operation {temp.addr} = {other.addr}")
-            temp *= other.multiplier / self.multiplier
-            runcommand(f"scoreboard players operation {self.addr} += {temp.addr}")
+            runcommand(f"scoreboard players operation {temp._addr} = {other._addr}")
+            temp *= other._multiplier / self._multiplier
+            runcommand(f"scoreboard players operation {self._addr} += {temp._addr}")
             return self
         raise UnsupportedOperandError(self, "+", other)
 
@@ -398,26 +398,26 @@ class score:
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
-            val = int(round(other / self.multiplier))
+            val = int(round(other / self._multiplier))
             if val >= 0:
-                runcommand(f"scoreboard players remove {self.addr} {val}")
+                runcommand(f"scoreboard players remove {self._addr} {val}")
             else:
-                runcommand(f"scoreboard players add {self.addr} {-val}")
+                runcommand(f"scoreboard players add {self._addr} {-val}")
             return self
         if isinstance(other, _nbt()):
-            if other.type is not None and not other.is_number():
+            if other._type is not None and not other.is_number():
                 raise TypeError("Cannot subtract non-numeric NBT from score")
-            runcommand(f"execute store result score {temp.addr} run data get {other.addr}" + (
-                f" {self.multiplier}" if self.multiplier != 1.0 else ""))
-            runcommand(f"scoreboard players operation {self.addr} -= {temp.addr}")
+            runcommand(f"execute store result score {temp._addr} run data get {other._addr}" + (
+                f" {self._multiplier}" if self._multiplier != 1.0 else ""))
+            runcommand(f"scoreboard players operation {self._addr} -= {temp._addr}")
             return self
         if isinstance(other, score):
-            if self.addr == other.addr:
-                runcommand(f"scoreboard players set {self.addr} 0")
+            if self._addr == other._addr:
+                runcommand(f"scoreboard players set {self._addr} 0")
                 return self
-            runcommand(f"scoreboard players operation {temp.addr} = {other.addr}")
-            temp *= other.multiplier / self.multiplier
-            runcommand(f"scoreboard players operation {self.addr} -= {temp.addr}")
+            runcommand(f"scoreboard players operation {temp._addr} = {other._addr}")
+            temp *= other._multiplier / self._multiplier
+            runcommand(f"scoreboard players operation {self._addr} -= {temp._addr}")
             return self
         raise UnsupportedOperandError(self, "-", other)
 
@@ -432,19 +432,19 @@ class score:
             frac = Fraction(other).limit_denominator(1000000)
             N, D = frac.numerator, frac.denominator
             if N != 1:
-                runcommand(f"scoreboard players operation {self.addr} *= {getscore(N).addr}")
+                runcommand(f"scoreboard players operation {self._addr} *= {getscore(N)._addr}")
             if D != 1:
-                runcommand(f"scoreboard players operation {self.addr} /= {getscore(D).addr}")
+                runcommand(f"scoreboard players operation {self._addr} /= {getscore(D)._addr}")
             return self
         if isinstance(other, _nbt()):
-            if other.type is not None and not other.is_number():
+            if other._type is not None and not other.is_number():
                 raise TypeError("Cannot multiply score with non-numeric NBT")
-            runcommand(f"execute store result score {temp.addr} run data get {other.addr}")
-            runcommand(f"scoreboard players operation {self.addr} *= {temp.addr}")
+            runcommand(f"execute store result score {temp._addr} run data get {other._addr}")
+            runcommand(f"scoreboard players operation {self._addr} *= {temp._addr}")
             return self
         if isinstance(other, score):
-            runcommand(f"scoreboard players operation {self.addr} *= {other.addr}")
-            self *= other.multiplier
+            runcommand(f"scoreboard players operation {self._addr} *= {other._addr}")
+            self *= other._multiplier
             return self
         raise UnsupportedOperandError(self, "*", other)
 
@@ -463,18 +463,18 @@ class score:
             self *= 1.0 / other
             return self
         if isinstance(other, _nbt()):
-            if other.type is not None and not other.is_number():
+            if other._type is not None and not other.is_number():
                 raise TypeError("Cannot divide score with non-numeric NBT")
-            runcommand(f"execute store result score {temp.addr} run data get {other.addr}")
-            runcommand(f"scoreboard players operation {self.addr} /= {temp.addr}")
+            runcommand(f"execute store result score {temp._addr} run data get {other._addr}")
+            runcommand(f"scoreboard players operation {self._addr} /= {temp._addr}")
             return self
         if isinstance(other, score):
-            if self.addr == other.addr:
-                val = int(round(1.0 / self.multiplier))
-                runcommand(f"scoreboard players set {self.addr} {val}")
+            if self._addr == other._addr:
+                val = int(round(1.0 / self._multiplier))
+                runcommand(f"scoreboard players set {self._addr} {val}")
                 return self
-            self *= 1.0 / other.multiplier
-            runcommand(f"scoreboard players operation {self.addr} /= {other.addr}")
+            self *= 1.0 / other._multiplier
+            runcommand(f"scoreboard players operation {self._addr} /= {other._addr}")
             return self
         raise UnsupportedOperandError(self, "/", other)
 
@@ -484,23 +484,23 @@ class score:
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
-            val = int(round(other / self.multiplier))
-            runcommand(f"scoreboard players operation {self.addr} %= {getscore(val).addr}")
+            val = int(round(other / self._multiplier))
+            runcommand(f"scoreboard players operation {self._addr} %= {getscore(val)._addr}")
             return self
         if isinstance(other, _nbt()):
-            if other.type is not None and not other.is_number():
+            if other._type is not None and not other.is_number():
                 raise TypeError("Cannot modulo score with non-numeric NBT")
-            runcommand(f"execute store result score {temp.addr} run data get {other.addr}" + (
-                f" {self.multiplier}" if self.multiplier != 1.0 else ""))
-            runcommand(f"scoreboard players operation {self.addr} %= {temp.addr}")
+            runcommand(f"execute store result score {temp._addr} run data get {other._addr}" + (
+                f" {self._multiplier}" if self._multiplier != 1.0 else ""))
+            runcommand(f"scoreboard players operation {self._addr} %= {temp._addr}")
             return self
         if isinstance(other, score):
-            if self.addr == other.addr:
-                runcommand(f"scoreboard players set {self.addr} 0")
+            if self._addr == other._addr:
+                runcommand(f"scoreboard players set {self._addr} 0")
                 return self
-            runcommand(f"scoreboard players operation {temp.addr} = {other.addr}")
-            temp *= other.multiplier / self.multiplier
-            runcommand(f"scoreboard players operation {self.addr} %= {temp.addr}")
+            runcommand(f"scoreboard players operation {temp._addr} = {other._addr}")
+            temp *= other._multiplier / self._multiplier
+            runcommand(f"scoreboard players operation {self._addr} %= {temp._addr}")
             return self
         raise UnsupportedOperandError(self, "%", other)
 
@@ -510,22 +510,22 @@ class score:
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
-            val = int(round(other / self.multiplier))
-            runcommand(f"scoreboard players operation {self.addr} > {getscore(val).addr}")
+            val = int(round(other / self._multiplier))
+            runcommand(f"scoreboard players operation {self._addr} > {getscore(val)._addr}")
             return self
         if isinstance(other, _nbt()):
-            if other.type is not None and not other.is_number():
+            if other._type is not None and not other.is_number():
                 raise TypeError("Cannot compare score with non-numeric NBT")
-            runcommand(f"execute store result score {temp.addr} run data get {other.addr}" + (
-                f" {self.multiplier}" if self.multiplier != 1.0 else ""))
-            runcommand(f"scoreboard players operation {self.addr} > {temp.addr}")
+            runcommand(f"execute store result score {temp._addr} run data get {other._addr}" + (
+                f" {self._multiplier}" if self._multiplier != 1.0 else ""))
+            runcommand(f"scoreboard players operation {self._addr} > {temp._addr}")
             return self
         if isinstance(other, score):
-            if self.addr == other.addr:
+            if self._addr == other._addr:
                 return self
-            runcommand(f"scoreboard players operation {temp.addr} = {other.addr}")
-            temp *= other.multiplier / self.multiplier
-            runcommand(f"scoreboard players operation {self.addr} > {temp.addr}")
+            runcommand(f"scoreboard players operation {temp._addr} = {other._addr}")
+            temp *= other._multiplier / self._multiplier
+            runcommand(f"scoreboard players operation {self._addr} > {temp._addr}")
             return self
         raise UnsupportedOperandError(self, ">", other)
 
@@ -535,22 +535,22 @@ class score:
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
-            val = int(round(other / self.multiplier))
-            runcommand(f"scoreboard players operation {self.addr} < {getscore(val).addr}")
+            val = int(round(other / self._multiplier))
+            runcommand(f"scoreboard players operation {self._addr} < {getscore(val)._addr}")
             return self
         if isinstance(other, _nbt()):
-            if other.type is not None and not other.is_number():
+            if other._type is not None and not other.is_number():
                 raise TypeError("Cannot compare score with non-numeric NBT")
-            runcommand(f"execute store result score {temp.addr} run data get {other.addr}" + (
-                f" {self.multiplier}" if self.multiplier != 1.0 else ""))
-            runcommand(f"scoreboard players operation {self.addr} < {temp.addr}")
+            runcommand(f"execute store result score {temp._addr} run data get {other._addr}" + (
+                f" {self._multiplier}" if self._multiplier != 1.0 else ""))
+            runcommand(f"scoreboard players operation {self._addr} < {temp._addr}")
             return self
         if isinstance(other, score):
-            if self.addr == other.addr:
+            if self._addr == other._addr:
                 return self
-            runcommand(f"scoreboard players operation {temp.addr} = {other.addr}")
-            temp *= other.multiplier / self.multiplier
-            runcommand(f"scoreboard players operation {self.addr} < {temp.addr}")
+            runcommand(f"scoreboard players operation {temp._addr} = {other._addr}")
+            temp *= other._multiplier / self._multiplier
+            runcommand(f"scoreboard players operation {self._addr} < {temp._addr}")
             return self
         raise UnsupportedOperandError(self, "<", other)
 
@@ -560,31 +560,31 @@ class score:
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, _nbt()):
-            if other.type is not None and not other.is_number():
+            if other._type is not None and not other.is_number():
                 raise TypeError("Cannot swap score with non-numeric NBT")
-            runcommand(f"execute store result score {temp.addr} run data get {other.addr}" + (
-                f" {self.multiplier}" if self.multiplier != 1.0 else ""))
-            datatype = other.type.name.lower() if other.type else "double"
+            runcommand(f"execute store result score {temp._addr} run data get {other._addr}" + (
+                f" {self._multiplier}" if self._multiplier != 1.0 else ""))
+            datatype = other._type.name.lower() if other._type else "double"
             runcommand(
-                f"execute store result storage {other.target} {other.path} {datatype} {1 / self.multiplier} run scoreboard players get {self.addr}")
-            runcommand(f"scoreboard players operation {self.addr} = {temp.addr}")
+                f"execute store result storage {other._target} {other._path} {datatype} {1 / self._multiplier} run scoreboard players get {self._addr}")
+            runcommand(f"scoreboard players operation {self._addr} = {temp._addr}")
             return self
         if isinstance(other, score):
             if getattr(other, "objective", None) == constant_obj:
                 raise ValueError(f"Cannot swap with a constant")
-            if self.multiplier == other.multiplier:
-                runcommand(f"scoreboard players operation {self.addr} >< {other.addr}")
+            if self._multiplier == other._multiplier:
+                runcommand(f"scoreboard players operation {self._addr} >< {other._addr}")
             else:
-                runcommand(f"scoreboard players operation {temp.addr} = {self.addr}")
+                runcommand(f"scoreboard players operation {temp._addr} = {self._addr}")
                 self.__iset__(other)
-                other.__iset__(score(addr=temp.addr, multiplier=self.multiplier))
+                other.__iset__(score(addr=temp._addr, multiplier=self._multiplier))
             return self
         raise UnsupportedOperandError(self, "><", other)
 
     def __repr__(self):
-        if self.multiplier != 1.0:
-            return f"score[{self.multiplier}](addr=\"{self.addr}\")"
-        return f"score(addr=\"{self.addr}\")"
+        if self._multiplier != 1.0:
+            return f"score[{self._multiplier}](addr=\"{self._addr}\")"
+        return f"score(addr=\"{self._addr}\")"
 
 
 class fixed(score):
@@ -592,7 +592,7 @@ class fixed(score):
         super().__init__(value, addr=addr, multiplier=multiplier)
 
     def __repr__(self):
-        return f"fixed[{-log(self.multiplier)}](addr=\"{self.addr}\")"
+        return f"fixed[{-log(self._multiplier)}](addr=\"{self._addr}\")"
 
     @classmethod
     def __class_getitem__(cls, precision: int):

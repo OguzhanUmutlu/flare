@@ -59,7 +59,28 @@ class FlareTransformer(ast.NodeTransformer):
         self.counter += 1
         return f"__flare_{self.counter}"
 
+    def visit_FunctionDef(self, node):
+        is_exported = any(
+            isinstance(dec, ast.Name) and dec.id in ("export", "macro") or isinstance(dec, ast.Call) and getattr(
+                dec.func, "id", "") in ("export", "macro") for dec in node.decorator_list)
+
+        is_generated = node.name.startswith("__flare_")
+        prev_in_flare = getattr(self, "in_flare_func", False)
+
+        if is_exported or is_generated:
+            self.in_flare_func = True
+        else:
+            self.in_flare_func = False
+
+        self.generic_visit(node)
+        self.in_flare_func = prev_in_flare
+        return node
+
     def visit_If(self, node):
+        if not getattr(self, "in_flare_func", False):
+            self.generic_visit(node)
+            return node
+
         funcs = []
         cond_args = []
         body_args = []
@@ -106,11 +127,15 @@ class FlareTransformer(ast.NodeTransformer):
         return funcs
 
     def visit_Break(self, node):
+        if not getattr(self, "in_flare_func", False):
+            return node
         call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_break", ctx=ast.Load()), args=[], keywords=[]))
         ast.copy_location(call_expr, node)
         return call_expr
 
     def visit_Continue(self, node):
+        if not getattr(self, "in_flare_func", False):
+            return node
         call_expr = ast.Expr(value=ast.Call(func=ast.Name(id="_flare_continue", ctx=ast.Load()), args=[], keywords=[]))
         ast.copy_location(call_expr, node)
         return call_expr
@@ -120,6 +145,10 @@ class FlareTransformer(ast.NodeTransformer):
         return node
 
     def visit_While(self, node):
+        if not getattr(self, "in_flare_func", False):
+            self.generic_visit(node)
+            return node
+
         class BreakContinueVisitor(ast.NodeVisitor):
             def __init__(self):
                 self.has_break = False
@@ -184,6 +213,10 @@ class FlareTransformer(ast.NodeTransformer):
         return funcs
 
     def visit_For(self, node):
+        if not getattr(self, "in_flare_func", False):
+            self.generic_visit(node)
+            return node
+
         class BreakContinueVisitor(ast.NodeVisitor):
             def __init__(self):
                 self.has_break = False
@@ -286,20 +319,28 @@ class FlareTransformer(ast.NodeTransformer):
         return node
 
     def visit_Return(self, node):
+        if not getattr(self, "in_flare_func", False):
+            self.generic_visit(node)
+            return node
+
         self.generic_visit(node)
 
         value = node.value if node.value is not None else ast.Constant(value=None)
 
-        call_expr = ast.Expr(
-            value=ast.Call(func=ast.Name(id="_flare_return", ctx=ast.Load()), args=[value], keywords=[]))
-        ast.copy_location(call_expr, node)
+        if_node = ast.If(test=ast.Compare(
+            left=ast.Attribute(value=ast.Name(id="ctx", ctx=ast.Load()), attr="current_file", ctx=ast.Load()),
+            ops=[ast.IsNot()], comparators=[ast.Constant(value=None)]), body=[
+            ast.Expr(value=ast.Call(func=ast.Name(id="_flare_return", ctx=ast.Load()), args=[value], keywords=[])),
+            ast.Return(value=None)], orelse=[ast.Return(value=value)])
+        ast.copy_location(if_node, node)
 
-        new_return = ast.Return(value=None)
-        ast.copy_location(new_return, node)
-
-        return [call_expr, new_return]
+        return if_node
 
     def visit_With(self, node):
+        if not getattr(self, "in_flare_func", False):
+            self.generic_visit(node)
+            return node
+
         self.generic_visit(node)
 
         name_body = self.gen_name()
@@ -414,6 +455,10 @@ def preprocess_minecraft_commands(source: str) -> str:
 
         match = COMMAND_RE.match(line)
         if match:
+            if re.match(r"^\s*(?:" + COMMAND_KEYWORDS + r")\s*(?:[+\-*/%&|^]?=|\()", line):
+                i += 1
+                continue
+
             indent = match.group(1)
             cmd = match.group(2) + match.group(3)
             if cmd.startswith("/"):

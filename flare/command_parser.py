@@ -71,7 +71,7 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
             elif not is_key and ident in local_vars:
                 val = local_vars[ident]
                 if hasattr(val, "addr"):
-                    output.append(val.addr)
+                    output.append(val._addr)
                 elif hasattr(val, "target"):
                     output.append(val.target)
                 elif isinstance(val, dict) and output and output[-1].endswith("**"):
@@ -88,7 +88,7 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
             elif not is_key and ident in global_vars:
                 val = global_vars[ident]
                 if hasattr(val, "addr"):
-                    output.append(val.addr)
+                    output.append(val._addr)
                 elif hasattr(val, "target"):
                     output.append(val.target)
                 elif isinstance(val, dict) and output and output[-1].endswith("**"):

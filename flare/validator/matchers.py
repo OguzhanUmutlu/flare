@@ -146,6 +146,38 @@ def parse_fallback(reader: StringReader, props: dict):
     while reader.can_read() and not reader.peek().isspace():
         reader.read()
 
+def parse_minecraft_nbt_path(reader: StringReader, props: dict):
+    in_string = False
+    quote = ""
+    brackets = 0
+    while reader.can_read():
+        c = reader.peek()
+        if in_string:
+            reader.read()
+            if c == "\\":
+                if reader.can_read(): reader.read()
+            elif c == quote:
+                in_string = False
+        else:
+            if c.isspace() and brackets == 0:
+                break
+            reader.read()
+            if c in ("\"", "'"):
+                in_string = True
+                quote = c
+            elif c in ("[", "{"):
+                brackets += 1
+            elif c in ("]", "}"):
+                brackets -= 1
+
+def parse_minecraft_resource_location(reader: StringReader, props: dict):
+    start = reader.cursor
+    allowed = set("0123456789abcdefghijklmnopqrstuvwxyz_.-:")
+    while reader.can_read() and reader.peek() in allowed:
+        reader.read()
+    if reader.cursor == start:
+        raise ValueError("Expected resource location")
+
 
 MATCHERS = {"brigadier:string": parse_brigadier_string, "brigadier:integer": parse_brigadier_integer,
     "brigadier:float": parse_brigadier_float, "brigadier:double": parse_brigadier_float,
@@ -156,5 +188,6 @@ MATCHERS = {"brigadier:string": parse_brigadier_string, "brigadier:integer": par
     "minecraft:nbt_tag": parse_minecraft_nbt, "minecraft:component": parse_minecraft_nbt,
     "minecraft:message": lambda r, p: parse_brigadier_string(r, {"type": "greedy"}),
     "minecraft:objective": parse_minecraft_entity, "minecraft:item_stack": parse_minecraft_item_stack,
-    "minecraft:item_predicate": parse_minecraft_item_stack, "minecraft:nbt_path": parse_fallback,
-    "minecraft:block_pos": parse_minecraft_vec3, "minecraft:column_pos": parse_minecraft_vec2, }
+    "minecraft:item_predicate": parse_minecraft_item_stack, "minecraft:nbt_path": parse_minecraft_nbt_path,
+    "minecraft:block_pos": parse_minecraft_vec3, "minecraft:column_pos": parse_minecraft_vec2, 
+    "minecraft:resource_location": parse_minecraft_resource_location, "minecraft:function": parse_minecraft_resource_location}

@@ -64,7 +64,7 @@ class ExecuteChain:
     def store(self, target: Union[score, nbt, str]) -> ExecuteChain:
         if isinstance(target, score):
             target._check_addr()
-            return self._add(f"store result score {target.addr}")
+            return self._add(f"store result score {target._addr}")
         elif isinstance(target, nbt):
             target._check_addr()
             return StoreExecuteChain(self.fragments.copy(), target)
@@ -101,23 +101,23 @@ class ExecuteChain:
                 ret_temp = score(addr=f"!ret{ctx._temp_id} {ctx.temp_obj}")
                 ctx._temp_id += 1
                 if prefix.startswith("execute "):
-                    ctx.runcommand(f"execute store result score {ret_temp.addr} {prefix[8:]} run function {func_name}")
+                    ctx.runcommand(f"execute store result score {ret_temp._addr} {prefix[8:]} run function {func_name}")
                 else:
-                    ctx.runcommand(f"execute store result score {ret_temp.addr} run function {func_name}")
-                ctx.runcommand(f"execute if score {ret_temp.addr} matches 1 run return 1")
+                    ctx.runcommand(f"execute store result score {ret_temp._addr} run function {func_name}")
+                ctx.runcommand(f"execute if score {ret_temp._addr} matches 1 run return 1")
 
 
 class StoreExecuteChain(ExecuteChain):
     def __init__(self, fragments: list[str], target: nbt):
         super().__init__("")
         self.fragments = fragments
-        self.target = target
-        self._datatype = target.type.name.lower() if target.type else "double"
+        self._target = target
+        self._datatype = target._type.name.lower() if target._type else "double"
         self._multiplier = 1.0
         self._update_frag()
 
     def _update_frag(self):
-        frag = f"store result storage {self.target.target} {self.target.path} {self._datatype} {self._multiplier}"
+        frag = f"store result storage {self._target.target} {self._target.path} {self._datatype} {self._multiplier}"
         if self.fragments and self.fragments[-1].startswith("store result "):
             self.fragments[-1] = frag
         else:

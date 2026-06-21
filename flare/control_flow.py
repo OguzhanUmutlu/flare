@@ -5,6 +5,32 @@ from .execute_modifiers import ExecuteChain
 from .variables import score
 
 
+def _has_early_return(func_name):
+    for cmd in ctx.files.get(func_name, []):
+        if cmd == "return 1" or cmd.endswith(" run return 1"):
+            return True
+    return False
+
+
+def _invoke_block(func_name, cond_str):
+    if _has_early_return(func_name):
+        if not (ctx.files[func_name] and ctx.files[func_name][-1] in ("return 0", "return 1")):
+            ctx.files[func_name].append("return 0")
+        ret_temp = score(addr=f"!ret{ctx._temp_id} {ctx.temp_obj}")
+        ctx._temp_id += 1
+
+        if cond_str:
+            runcommand(f"execute store result score {ret_temp._addr} {cond_str} run function {func_name}")
+        else:
+            runcommand(f"execute store result score {ret_temp._addr} run function {func_name}")
+        runcommand(f"execute if score {ret_temp._addr} matches 1 run return 1")
+    else:
+        if cond_str:
+            runcommand(f"execute {cond_str} run function {func_name}")
+        else:
+            runcommand(f"function {func_name}")
+
+
 def _flare_break():
     runcommand(f"scoreboard players set !break {temp_obj} 1")
     runcommand("return 0")
@@ -25,7 +51,7 @@ def _flare_if(*args):
     if has_else_or_elif:
         sometemp = score(addr=f"!elif{ctx._temp_id} {temp_obj}")
         ctx._temp_id += 1
-        runcommand(f"scoreboard players set {sometemp.addr} 0")
+        runcommand(f"scoreboard players set {sometemp._addr} 0")
 
     for cond_func, body_func in zip(conditions, bodies):
         if cond_func is None:
@@ -39,16 +65,11 @@ def _flare_if(*args):
                         cmd = ctx.files[func_name][0]
                         del ctx.files[func_name]
                         if cmd.startswith("execute "):
-                            runcommand(f"execute if score {sometemp.addr} matches 0 {cmd[8:]}")
+                            runcommand(f"execute if score {sometemp._addr} matches 0 {cmd[8:]}")
                         else:
-                            runcommand(f"execute if score {sometemp.addr} matches 0 run {cmd}")
+                            runcommand(f"execute if score {sometemp._addr} matches 0 run {cmd}")
                     else:
-                        ctx.files[func_name].append("return 0")
-                        ret_temp = score(addr=f"!ret{ctx._temp_id} {temp_obj}")
-                        ctx._temp_id += 1
-                        runcommand(
-                            f"execute store result score {ret_temp.addr} if score {sometemp.addr} matches 0 run function {func_name}")
-                        runcommand(f"execute if score {ret_temp.addr} matches 1 run return 1")
+                        _invoke_block(func_name, f"if score {sometemp._addr} matches 0")
             else:
                 body_func()
             break
@@ -68,16 +89,11 @@ def _flare_if(*args):
                             cmd = ctx.files[func_name][0]
                             del ctx.files[func_name]
                             if cmd.startswith("execute "):
-                                runcommand(f"execute if score {sometemp.addr} matches 0 {cmd[8:]}")
+                                runcommand(f"execute if score {sometemp._addr} matches 0 {cmd[8:]}")
                             else:
-                                runcommand(f"execute if score {sometemp.addr} matches 0 run {cmd}")
+                                runcommand(f"execute if score {sometemp._addr} matches 0 run {cmd}")
                         else:
-                            ctx.files[func_name].append("return 0")
-                            ret_temp = score(addr=f"!ret{ctx._temp_id} {temp_obj}")
-                            ctx._temp_id += 1
-                            runcommand(
-                                f"execute store result score {ret_temp.addr} if score {sometemp.addr} matches 0 run function {func_name}")
-                            runcommand(f"execute if score {ret_temp.addr} matches 1 run return 1")
+                            _invoke_block(func_name, f"if score {sometemp._addr} matches 0")
                 else:
                     body_func()
                 break
@@ -86,13 +102,13 @@ def _flare_if(*args):
         prefix = f"execute {' '.join(conds)}"
 
         if sometemp is not None:
-            prefix = f"execute if score {sometemp.addr} matches 0 {' '.join(conds)}"
+            prefix = f"execute if score {sometemp._addr} matches 0 {' '.join(conds)}"
 
         func_name = f"{ctx._current_namespace}:generated_{ctx._func_id}"
         ctx._func_id += 1
         with push_context(func_name):
             if sometemp is not None:
-                runcommand(f"scoreboard players set {sometemp.addr} 1")
+                runcommand(f"scoreboard players set {sometemp._addr} 1")
             body_func()
 
         if ctx.files.get(func_name):
@@ -104,14 +120,7 @@ def _flare_if(*args):
                 else:
                     runcommand(f"{prefix} run {cmd}")
             else:
-                ctx.files[func_name].append("return 0")
-                ret_temp = score(addr=f"!ret{ctx._temp_id} {temp_obj}")
-                ctx._temp_id += 1
-                if prefix.startswith("execute "):
-                    runcommand(f"execute store result score {ret_temp.addr} {prefix[8:]} run function {func_name}")
-                else:
-                    runcommand(f"execute store result score {ret_temp.addr} run function {func_name}")
-                runcommand(f"execute if score {ret_temp.addr} matches 1 run return 1")
+                _invoke_block(func_name, prefix[8:] if prefix.startswith("execute ") else "")
 
 
 def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_continue=False):
@@ -125,10 +134,7 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
             with push_context(func_body):
                 body_func()
 
-            ret_body = score(addr=f"!ret{ctx._temp_id} {temp_obj}")
-            ctx._temp_id += 1
-            runcommand(f"execute store result score {ret_body.addr} run function {func_body}")
-            runcommand(f"execute if score {ret_body.addr} matches 1 run return 1")
+            _invoke_block(func_body, "")
 
             if has_break:
                 runcommand(f"execute if score !break {temp_obj} matches 1 run return 0")
@@ -138,11 +144,7 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
         cond = cond_func()
         conds = _flatten_and(cond)
         prefix = f"execute {' '.join(conds)}"
-        ctx.files[func_name].append("return 0")
-        ret_temp = score(addr=f"!ret{ctx._temp_id} {temp_obj}")
-        ctx._temp_id += 1
-        runcommand(f"execute store result score {ret_temp.addr} {' '.join(conds)} run function {func_name}")
-        runcommand(f"execute if score {ret_temp.addr} matches 1 run return 1")
+        _invoke_block(func_name, " ".join(conds))
 
     if has_break:
         runcommand(f"scoreboard players set !break {temp_obj} 0")
@@ -152,8 +154,8 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
     prefix_init = f"execute {' '.join(conds_init)}"
     ret_temp_init = score(addr=f"!ret{ctx._temp_id} {temp_obj}")
     ctx._temp_id += 1
-    runcommand(f"execute store result score {ret_temp_init.addr} {' '.join(conds_init)} run function {func_name}")
-    runcommand(f"execute if score {ret_temp_init.addr} matches 1 run return 1")
+    runcommand(f"execute store result score {ret_temp_init._addr} {' '.join(conds_init)} run function {func_name}")
+    runcommand(f"execute if score {ret_temp_init._addr} matches 1 run return 1")
 
     if orelse_func:
         if has_break:

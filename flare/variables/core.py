@@ -79,7 +79,7 @@ class BinaryOp:
 
         dest = _eval_to_bool_score(self)
         keyword = "unless" if invert else "if"
-        return [f"{keyword} score {dest.addr} matches 1"]
+        return [f"{keyword} score {dest._addr} matches 1"]
 
     def __add__(self, other):
         return BinaryOp(self, other, "add")
@@ -205,7 +205,7 @@ class UnaryOp:
 
         dest = _eval_to_bool_score(self)
         keyword = "unless" if invert else "if"
-        return [f"{keyword} score {dest.addr} matches 1"]
+        return [f"{keyword} score {dest._addr} matches 1"]
 
     def __neg__(self):
         if self.op == "neg":

@@ -9,17 +9,17 @@ from ..nbt_schema import ENTITY_SCHEMA
 
 class tagged:
     def __init__(self, target: str, *, tag_name: str = None):
-        self.target = target
+        self._target = target
         self.tag_name = tag_name
 
     def __icopy__(self, varid: str):
         runcommand(f"tag @e remove {varid}")
-        runcommand(f"tag {self.target} add {varid}")
-        return tagged(self.target, tag_name=varid)
+        runcommand(f"tag {self._target} add {varid}")
+        return tagged(self._target, tag_name=varid)
 
     def __iset__(self, other):
         if isinstance(other, tagged):
-            target = other.target
+            target = other._target
         elif isinstance(other, selector):
             target = other._target_str
         elif isinstance(other, str):
@@ -33,7 +33,7 @@ class tagged:
     def __str__(self):
         if self.tag_name:
             return f"@e[tag={self.tag_name}]"
-        return str(self.target)
+        return str(self._target)
 
 
 class selector:
@@ -119,7 +119,7 @@ class _SelectorAttribute(nbt):
 
 class ref:
     def __init__(self, target):
-        self.target = target
+        self._target = target
 
     def __icopy__(self, varid: str):
-        return self.target
+        return self._target

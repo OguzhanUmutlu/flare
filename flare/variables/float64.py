@@ -11,10 +11,10 @@ from ..context import runcommand, temp_obj, vars_obj
 
 class float64:
     def __init__(self, value: float | int | None = None, *, addr: str = None):
-        self.value_to_set = value
-        self.addr = None
-        self.target = ""
-        self.objective = ""
+        self._value_to_set = value
+        self._addr = None
+        self._target = ""
+        self._objective = ""
 
     def _alloc_temp(self):
         t = self.__class__(addr=f"!t{ctx._temp_id} {temp_obj}")
@@ -26,38 +26,38 @@ class float64:
 
         if addr is not None:
             self._parse_addr(addr)
-            if self.value_to_set is not None:
-                self.__iset__(self.value_to_set)
+            if self._value_to_set is not None:
+                self.__iset__(self._value_to_set)
 
     def _parse_addr(self, addr: str):
         parts = addr.rsplit(" ", 1)
         if len(parts) > 1:
-            self.target = parts[0]
-            self.objective = parts[1]
+            self._target = parts[0]
+            self._objective = parts[1]
         else:
-            self.target = addr
-            self.objective = temp_obj
-        self.addr = f"{self.target} {self.objective}"
+            self._target = addr
+            self._objective = temp_obj
+        self._addr = f"{self._target} {self._objective}"
 
-        self._sign = score(addr=f"{self.target}_s {self.objective}")
-        self._exp = score(addr=f"{self.target}_e {self.objective}")
-        self._mant = bigscore[4](addr=f"{self.target}_m {self.objective}")
+        self._sign = score(addr=f"{self._target}_s {self._objective}")
+        self._exp = score(addr=f"{self._target}_e {self._objective}")
+        self._mant = bigscore[4](addr=f"{self._target}_m {self._objective}")
 
     def _check_addr(self):
-        if self.addr is None:
+        if self._addr is None:
             self._parse_addr(f"!f64_{ctx._temp_id}")
             ctx._temp_id += 1
-            if self.value_to_set is not None:
-                self.__iset__(self.value_to_set)
+            if self._value_to_set is not None:
+                self.__iset__(self._value_to_set)
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
         if is_recursive:
             raise TypeError("Local variable needs a stack in recursive context, but it's a float64")
-        if self.addr is None:
+        if self._addr is None:
             self._parse_addr(f"{varid} {vars_obj}")
             ctx.ensure_objective(vars_obj)
-            if self.value_to_set is not None:
-                self.__iset__(self.value_to_set)
+            if self._value_to_set is not None:
+                self.__iset__(self._value_to_set)
         else:
             dest = self.__class__(addr=f"{varid} {vars_obj}")
             dest.__iset__(self)
@@ -110,19 +110,19 @@ class float64:
             ctx._temp_id += 1
             temp_b.__iset__(other)
 
-            runcommand(f"scoreboard players operation !diff {temp_obj} = {self._exp.addr}")
-            runcommand(f"scoreboard players operation !diff {temp_obj} -= {temp_b._exp.addr}")
+            runcommand(f"scoreboard players operation !diff {temp_obj} = {self._exp._addr}")
+            runcommand(f"scoreboard players operation !diff {temp_obj} -= {temp_b._exp._addr}")
 
             runcommand(
-                f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation {self._sign.addr} >< {temp_b._sign.addr}")
+                f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation {self._sign._addr} >< {temp_b._sign._addr}")
             runcommand(
-                f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation {self._exp.addr} >< {temp_b._exp.addr}")
+                f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation {self._exp._addr} >< {temp_b._exp._addr}")
 
             for i in range(4):
                 runcommand(
                     f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation {self._mant._get_limb(i)} >< {temp_b._mant._get_limb(i)}")
 
-            c_min1_addr = getscore(-1).addr
+            c_min1_addr = getscore(-1)._addr
             runcommand(
                 f"execute if score !diff {temp_obj} matches ..-1 run scoreboard players operation !diff {temp_obj} *= {c_min1_addr}")
 
@@ -146,9 +146,9 @@ class float64:
             self._mant *= self._sign
             self._mant += temp_b._mant
 
-            runcommand(f"scoreboard players set {self._sign.addr} 1")
+            runcommand(f"scoreboard players set {self._sign._addr} 1")
             runcommand(
-                f"execute if score {self._mant._get_limb(3)} matches ..-1 run scoreboard players set {self._sign.addr} -1")
+                f"execute if score {self._mant._get_limb(3)} matches ..-1 run scoreboard players set {self._sign._addr} -1")
             runcommand(
                 f"execute if score {self._mant._get_limb(3)} matches ..-1 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
             self._mant *= -1
@@ -161,20 +161,20 @@ class float64:
             runcommand(
                 f"execute if score !shift {temp_obj} matches 1 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
             self._mant /= 2
-            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players add {self._exp.addr} 1")
+            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players add {self._exp._addr} 1")
 
             runcommand(f"scoreboard players set !is_zero {temp_obj} 0")
             runcommand(
                 f"execute if score {self._mant._get_limb(3)} matches 0 if score {self._mant._get_limb(2)} matches 0 if score {self._mant._get_limb(1)} matches 0 if score {self._mant._get_limb(0)} matches 0 run scoreboard players set !is_zero {temp_obj} 1")
-            runcommand(f"execute if score !is_zero {temp_obj} matches 1 run scoreboard players set {self._exp.addr} 0")
-            runcommand(f"execute if score !is_zero {temp_obj} matches 1 run scoreboard players set {self._sign.addr} 1")
+            runcommand(f"execute if score !is_zero {temp_obj} matches 1 run scoreboard players set {self._exp._addr} 0")
+            runcommand(f"execute if score !is_zero {temp_obj} matches 1 run scoreboard players set {self._sign._addr} 1")
 
             for _ in range(4):
                 runcommand(
                     f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._get_limb(3)} matches 0 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
                 self._mant *= 65536
                 runcommand(
-                    f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._get_limb(3)} matches 0 run scoreboard players remove {self._exp.addr} 16")
+                    f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._get_limb(3)} matches 0 run scoreboard players remove {self._exp._addr} 16")
 
             for p in reversed(range(0, 4)):
                 shift = 1 << p
@@ -183,7 +183,7 @@ class float64:
                     f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._get_limb(3)} matches ..449 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
                 self._mant *= pow2
                 runcommand(
-                    f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._get_limb(3)} matches ..449 run scoreboard players remove {self._exp.addr} {shift}")
+                    f"execute if score !is_zero {temp_obj} matches 0 if score {self._mant._get_limb(3)} matches ..449 run scoreboard players remove {self._exp._addr} {shift}")
 
             return self
         raise UnsupportedOperandError(self, "+", other)
@@ -199,8 +199,8 @@ class float64:
             temp_b = self.__class__(addr=f"!fb{ctx._temp_id} {temp_obj}")
             ctx._temp_id += 1
             temp_b.__iset__(other)
-            c_min1_addr = getscore(-1).addr
-            runcommand(f"scoreboard players operation {temp_b._sign.addr} *= {c_min1_addr}")
+            c_min1_addr = getscore(-1)._addr
+            runcommand(f"scoreboard players operation {temp_b._sign._addr} *= {c_min1_addr}")
             return self.__iadd__(temp_b)
         raise UnsupportedOperandError(self, "-", other)
 
@@ -212,8 +212,8 @@ class float64:
 
         if isinstance(other, float64):
             other._check_addr()
-            runcommand(f"scoreboard players operation {self._sign.addr} *= {other._sign.addr}")
-            runcommand(f"scoreboard players operation {self._exp.addr} += {other._exp.addr}")
+            runcommand(f"scoreboard players operation {self._sign._addr} *= {other._sign._addr}")
+            runcommand(f"scoreboard players operation {self._exp._addr} += {other._exp._addr}")
 
             bA = bigscore[8](addr=f"!ba{ctx._temp_id} {temp_obj}")
             bB = bigscore[8](addr=f"!bb{ctx._temp_id} {temp_obj}")
@@ -233,7 +233,7 @@ class float64:
             runcommand(
                 f"execute if score !shift {temp_obj} matches 1 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
             self._mant /= 2
-            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players add {self._exp.addr} 1")
+            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players add {self._exp._addr} 1")
 
             return self
         raise UnsupportedOperandError(self, "*", other)
@@ -246,8 +246,8 @@ class float64:
 
         if isinstance(other, float64):
             other._check_addr()
-            runcommand(f"scoreboard players operation {self._sign.addr} *= {other._sign.addr}")
-            runcommand(f"scoreboard players operation {self._exp.addr} -= {other._exp.addr}")
+            runcommand(f"scoreboard players operation {self._sign._addr} *= {other._sign._addr}")
+            runcommand(f"scoreboard players operation {self._exp._addr} -= {other._exp._addr}")
 
             raise NotImplementedError(
                 "Long division of bigscores is currently unsupported, so float64 division is not natively supported.")
@@ -258,7 +258,7 @@ class float64:
             runcommand(
                 f"execute if score !shift {temp_obj} matches 1 run scoreboard players operation !val {temp_obj} = {self._mant._get_limb(0)}")
             self._mant *= 2
-            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players remove {self._exp.addr} 1")
+            runcommand(f"execute if score !shift {temp_obj} matches 1 run scoreboard players remove {self._exp._addr} 1")
 
             return self
         raise UnsupportedOperandError(self, "/", other)
@@ -320,4 +320,4 @@ class float64:
         return self
 
     def __repr__(self):
-        return f"Double(addr={self.addr})"
+        return f"Double(addr={self._addr})"

@@ -8,9 +8,39 @@ current_file = "main"
 _current_namespace = "flare"
 functions = {}
 constants = {}
-constant_obj = "__flare__constant__"
-vars_obj = "__flare__vars__"
-temp_obj = "__flare__temp__"
+
+
+class DynamicVar:
+    def __init__(self, fmt):
+        self.fmt = fmt
+
+    def __str__(self):
+        return self.fmt.format(ns=_current_namespace)
+
+    def __format__(self, format_spec):
+        return format(str(self), format_spec)
+
+    def __add__(self, other):
+        return str(self) + other
+
+    def __radd__(self, other):
+        return other + str(self)
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return str(self) == str(other)
+
+
+constant_obj = DynamicVar("__{ns}__constant__")
+vars_obj = DynamicVar("__{ns}__vars__")
+temp_obj = DynamicVar("__{ns}__temp__")
+temp_storage = DynamicVar("{ns}:__flare_temp__")
+vars_storage = DynamicVar("{ns}:__flare_vars__")
+args_storage = DynamicVar("{ns}:__flare_args__")
+returns_storage = DynamicVar("{ns}:__flare_returns__")
+
 _temp_id = 0
 _func_id = 0
 _objective_offset = 0
@@ -138,28 +168,28 @@ def _flare_print(*args):
 
         if isinstance(arg, score):
             if getattr(arg, "multiplier", 1.0) != 1.0:
-                scale_str = f"{arg.multiplier:.15f}".rstrip("0")
+                scale_str = f"{arg._multiplier:.15f}".rstrip("0")
                 if scale_str.endswith("."):
                     scale_str += "0"
                 runcommand(
-                    f"execute store result storage flare:temp __flare_debug_{i} double {scale_str} run scoreboard players get {arg.addr}")
-                components.append({"nbt": f"__flare_debug_{i}", "storage": "flare:temp"})
+                    f"execute store result storage {temp_storage} __flare_debug_{i} double {scale_str} run scoreboard players get {arg._addr}")
+                components.append({"nbt": f"__flare_debug_{i}", "storage": str(temp_storage)})
             else:
-                name, obj = arg.addr.split(" ", 1)
+                name, obj = arg._addr.split(" ", 1)
                 components.append({"score": {"name": name, "objective": obj}})
         elif isinstance(arg, nbt):
-            nbt_comp = {"nbt": arg.path or "{}"}
-            if arg.path == "":
+            nbt_comp = {"nbt": arg._path or "{}"}
+            if arg._path == "":
                 nbt_comp["nbt"] = "{}"
 
-            if arg.target_type == "storage":
-                nbt_comp["storage"] = arg.target
-            elif arg.target_type == "entity":
-                nbt_comp["entity"] = arg.target
-            elif arg.target_type == "block":
-                nbt_comp["block"] = arg.target
+            if arg._target_type == "storage":
+                nbt_comp["storage"] = arg._target
+            elif arg._target_type == "entity":
+                nbt_comp["entity"] = arg._target
+            elif arg._target_type == "block":
+                nbt_comp["block"] = arg._target
 
-            if arg.path == "":
+            if arg._path == "":
                 nbt_comp["nbt"] = "{}"
 
             components.append(nbt_comp)
@@ -178,15 +208,21 @@ def _flare_print(*args):
     runcommand(f"tellraw @a {cmd_text}")
 
 
-def export(func=None, *, append=False):
+def export(func=None, *, name=None, append=False):
     from flare import score  # avoid circular import
+
+    if isinstance(func, str):
+        name = func
+        func = None
+
     if func is None:
         def wrapper(f):
-            return export(f, append=append)
+            return export(f, name=name, append=append)
 
         return wrapper
 
-    func_name = f"{_current_namespace}:{func.__name__}"
+    actual_name = name if name is not None else func.__name__
+    func_name = f"{_current_namespace}:{actual_name}"
     if func_name in files and not append:
         raise ValueError(f"Function {func_name} already exists. Use @export(append=True) to append.")
 
@@ -208,9 +244,9 @@ def export(func=None, *, append=False):
                 kwargs[name] = score(addr=f"{func.__name__}_{name} {vars_obj}")
         elif hasattr(anno, "__name__") and anno.__name__ in ("nbt", "_TypedNBT"):
             if is_recursive:
-                kwargs[name] = anno(addr=f"storage flare:args {func.__name__}_{name}[-1]")
+                kwargs[name] = anno(addr=f"storage {args_storage} {func.__name__}_{name}[-1]")
             else:
-                kwargs[name] = anno(addr=f"storage flare:args {func.__name__}_{name}")
+                kwargs[name] = anno(addr=f"storage {args_storage} {func.__name__}_{name}")
         elif anno is not inspect.Signature.empty:
             raise TypeError(f"Argument '{name}' must be typed as score or nbt, not {anno}")
         else:
@@ -239,20 +275,20 @@ def export(func=None, *, append=False):
                 target = kwargs[arg_name]
 
                 if is_recursive and isinstance(target, nbt):
-                    base_addr = f"storage flare:args {func.__name__}_{arg_name}"
+                    base_addr = f"storage {args_storage} {func.__name__}_{arg_name}"
                     if isinstance(arg_val, (int, float, str)):
                         runcommand(f"data modify {base_addr} append value {json.dumps(arg_val)}")
                     elif isinstance(arg_val, nbt):
-                        runcommand(f"data modify {base_addr} append from {arg_val.addr}")
+                        runcommand(f"data modify {base_addr} append from {arg_val._addr}")
                     elif isinstance(arg_val, score):
                         runcommand(f"data modify {base_addr} append value 0")
                         runcommand(
-                            f"execute store result {base_addr}[-1] int {1 / arg_val.multiplier} run scoreboard players get {arg_val.addr}")
+                            f"execute store result {base_addr}[-1] int {1 / arg_val._multiplier} run scoreboard players get {arg_val._addr}")
                     elif hasattr(type(arg_val), "_eval_into"):
-                        temp = nbt(addr=f"storage flare:temp !t{_temp_id}", datatype=target.type)
+                        temp = nbt(addr=f"storage {temp_storage} !t{_temp_id}", datatype=target._type)
                         _temp_id += 1
                         arg_val._eval_into(temp)
-                        runcommand(f"data modify {base_addr} append from {temp.addr}")
+                        runcommand(f"data modify {base_addr} append from {temp._addr}")
                 else:
                     target.__iset__(arg_val)
 
@@ -261,7 +297,7 @@ def export(func=None, *, append=False):
             if is_recursive:
                 for arg_name in bound.arguments.keys():
                     if isinstance(kwargs[arg_name], nbt):
-                        base_addr = f"storage flare:args {func.__name__}_{arg_name}"
+                        base_addr = f"storage {args_storage} {func.__name__}_{arg_name}"
                         runcommand(f"data remove {base_addr}[-1]")
 
             ret_anno = return_types.get(func_name, sig.return_annotation)
@@ -272,15 +308,15 @@ def export(func=None, *, append=False):
                     temp_ret = score(addr=f"!ret{_temp_id} {temp_obj}")
                     _temp_id += 1
                     runcommand(
-                        f"scoreboard players operation {temp_ret.addr} = {func_name.replace(":", "_")}_ret {vars_obj}")
+                        f"scoreboard players operation {temp_ret._addr} = {func_name.replace(":", "_")}_ret {vars_obj}")
                     if ret_anno.__name__ in ("fixed", "_PrecisionScore"):
                         pass
                     return temp_ret
                 else:
-                    temp_ret = nbt(addr=f"storage flare:temp !ret{_temp_id}")
+                    temp_ret = nbt(addr=f"storage {temp_storage} !ret{_temp_id}")
                     _temp_id += 1
                     runcommand(
-                        f"data modify {temp_ret.addr} set from storage flare:returns {func_name.replace(":", "_")}")
+                        f"data modify {temp_ret._addr} set from storage {returns_storage} {func_name.replace(':', '_')}")
                     return temp_ret
 
     proxy = ProxyFunction()
@@ -402,12 +438,12 @@ def _flare_return(value):
         target.__iset__(value)
     else:
         if inspect.isclass(ret_anno) and issubclass(ret_anno, nbt):
-            target = ret_anno(addr=f"storage flare:returns {func_name.replace(":", "_")}")
+            target = ret_anno(addr=f"storage {returns_storage} {func_name.replace(':', '_')}")
         else:
             datatype = None
             if hasattr(ret_anno, "__origin__") or isinstance(ret_anno, type):
                 datatype = getattr(ret_anno, "__origin__", ret_anno)
-            target = nbt(addr=f"storage flare:returns {func_name.replace(":", "_")}", datatype=datatype)
+            target = nbt(addr=f"storage {returns_storage} {func_name.replace(':', '_')}", datatype=datatype)
         target.__iset__(value)
 
     runcommand("return 1")
