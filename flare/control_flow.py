@@ -38,6 +38,9 @@ class ScoreIf:
             runcommand(str_self + str(x))
 
     def __str__(self):
+        if isinstance(self.t, list):
+            conds = [str(x).removeprefix("execute ").removesuffix(" run ") for x in self.t]
+            return f"execute {' '.join(conds)} run "
         raise NotImplementedError("ScoreIf.__str__ is not implemented")
 
 
@@ -118,7 +121,7 @@ def _flare_if(*args):
     has_else_or_elif = len(conditions) > 1 or conditions[0] is None
 
     if has_else_or_elif:
-        elif_temp = score(addr=f"!elif{next_temp_id()} {temp_obj}")
+        elif_temp = score(addr=f"!elif{next_temp_id()}")
         elif_temp.__iset__(0)
 
     is_dynamic_chain = None

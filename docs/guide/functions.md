@@ -77,3 +77,29 @@ def factorial(n: nbt[int]) -> nbt[int]:
         return 1
     return n * factorial(n - 1)
 ```
+
+## Python Functions as Macros (Pass-by-Reference)
+
+If you define a standard Python function **without** the `@export` decorator, it acts as a **macro** that runs at compile-time. 
+
+When you pass a `score` or `nbt` variable into a macro function, Flare passes the underlying memory address by **reference**, not by value. Any operations performed on the variable inside the macro directly modify the original variable without costing any assignment commands!
+
+```python
+from flare import namespace, score
+
+namespace("my_pack")
+
+# Standard Python function (Macro)
+def heal_player(hp: score, amount: int):
+    # This directly modifies the original score passed in!
+    hp += amount
+
+@export
+def main():
+    player_hp = score(10)
+    
+    # Inlines the commands, directly adding 5 to player_hp
+    heal_player(player_hp, 5)
+```
+
+This is incredibly useful for writing reusable command-generation logic without incurring the overhead of a standard `@export` function call ABI.

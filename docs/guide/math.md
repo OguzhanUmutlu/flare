@@ -20,10 +20,10 @@ d = float64(3.14159)
 
 ## The `math` Standard Library
 
-Flare comes bundled with `math`, which provides high-level mathematical functions that compile into highly-optimized Minecraft scoreboard and bit-shifting algorithms (CORDIC, Taylor series, etc.):
+Flare comes bundled with a highly-optimized math framework that seamlessly hooks into standard Python modules. Because the Flare compiler automatically patches the built-in modules behind the scenes, you don't even need a special import! You can just use `import math` or `from math import sin` like normal:
 
 ```python
-from flare import math
+import math
 from flare.variables import float32
 
 x = float32(0.5)
@@ -32,8 +32,11 @@ x = float32(0.5)
 y = math.sin(x)
 z = math.cos(y)
 
+# Min/max natively support score comparisons
+highest = max(x, y)
+
 # Logarithms, exponents, roots, and more
-log_val = math.ln(x)
+log_val = math.log(x)
 sqrt_val = math.sqrt(y)
 pow_val = math.pow(x, 3)
 ```
@@ -42,14 +45,17 @@ pow_val = math.pow(x, 3)
 
 | Category | Functions |
 |----------|-----------|
-| **Rounding** | `floor(x)`, `ceil(x)`, `round_(x, ndigits)` |
+| **Rounding & Bounds** | `floor(x)`, `ceil(x)`, `round(x, ndigits)`, `min(*args)`, `max(*args)` |
 | **Roots & Exponents** | `sqrt(x)`, `exp(x)`, `pow(x, y)` |
-| **Logarithms** | `ln(x)`, `log(x, base)` |
-| **Trigonometry** | `sin(x)`, `cos(x)`, `tan(x)`, `fastsin(x)` |
+| **Logarithms** | `log(x, base)` |
+| **Trigonometry** | `sin(x)`, `cos(x)`, `tan(x)` |
 | **Inverse Trig** | `asin(x)`, `acos(x)`, `atan(x)`, `atan2(y, x)` |
 | **Reciprocal Trig** | `csc(x)`, `sec(x)`, `cot(x)`, `acsc(x)`, `asec(x)`, `acot(x)` |
 | **Hyperbolic** | `sinh(x)`, `cosh(x)`, `tanh(x)`, `asinh(x)`, `acosh(x)`, `atanh(x)` |
 | **Reciprocal Hyperbolic** | `csch(x)`, `sech(x)`, `coth(x)`, `acsch(x)`, `asech(x)`, `acoth(x)` |
+
+> [!NOTE]
+> **Dynamic Fallbacks**: Flare's math functions are designed to use specialized dunder methods (e.g., `__tan__`) if the target variable implements them. If a specific function is not implemented natively for that type, the math library dynamically falls back to established mathematical identities. For example, `tan(x)` seamlessly defaults to `sin(x) / cos(x)`, and `sinh(x)` defaults to `(exp(x) - exp(-x)) / 2`.
 
 ## Big Integers (`bigscore`)
 

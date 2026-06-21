@@ -12,7 +12,6 @@ BASE = 10000
 
 
 def _get_temps():
-    from ..context import temp_obj
     from .score import score
     return (
         score(addr=f"!rem {temp_obj}"),
@@ -49,6 +48,9 @@ class bigscore(ArithmeticSupported):
             self._target = addr.split(" ", 1)[0]
             if len(addr.split(" ", 1)) > 1:
                 self._objective = addr.split(" ", 1)[1]
+            else:
+                self._objective = temp_obj
+                self._addr = f"{self._target} {self._objective}"
             if self._value_to_set is not None:
                 self[:] = self._value_to_set
 

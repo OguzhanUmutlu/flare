@@ -3,14 +3,17 @@ import json
 
 from .command_parser import interpolate_command
 
+
 def addr(var):
     return var._addr
+
 
 files = {"main": []}
 current_file = "main"
 _current_namespace = "flare"
 functions = {}
 constants = {}
+return_targets = {}
 
 
 class DynamicVar:
@@ -89,6 +92,7 @@ def reset_context():
     _in_recursive_context = False
     return_types.clear()
     has_returns.clear()
+    return_targets.clear()
     _logical_func = None
 
 
@@ -229,7 +233,7 @@ def _flare_print(*args):
     runcommand(f"tellraw @a {cmd_text}")
 
 
-def export(func=None, *, name=None, append=False):
+def export(func=None, *, name=None, append=False, returns=None):
     from flare import score  # avoid circular import
 
     if isinstance(func, str):
@@ -238,7 +242,7 @@ def export(func=None, *, name=None, append=False):
 
     if func is None:
         def wrapper(f):
-            return export(f, name=name, append=append)
+            return export(f, name=name, append=append, returns=returns)
 
         return wrapper
 
@@ -273,10 +277,14 @@ def export(func=None, *, name=None, append=False):
         else:
             kwargs[name] = score(addr=f"{func.__name__}_{name} {vars_obj}")
 
-    if sig.return_annotation is not inspect.Signature.empty:
-        return_types[func_name] = sig.return_annotation
+    if returns is not None:
+        return_targets[func_name] = returns
+        return_types[func_name] = type(returns)
     else:
-        return_types[func_name] = "UNKNOWN"
+        if sig.return_annotation is not inspect.Signature.empty:
+            return_types[func_name] = sig.return_annotation
+        else:
+            return_types[func_name] = "UNKNOWN"
     has_returns[func_name] = False
 
     global _in_recursive_context, _logical_func
@@ -322,12 +330,15 @@ def export(func=None, *, name=None, append=False):
                         base_addr = f"storage {args_storage} {func.__name__}_{arg_name}"
                         runcommand(f"data remove {base_addr}[-1]")
 
+            if func_name in return_targets:
+                return return_targets[func_name]
+
             ret_anno = return_types.get(func_name, sig.return_annotation)
             if ret_anno == "UNKNOWN":
                 return "UNKNOWN_RETURN"
             elif ret_anno is not inspect.Signature.empty and ret_anno is not None:
                 if hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
-                    temp_ret = score(addr=f"!ret{_temp_id} {temp_obj}")
+                    temp_ret = score(addr=f"!ret{_temp_id}")
                     _temp_id += 1
                     runcommand(
                         f"scoreboard players operation {addr(temp_ret)} = {func_name.replace(":", "_")}_ret {vars_obj}")
@@ -373,12 +384,14 @@ def _flare_in(item, container):
         return container.__in__(item)
     return item in container
 
+
 def _flare_notin(item, container):
     if hasattr(container, "__notin__"):
         return container.__notin__(item)
     if hasattr(container, "__in__"):
         return ~container.__in__(item)
     return item not in container
+
 
 def _flare_assign(var_name, value, local_env, global_env):
     if var_name in local_env:
@@ -467,7 +480,10 @@ def _flare_return(value):
             raise TypeError(f"Function {func_name} returned a value but has no return type annotation")
         return
 
-    if hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
+    if func_name in return_targets:
+        target = return_targets[func_name]
+        target.__iset__(value)
+    elif hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
         target = score(addr=f"{func_name.replace(":", "_")}_ret {vars_obj}")
         target.__iset__(value)
     else:

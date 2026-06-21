@@ -5,7 +5,7 @@ import typing
 
 from .core import UnsupportedOperandError, BinaryOp, UnaryOp, addr
 from .. import context as ctx
-from ..context import runcommand, temp_obj
+from ..context import runcommand, temp_obj, next_temp_id
 from ..nbt_schema import ENTITY_SCHEMA
 from ..types import NBTType
 from ..types import array
@@ -33,7 +33,7 @@ class nbt:
                 self[:] = self._value_to_set
 
     def _alloc_temp(self):
-        t = nbt(addr=f"flare:temp !t{ctx.next_temp_id()}", datatype=self._type, schema_node=self._schema_node)
+        t = nbt(addr=f"flare:temp !t{next_temp_id()}", datatype=self._type, schema_node=self._schema_node)
         if hasattr(self, "_inner_type") and getattr(self, "_inner_type") is not None:
             t = nbt[self._inner_type](addr=t._addr, schema_node=t._schema_node)
         return t
@@ -108,7 +108,7 @@ class nbt:
 
             runcommand(f"data remove {addr(temp_arr)}[0]")
 
-            from ..control_flow import ScoreIfMatches  # Local import to avoid circular dependency
+            from ..control_flow import ScoreIfMatches  # avoid circular import
             if has_break:
                 break_score = _score()(addr=f"!break {ctx.temp_obj}")
                 ScoreIfMatches(break_score, 1).then(lambda: runcommand("return 0"))
@@ -381,7 +381,7 @@ class nbt:
     def length(self):
         if not self.is_sequence() and self._type != NBTType.String:
             raise TypeError(f"Cannot get length of {self._type.name.lower()}")
-        t = _score()(addr=f"!len{ctx.next_temp_id()} {temp_obj}")
+        t = _score()(addr=f"!len{ctx.next_temp_id()} {ctx.temp_obj}")
         runcommand(f"execute store result score {addr(t)} run data get {addr(self)}")
         return t
 
@@ -529,8 +529,8 @@ class nbt:
         self._check_addr()
         if isinstance(other, (_score(), nbt)):
             other._check_addr()
-        temp = _score()(addr=f"!add0 {temp_obj}")
-        temp2 = _score()(addr=f"!add1 {temp_obj}")
+        temp = _score()(addr=f"!add0 {ctx.temp_obj}")
+        temp2 = _score()(addr=f"!add1 {ctx.temp_obj}")
         if isinstance(other, list):
             if self._type == NBTType.List:
                 if not other:
@@ -571,8 +571,8 @@ class nbt:
         self._check_addr()
         if isinstance(other, (_score(), nbt)):
             other._check_addr()
-        temp = _score()(addr=f"!sub0 {temp_obj}")
-        temp2 = _score()(addr=f"!sub1 {temp_obj}")
+        temp = _score()(addr=f"!sub0 {ctx.temp_obj}")
+        temp2 = _score()(addr=f"!sub1 {ctx.temp_obj}")
         if isinstance(other, (int, float, _score())):
             if not self.is_number():
                 raise TypeError(
@@ -602,8 +602,8 @@ class nbt:
         self._check_addr()
         if isinstance(other, (_score(), nbt)):
             other._check_addr()
-        temp = _score()(addr=f"!mul0 {temp_obj}")
-        temp2 = _score()(addr=f"!mul1 {temp_obj}")
+        temp = _score()(addr=f"!mul0 {ctx.temp_obj}")
+        temp2 = _score()(addr=f"!mul1 {ctx.temp_obj}")
         if isinstance(other, (int, float, _score())):
             if not self.is_number():
                 raise TypeError(
@@ -639,8 +639,8 @@ class nbt:
         self._check_addr()
         if isinstance(other, (_score(), nbt)):
             other._check_addr()
-        temp = _score()(addr=f"!div0 {temp_obj}")
-        temp2 = _score()(addr=f"!div1 {temp_obj}")
+        temp = _score()(addr=f"!div0 {ctx.temp_obj}")
+        temp2 = _score()(addr=f"!div1 {ctx.temp_obj}")
         if isinstance(other, (int, float, _score())):
             if not self.is_number():
                 raise TypeError(
@@ -670,8 +670,8 @@ class nbt:
         self._check_addr()
         if isinstance(other, (_score(), nbt)):
             other._check_addr()
-        temp = _score()(addr=f"!mod0 {temp_obj}")
-        temp2 = _score()(addr=f"!mod1 {temp_obj}")
+        temp = _score()(addr=f"!mod0 {ctx.temp_obj}")
+        temp2 = _score()(addr=f"!mod1 {ctx.temp_obj}")
         if isinstance(other, (int, float, _score())):
             if not self.is_number():
                 raise TypeError(
@@ -701,8 +701,8 @@ class nbt:
         self._check_addr()
         if isinstance(other, (_score(), nbt)):
             other._check_addr()
-        temp = _score()(addr=f"!max0 {temp_obj}")
-        temp2 = _score()(addr=f"!max1 {temp_obj}")
+        temp = _score()(addr=f"!max0 {ctx.temp_obj}")
+        temp2 = _score()(addr=f"!max1 {ctx.temp_obj}")
         if isinstance(other, (int, float, _score())):
             if not self.is_number():
                 raise TypeError(f"Cannot max {self._type.name.lower()}")
@@ -731,8 +731,8 @@ class nbt:
         self._check_addr()
         if isinstance(other, (_score(), nbt)):
             other._check_addr()
-        temp = _score()(addr=f"!min0 {temp_obj}")
-        temp2 = _score()(addr=f"!min1 {temp_obj}")
+        temp = _score()(addr=f"!min0 {ctx.temp_obj}")
+        temp2 = _score()(addr=f"!min1 {ctx.temp_obj}")
         if isinstance(other, (int, float, _score())):
             if not self.is_number():
                 raise TypeError(f"Cannot min {self._type.name.lower()}")

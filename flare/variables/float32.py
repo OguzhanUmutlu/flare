@@ -100,7 +100,7 @@ class float32(ArithmeticSupported):
 
         if isinstance(other, float32):
             other._check_addr()
-            temp_b = float32(addr=f"!fb{next_temp_id()}")
+            temp_b = float32(addr=f"!fb{next_temp_id()} {temp_obj}")
             temp_b[:] = other
 
             diff = score(addr="!diff")
@@ -131,7 +131,7 @@ class float32(ArithmeticSupported):
                 lambda: self._mant.__imul__(-1)
             ])
 
-            shift = score(0, addr=f"!shift {temp_obj}")
+            shift = score(0, addr="!shift")
             ScoreIfMatches(self._mant, (16777216, inf)).then(lambda: shift.__iset__(1))
             ScoreIfMatches(shift, 1).then([
                 lambda: self._mant.__idiv__(2),
@@ -177,7 +177,7 @@ class float32(ArithmeticSupported):
 
         if isinstance(other, float32):
             other._check_addr()
-            temp_b = float32(addr=f"!fb{next_temp_id()}")
+            temp_b = float32(addr=f"!fb{next_temp_id()} {temp_obj}")
             temp_b[:] = other
             temp_b._sign *= -1
             return self.__iadd__(temp_b)
@@ -209,7 +209,7 @@ class float32(ArithmeticSupported):
             self._mant *= 10000
             self._mant += b_a.get_limb(0)
 
-            shift = score(0, addr=f"!shift {temp_obj}")
+            shift = score(0, addr="!shift")
             ScoreIfMatches(self._mant, (16777216, inf)).then(lambda: shift.__iset__(1))
             ScoreIfMatches(shift, 1).then([
                 lambda: self._mant.__idiv__(2),
@@ -242,7 +242,7 @@ class float32(ArithmeticSupported):
             self._mant *= 10000
             self._mant += b_a.get_limb(0)
 
-            shift = score(0, addr=f"!shift {temp_obj}")
+            shift = score(0, addr="!shift")
             ScoreIfMatches(self._mant, (-inf, 8388607)).then(lambda: shift.__iset__(1))
             ScoreIfMatches(shift, 1).then([
                 lambda: self._mant.__imul__(2),
@@ -251,6 +251,223 @@ class float32(ArithmeticSupported):
 
             return self
         raise UnsupportedOperandError(self, "/", other)
+
+
+    def __abs__(self):
+        res = self.__icopy__(f"!f32_abs_{next_temp_id()}")
+        res._sign[:] = 1
+        return res
+
+    def __neg__(self):
+        res = self.__icopy__(f"!f32_neg_{next_temp_id()}")
+        res._sign *= -1
+        return res
+
+    def __ineg__(self):
+        self._check_addr()
+        self._sign *= -1
+        return self
+
+    def to_bits(self):
+        self._check_addr()
+        bits = score(addr=f"!f32_bits_{next_temp_id()}")
+        
+        exp_part = score(addr=f"!f32_exp_{next_temp_id()}")
+        exp_part[:] = self._exp
+        exp_part += 127
+        exp_part *= 8388608
+        
+        mant_part = score(addr=f"!f32_mant_{next_temp_id()}")
+        mant_part[:] = self._mant
+        ScoreIfMatches(mant_part, (8388608, inf)).then(lambda: mant_part.__isub__(8388608))
+        
+        bits[:] = exp_part
+        bits += mant_part
+        
+        min_int = getscore(-2147483648)
+        ScoreIfMatches(self._sign, (-inf, -1)).then(lambda: bits.__iadd__(min_int))
+        
+        return bits
+
+    def from_bits(self, bits):
+        self._check_addr()
+        self._sign[:] = 1
+        ScoreIfMatches(bits, (-inf, -1)).then(lambda: self._sign.__iset__(-1))
+        
+        temp_bits = score(addr=f"!f32_tbits_{next_temp_id()}")
+        temp_bits[:] = bits
+        
+        min_int = getscore(-2147483648)
+        ScoreIfMatches(temp_bits, (-inf, -1)).then(lambda: temp_bits.__isub__(min_int))
+        
+        self._exp[:] = temp_bits
+        self._exp /= 8388608
+        self._exp -= 127
+        
+        self._mant[:] = temp_bits
+        self._mant %= 8388608
+        
+        ScoreIfMatches(self._exp, (-126, inf)).then(lambda: self._mant.__iadd__(8388608))
+        
+        return self
+
+    def __sqrt__(self):
+        bits = self.to_bits()
+        bits /= 2
+        bits += getscore(0x1fbd1df5)
+        
+        res = self.__class__(addr=f"!f32_sqrt_{next_temp_id()}")
+        res.from_bits(bits)
+        
+        two = self.__class__(2.0)
+        temp = self.__class__(addr=f"!f32_sqtmp_{next_temp_id()}")
+        temp[:] = self
+        temp /= res
+        res += temp
+        res /= two
+        return res
+
+    def rsqrt(self):
+        bits = self.to_bits()
+        bits /= 2
+        temp_bits = score(addr=f"!f32_rsqrt_b_{next_temp_id()}")
+        temp_bits[:] = getscore(0x5f3759df)
+        temp_bits -= bits
+        
+        y = self.__class__(addr=f"!f32_rsqrt_y_{next_temp_id()}")
+        y.from_bits(temp_bits)
+        
+        half_x = self.__class__(addr=f"!f32_hx_{next_temp_id()}")
+        half_x[:] = self
+        half_x /= self.__class__(2.0)
+        
+        temp = self.__class__(addr=f"!f32_y2_{next_temp_id()}")
+        temp[:] = y
+        temp *= y
+        temp *= half_x
+        
+        one_point_five = self.__class__(1.5)
+        one_point_five -= temp
+        y *= one_point_five
+        return y
+
+
+    def __sin__(self):
+        pi = self.__class__(math.pi)
+        two_pi = self.__class__(math.pi * 2)
+
+        x = self.__icopy__(f"!f32_sin_x_{next_temp_id()}")
+        
+        x_div_2pi = self.__class__(addr=f"!f32_sin_xdiv_{next_temp_id()}")
+        x_div_2pi[:] = x
+        x_div_2pi /= two_pi
+        x_div_2pi = x_div_2pi.__floor__()
+        x_div_2pi *= two_pi
+        x -= x_div_2pi
+
+        is_neg = score(0, addr=f"!f32_sin_neg_{next_temp_id()}")
+        
+        sub = self.__class__(addr=f"!f32_sin_s_{next_temp_id()}")
+        sub[:] = x
+        sub -= pi
+        
+        cond_pi = self.__class__(addr=f"!f32_sin_cpi_{next_temp_id()}")
+        cond_pi[:] = 0
+        ScoreIfMatches(sub._sign, 1).then([
+            lambda: is_neg.__iset__(1),
+            lambda: cond_pi._sign.__iset__(pi._sign),
+            lambda: cond_pi._exp.__iset__(pi._exp),
+            lambda: cond_pi._mant.__iset__(pi._mant)
+        ])
+        x -= cond_pi
+        
+        term = self.__class__(addr=f"!f32_sin_t_{next_temp_id()}")
+        term[:] = pi
+        term -= x
+        term *= x
+
+        c1 = self.__class__((5.0 / 16.0) * math.pi * math.pi)
+        c2 = self.__class__(0.25)
+        
+        denom = self.__class__(addr=f"!f32_sin_d_{next_temp_id()}")
+        denom[:] = term
+        denom *= c2
+        denom *= self.__class__(-1.0)
+        denom += c1
+        
+        result = self.__class__(addr=f"!f32_sin_r_{next_temp_id()}")
+        result[:] = term
+        result /= denom
+
+        ScoreIfMatches(is_neg, 1).then(lambda: result.__ineg__())
+        return result
+
+    def __cos__(self):
+        half_pi = self.__class__(math.pi / 2.0)
+        temp = self.__class__(addr=f"!f32_cos_t_{next_temp_id()}")
+        temp[:] = self
+        temp += half_pi
+        return temp.__sin__()
+
+    def __exp__(self):
+        x = self.__class__(addr=f"!f32_exp_x_{next_temp_id()}")
+        x[:] = self
+        x /= self.__class__(16.0)
+
+        c2 = self.__class__(1.0 / 2.0)
+        c3 = self.__class__(1.0 / 6.0)
+        c4 = self.__class__(1.0 / 24.0)
+        c5 = self.__class__(1.0 / 120.0)
+        c6 = self.__class__(1.0 / 720.0)
+        c7 = self.__class__(1.0 / 5040.0)
+
+        term = self.__class__(addr=f"!f32_exp_t_{next_temp_id()}")
+        term[:] = x
+        term *= c7
+        
+        term += c6
+        term *= x
+        
+        term += c5
+        term *= x
+        
+        term += c4
+        term *= x
+        
+        term += c3
+        term *= x
+        
+        term += c2
+        term *= x
+        
+        term += self.__class__(1.0)
+        term *= x
+        
+        term += self.__class__(1.0)
+
+        term *= self.__class__(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
+        term *= self.__class__(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
+        term *= self.__class__(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
+        term *= self.__class__(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
+        return term
+
+    def __log__(self):
+        guess = self.__class__(1.0)
+        two = self.__class__(2.0)
+        for _ in range(5):
+            e_y = guess.__exp__()
+            num = self.__class__(addr=f"!f32_log_n_{next_temp_id()}")
+            num[:] = self
+            num -= e_y
+            num *= two
+            
+            den = self.__class__(addr=f"!f32_log_d_{next_temp_id()}")
+            den[:] = self
+            den += e_y
+            
+            num /= den
+            guess += num
+        return guess
 
     def __round__(self, ndigits=None):
         if ndigits is not None and ndigits != 0:

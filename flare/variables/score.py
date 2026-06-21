@@ -4,9 +4,9 @@ import math
 from fractions import Fraction
 from math import log
 
-from .core import UnsupportedOperandError, BinaryOp, UnaryOp, addr, ArithmeticSupported
+from .core import UnsupportedOperandError, BinaryOp, addr, ArithmeticSupported
 from .. import context as ctx
-from ..context import runcommand, ensure_constant, temp_obj, constant_obj, constants, vars_obj
+from ..context import runcommand, temp_obj, constant_obj, constants, vars_obj, next_temp_id
 
 INT32_LIMIT = (2 ** 31) - 1
 
@@ -43,7 +43,9 @@ class score(ArithmeticSupported):
                 ctx.ensure_objective(self._objective)
             else:
                 self._name = parts[0]
-                self._objective = ""
+                self._objective = ctx.temp_obj
+                self._addr = f"{self._name} {self._objective}"
+                ctx.ensure_objective(self._objective)
             if self._value_to_set is not None:
                 self[:] = self._value_to_set
         else:
@@ -54,7 +56,7 @@ class score(ArithmeticSupported):
         return -self._multiplier
 
     def _alloc_temp(self):
-        t = score(addr=f"!t{ctx.next_temp_id()} {temp_obj}", multiplier=self._multiplier)
+        t = score(addr=f"!t{next_temp_id()}", multiplier=self._multiplier)
         return t
 
     def _create_var(self, varid: str):
@@ -145,7 +147,6 @@ class score(ArithmeticSupported):
             return self
         temp = self.__icopy__(f"!math_{ctx.next_temp_id()}")
         m_addr = addr(getscore(m))
-        ctx.ensure_constant(f"!{m}", "temp", m)
         half = m // 2
         runcommand(f"scoreboard players add {addr(temp)} {half}")
         runcommand(
@@ -200,7 +201,7 @@ class score(ArithmeticSupported):
         x = self.__icopy__("!sin_x")
         x %= two_pi
 
-        is_neg = score(0,addr=f"!neg_fastsin {temp_obj}")
+        is_neg = score(0, addr="!neg_fastsin")
         runcommand(f"execute if score {addr(x)} > {addr(pi)} run scoreboard players set {addr(is_neg)} 1")
         runcommand(f"execute if score {addr(x)} > {addr(pi)} run scoreboard players operation {addr(x)} -= {addr(pi)}")
 
@@ -225,9 +226,9 @@ class score(ArithmeticSupported):
 
     def __abs__(self):
         temp = self.__icopy__("!abs")
-        ensure_constant("!-1", "temp", -1)
+        m1 = getscore(-1, multiplier=1.0)
         runcommand(
-            f"execute if score {addr(temp)} matches ..-1 run scoreboard players operation {addr(temp)} *= !-1 temp")
+            f"execute if score {addr(temp)} matches ..-1 run scoreboard players operation {addr(temp)} *= {addr(m1)}")
         return temp
 
     def __atan2__(self, x):
@@ -266,9 +267,9 @@ class score(ArithmeticSupported):
         runcommand(
             f"execute if score {addr(x)} matches ..-1 run scoreboard players operation {addr(res)} = {temp2._addr}")
 
-        ensure_constant("!-1", "temp", -1)
+        m1 = getscore(-1, multiplier=1.0)
         runcommand(
-            f"execute if score {addr(self)} matches ..-1 run scoreboard players operation {addr(res)} *= !-1 temp")
+            f"execute if score {addr(self)} matches ..-1 run scoreboard players operation {addr(res)} *= {addr(m1)}")
 
         return res
 
@@ -310,42 +311,9 @@ class score(ArithmeticSupported):
             guess = (half * (guess + self / guess)).__icopy__("!sqrt_guess")
         return guess
 
-    def __neg__(self):
-        return UnaryOp(self, "neg")
-
-    def __pos__(self):
-        return self
-
-    def __eq__(self, other):
-        return BinaryOp(self, other, "eq")
-
-    def __ne__(self, other):
-        return BinaryOp(self, other, "ne")
-
-    def __lt__(self, other):
-        return BinaryOp(self, other, "lt")
-
-    def __le__(self, other):
-        return BinaryOp(self, other, "le")
-
-    def __gt__(self, other):
-        return BinaryOp(self, other, "gt")
-
-    def __ge__(self, other):
-        return BinaryOp(self, other, "ge")
-
-    def __and__(self, other):
-        return BinaryOp(self, other, "and")
-
-    def __or__(self, other):
-        return BinaryOp(self, other, "or")
-
-    def __invert__(self):
-        return UnaryOp(self, "not")
-
     def __iadd__(self, other):
         self._check_writable()
-        temp = score(addr=f"!add0 {temp_obj}")
+        temp = score(addr="!add0")
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
@@ -363,15 +331,18 @@ class score(ArithmeticSupported):
             runcommand(f"scoreboard players operation {addr(self)} += {addr(temp)}")
             return self
         if isinstance(other, score):
-            runcommand(f"scoreboard players operation {addr(temp)} = {addr(other)}")
-            temp *= other._multiplier / self._multiplier
-            runcommand(f"scoreboard players operation {addr(self)} += {addr(temp)}")
+            if self._multiplier == other._multiplier:
+                runcommand(f"scoreboard players operation {addr(self)} += {addr(other)}")
+            else:
+                runcommand(f"scoreboard players operation {addr(temp)} = {addr(other)}")
+                temp *= other._multiplier / self._multiplier
+                runcommand(f"scoreboard players operation {addr(self)} += {addr(temp)}")
             return self
         raise UnsupportedOperandError(self, "+", other)
 
     def __isub__(self, other):
         self._check_writable()
-        temp = score(addr=f"!sub0 {temp_obj}")
+        temp = score(addr="!sub0")
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
@@ -392,15 +363,18 @@ class score(ArithmeticSupported):
             if self._addr == other._addr:
                 runcommand(f"scoreboard players set {addr(self)} 0")
                 return self
-            runcommand(f"scoreboard players operation {addr(temp)} = {addr(other)}")
-            temp *= other._multiplier / self._multiplier
-            runcommand(f"scoreboard players operation {addr(self)} -= {addr(temp)}")
+            if self._multiplier == other._multiplier:
+                runcommand(f"scoreboard players operation {addr(self)} -= {addr(other)}")
+            else:
+                runcommand(f"scoreboard players operation {addr(temp)} = {addr(other)}")
+                temp *= other._multiplier / self._multiplier
+                runcommand(f"scoreboard players operation {addr(self)} -= {addr(temp)}")
             return self
         raise UnsupportedOperandError(self, "-", other)
 
     def __imul__(self, other):
         self._check_writable()
-        temp = score(addr=f"!mul0 {temp_obj}", multiplier=1.0)
+        temp = score(addr="!mul0", multiplier=1.0)
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
@@ -425,15 +399,9 @@ class score(ArithmeticSupported):
             return self
         raise UnsupportedOperandError(self, "*", other)
 
-    def __itruediv__(self, other):
-        self._check_addr()
-        if isinstance(other, (score, _nbt())):
-            other._check_addr()
-        return self.__idiv__(other)
-
     def __idiv__(self, other):
         self._check_writable()
-        temp = score(addr=f"!div0 {temp_obj}", multiplier=1.0)
+        temp = score(addr="!div0", multiplier=1.0)
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
@@ -457,7 +425,7 @@ class score(ArithmeticSupported):
 
     def __imod__(self, other):
         self._check_writable()
-        temp = score(addr=f"!mod0 {temp_obj}")
+        temp = score(addr="!mod0")
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
@@ -475,20 +443,23 @@ class score(ArithmeticSupported):
             if self._addr == other._addr:
                 runcommand(f"scoreboard players set {addr(self)} 0")
                 return self
-            runcommand(f"scoreboard players operation {addr(temp)} = {addr(other)}")
-            temp *= other._multiplier / self._multiplier
-            runcommand(f"scoreboard players operation {addr(self)} %= {addr(temp)}")
+            if self._multiplier == other._multiplier:
+                runcommand(f"scoreboard players operation {addr(self)} %= {addr(other)}")
+            else:
+                runcommand(f"scoreboard players operation {addr(temp)} = {addr(other)}")
+                temp *= other._multiplier / self._multiplier
+                runcommand(f"scoreboard players operation {addr(self)} %= {addr(temp)}")
             return self
         raise UnsupportedOperandError(self, "%", other)
 
     def __imax__(self, other):
         self._check_writable()
-        temp = score(addr=f"!imax0 {temp_obj}")
+        temp = score(addr="!imax0")
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
-            runcommand(f"scoreboard players operation {addr(self)} > {getscore(val)._addr}")
+            runcommand(f"scoreboard players operation {addr(self)} > {addr(getscore(val))}")
             return self
         if isinstance(other, _nbt()):
             if other._type is not None and not other.is_number():
@@ -508,7 +479,7 @@ class score(ArithmeticSupported):
 
     def __imin__(self, other):
         self._check_writable()
-        temp = score(addr=f"!imin0 {temp_obj}")
+        temp = score(addr="!imin0")
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, (int, float)):
@@ -533,7 +504,7 @@ class score(ArithmeticSupported):
 
     def __swap__(self, other):
         self._check_addr()
-        temp = score(addr=f"!swap0 {temp_obj}")
+        temp = score(addr="!swap0")
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, _nbt()):

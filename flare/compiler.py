@@ -64,7 +64,7 @@ def _eval_to_bool_score(node):
         return dest
 
     if isinstance(node, (BinaryOp, UnaryOp)):
-        t = score(addr=f"!b{ctx.next_temp_id()} {temp_obj}")
+        t = score(addr=f"!b{ctx.next_temp_id()}")
         node._eval_into(t)
         runcommand(f"execute unless score {addr(t)} matches 0 run scoreboard players set {addr(dest)} 1")
         return dest
