@@ -293,7 +293,7 @@ class ArithmeticSupported:
         if isinstance(key, slice) and key.start is None and key.stop is None and key.step is None:
             self.__iset__(value)
             return
-        raise TypeError(f"'{self.__class__.__name__}' object does not support item assignment")
+        raise TypeError(f"'{type(self).__name__}' object does not support item assignment")
 
     def __add__(self, other):
         return BinaryOp(self, other, "add")

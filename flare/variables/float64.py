@@ -24,14 +24,14 @@ class float64:
         if isinstance(key, slice) and key.start is None and key.stop is None and key.step is None:
             self.__iset__(value)
             return
-        raise TypeError(f"'{self.__class__.__name__}' object does not support item assignment")
+        raise TypeError(f"'{type(self).__name__}' object does not support item assignment")
 
     def _alloc_temp(self):
-        t = self.__class__(addr=f"!t{next_temp_id()} {temp_obj}")
+        t = type(self)(addr=f"!t{next_temp_id()} {temp_obj}")
         return t
 
     def _create_var(self, varid: str):
-        return self.__class__(addr=f"{varid} {vars_obj}")
+        return type(self)(addr=f"{varid} {vars_obj}")
 
     def _parse_addr(self, addr: str):
         parts = addr.rsplit(" ", 1)
@@ -62,7 +62,7 @@ class float64:
             if self._value_to_set is not None:
                 self[:] = self._value_to_set
         else:
-            dest = self.__class__(addr=f"{varid} {vars_obj}")
+            dest = type(self)(addr=f"{varid} {vars_obj}")
             dest[:] = self
             return dest
         return self
@@ -104,12 +104,12 @@ class float64:
     def __iadd__(self, other):
         self._check_addr()
         if isinstance(other, (int, float)):
-            t = self.__class__(other)
+            t = type(self)(other)
             return self.__iadd__(t)
 
         if isinstance(other, float64):
             other._check_addr()
-            temp_b = self.__class__(addr=f"!fb{ctx.next_temp_id()} {temp_obj}")
+            temp_b = type(self)(addr=f"!fb{ctx.next_temp_id()} {temp_obj}")
             temp_b[:] = other
 
             diff = score(addr="!diff")
@@ -193,12 +193,12 @@ class float64:
     def __isub__(self, other):
         self._check_addr()
         if isinstance(other, (int, float)):
-            t = self.__class__(other)
+            t = type(self)(other)
             return self.__isub__(t)
 
         if isinstance(other, float64):
             other._check_addr()
-            temp_b = self.__class__(addr=f"!fb{ctx.next_temp_id()} {temp_obj}")
+            temp_b = type(self)(addr=f"!fb{ctx.next_temp_id()} {temp_obj}")
             temp_b[:] = other
             c_min1 = getscore(-1)
             temp_b._sign.__imul__(c_min1)
@@ -208,7 +208,7 @@ class float64:
     def __imul__(self, other):
         self._check_addr()
         if isinstance(other, (int, float)):
-            t = self.__class__(other)
+            t = type(self)(other)
             return self.__imul__(t)
 
         if isinstance(other, float64):
@@ -244,7 +244,7 @@ class float64:
     def __idiv__(self, other):
         self._check_addr()
         if isinstance(other, (int, float)):
-            t = self.__class__(other)
+            t = type(self)(other)
             return self.__idiv__(t)
 
         if isinstance(other, float64):

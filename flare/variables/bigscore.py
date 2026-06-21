@@ -32,12 +32,12 @@ class bigscore(ArithmeticSupported):
         if size is not None:
             self.size = size
         else:
-            self.size = self.__class__._size
+            self.size = type(self)._size
 
         if multiplier is not None:
             self._multiplier = multiplier
         else:
-            self._multiplier = self.__class__._multiplier
+            self._multiplier = type(self)._multiplier
 
         self._value_to_set = value
         self._addr = None
@@ -55,7 +55,7 @@ class bigscore(ArithmeticSupported):
                 self[:] = self._value_to_set
 
     def _create_var(self, varid: str):
-        return self.__class__(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
+        return type(self)(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
 
     @classmethod
     def __class_getitem__(cls, item):
@@ -140,7 +140,7 @@ class bigscore(ArithmeticSupported):
         rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
         if isinstance(other, (int, float)):
-            t = self.__class__(other)
+            t = type(self)(other)
             return self.__iadd__(t)
 
         if isinstance(other, bigscore):
@@ -170,7 +170,7 @@ class bigscore(ArithmeticSupported):
         rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
         if isinstance(other, (int, float)):
-            t = self.__class__(other)
+            t = type(self)(other)
             return self.__isub__(t)
 
         if isinstance(other, bigscore):
@@ -198,7 +198,7 @@ class bigscore(ArithmeticSupported):
         rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
         if isinstance(other, (int, float)):
-            t = self.__class__(other)
+            t = type(self)(other)
             return self.__imul__(t)
 
         if isinstance(other, bigscore):
@@ -265,7 +265,7 @@ class bigscore(ArithmeticSupported):
             if self._value_to_set is not None:
                 self[:] = self._value_to_set
         else:
-            dest = self.__class__(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
+            dest = type(self)(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
             dest[:] = self
             return dest
         return self
@@ -315,7 +315,7 @@ class bigscore(ArithmeticSupported):
                 limb /= m
                 rem[:] = val
                 rem %= m
-            self._last_rem = self.__class__()
+            self._last_rem = type(self)()
             self._last_rem[:] = 0
             self._last_rem.get_limb(0)[:] = rem
             return self
@@ -330,7 +330,7 @@ class bigscore(ArithmeticSupported):
                 limb /= other
                 rem[:] = val
                 rem %= other
-            self._last_rem = self.__class__()
+            self._last_rem = type(self)()
             self._last_rem[:] = 0
             self._last_rem.get_limb(0)[:] = rem
             return self
@@ -338,11 +338,11 @@ class bigscore(ArithmeticSupported):
             if self.size != other.size or self._base != other._base:
                 raise ValueError("Incompatible bigscore division")
 
-            q = self.__class__()
-            r = self.__class__()
+            q = type(self)()
+            r = type(self)()
             r[:] = 0
 
-            d_shifted = self.__class__(size=self.size + 1)
+            d_shifted = type(self)(size=self.size + 1)
             d_shifted[:] = other
 
             total_bits = self.size * 14
@@ -441,7 +441,7 @@ class bigscore(ArithmeticSupported):
         if isinstance(other, bigscore) and self.size == other.size and getattr(self, "multiplier", 1) == getattr(other,
                                                                                                                  "multiplier",
                                                                                                                  1):
-            temp = self.__class__()
+            temp = type(self)()
             temp[:] = self
             temp.__isub__(other)
 
@@ -458,7 +458,7 @@ class bigscore(ArithmeticSupported):
         if (isinstance(other, bigscore) and self.size == other.size and getattr(self, "multiplier", 1) == getattr(other,
                                                                                                                   "multiplier",
                                                                                                                   1)):
-            temp = self.__class__()
+            temp = type(self)()
             temp[:] = self
             temp.__isub__(other)
 

@@ -159,7 +159,7 @@ class nbt:
 
     def __getattr__(self, name):
         if name.startswith("_"):
-            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+            raise AttributeError(f"'{"NBTType"}' object has no attribute '{name}'")
         if self.is_number():
             raise AttributeError("Cannot chain path on NBT numbers")
         new_path = f"{self._path}.{name}" if self._path else name

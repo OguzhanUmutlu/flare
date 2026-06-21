@@ -41,7 +41,7 @@ class float32(ArithmeticSupported):
                 self[:] = self._value_to_set
 
     def _create_var(self, varid: str):
-        return self.__class__(addr=f"{varid} {vars_obj}")
+        return float32(addr=f"{varid} {vars_obj}")
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
         if is_recursive:
@@ -52,7 +52,7 @@ class float32(ArithmeticSupported):
             if self._value_to_set is not None:
                 self[:] = self._value_to_set
         else:
-            dest = self.__class__(addr=f"{varid} {vars_obj}")
+            dest = float32(addr=f"{varid} {vars_obj}")
             dest[:] = self
             return dest
         return self
@@ -186,7 +186,7 @@ class float32(ArithmeticSupported):
     def __imul__(self, other):
         self._check_addr()
         if isinstance(other, (int, float)):
-            t = self.__class__(other)
+            t = float32(other)
             return self.__imul__(t)
 
         if isinstance(other, float32):
@@ -222,7 +222,7 @@ class float32(ArithmeticSupported):
     def __idiv__(self, other, c_pow2_addr=None):
         self._check_addr()
         if isinstance(other, (int, float)):
-            t = self.__class__(other)
+            t = float32(other)
             return self.__idiv__(t)
 
         if isinstance(other, float32):
@@ -316,11 +316,11 @@ class float32(ArithmeticSupported):
         bits /= 2
         bits += getscore(0x1fbd1df5)
         
-        res = self.__class__(addr=f"!f32_sqrt_{next_temp_id()}")
+        res = float32(addr=f"!f32_sqrt_{next_temp_id()}")
         res.from_bits(bits)
         
-        two = self.__class__(2.0)
-        temp = self.__class__(addr=f"!f32_sqtmp_{next_temp_id()}")
+        two = float32(2.0)
+        temp = float32(addr=f"!f32_sqtmp_{next_temp_id()}")
         temp[:] = self
         temp /= res
         res += temp
@@ -334,31 +334,31 @@ class float32(ArithmeticSupported):
         temp_bits[:] = getscore(0x5f3759df)
         temp_bits -= bits
         
-        y = self.__class__(addr=f"!f32_rsqrt_y_{next_temp_id()}")
+        y = float32(addr=f"!f32_rsqrt_y_{next_temp_id()}")
         y.from_bits(temp_bits)
         
-        half_x = self.__class__(addr=f"!f32_hx_{next_temp_id()}")
+        half_x = float32(addr=f"!f32_hx_{next_temp_id()}")
         half_x[:] = self
-        half_x /= self.__class__(2.0)
+        half_x /= float32(2.0)
         
-        temp = self.__class__(addr=f"!f32_y2_{next_temp_id()}")
+        temp = float32(addr=f"!f32_y2_{next_temp_id()}")
         temp[:] = y
         temp *= y
         temp *= half_x
         
-        one_point_five = self.__class__(1.5)
+        one_point_five = float32(1.5)
         one_point_five -= temp
         y *= one_point_five
         return y
 
 
     def __sin__(self):
-        pi = self.__class__(math.pi)
-        two_pi = self.__class__(math.pi * 2)
+        pi = float32(math.pi)
+        two_pi = float32(math.pi * 2)
 
         x = self.__icopy__(f"!f32_sin_x_{next_temp_id()}")
         
-        x_div_2pi = self.__class__(addr=f"!f32_sin_xdiv_{next_temp_id()}")
+        x_div_2pi = float32(addr=f"!f32_sin_xdiv_{next_temp_id()}")
         x_div_2pi[:] = x
         x_div_2pi /= two_pi
         x_div_2pi = x_div_2pi.__floor__()
@@ -367,11 +367,11 @@ class float32(ArithmeticSupported):
 
         is_neg = score(0, addr=f"!f32_sin_neg_{next_temp_id()}")
         
-        sub = self.__class__(addr=f"!f32_sin_s_{next_temp_id()}")
+        sub = float32(addr=f"!f32_sin_s_{next_temp_id()}")
         sub[:] = x
         sub -= pi
         
-        cond_pi = self.__class__(addr=f"!f32_sin_cpi_{next_temp_id()}")
+        cond_pi = float32(addr=f"!f32_sin_cpi_{next_temp_id()}")
         cond_pi[:] = 0
         ScoreIfMatches(sub._sign, 1).then([
             lambda: is_neg.__iset__(1),
@@ -381,21 +381,21 @@ class float32(ArithmeticSupported):
         ])
         x -= cond_pi
         
-        term = self.__class__(addr=f"!f32_sin_t_{next_temp_id()}")
+        term = float32(addr=f"!f32_sin_t_{next_temp_id()}")
         term[:] = pi
         term -= x
         term *= x
 
-        c1 = self.__class__((5.0 / 16.0) * math.pi * math.pi)
-        c2 = self.__class__(0.25)
+        c1 = float32((5.0 / 16.0) * math.pi * math.pi)
+        c2 = float32(0.25)
         
-        denom = self.__class__(addr=f"!f32_sin_d_{next_temp_id()}")
+        denom = float32(addr=f"!f32_sin_d_{next_temp_id()}")
         denom[:] = term
         denom *= c2
-        denom *= self.__class__(-1.0)
+        denom *= float32(-1.0)
         denom += c1
         
-        result = self.__class__(addr=f"!f32_sin_r_{next_temp_id()}")
+        result = float32(addr=f"!f32_sin_r_{next_temp_id()}")
         result[:] = term
         result /= denom
 
@@ -403,25 +403,25 @@ class float32(ArithmeticSupported):
         return result
 
     def __cos__(self):
-        half_pi = self.__class__(math.pi / 2.0)
-        temp = self.__class__(addr=f"!f32_cos_t_{next_temp_id()}")
+        half_pi = float32(math.pi / 2.0)
+        temp = float32(addr=f"!f32_cos_t_{next_temp_id()}")
         temp[:] = self
         temp += half_pi
         return temp.__sin__()
 
     def __exp__(self):
-        x = self.__class__(addr=f"!f32_exp_x_{next_temp_id()}")
+        x = float32(addr=f"!f32_exp_x_{next_temp_id()}")
         x[:] = self
-        x /= self.__class__(16.0)
+        x /= float32(16.0)
 
-        c2 = self.__class__(1.0 / 2.0)
-        c3 = self.__class__(1.0 / 6.0)
-        c4 = self.__class__(1.0 / 24.0)
-        c5 = self.__class__(1.0 / 120.0)
-        c6 = self.__class__(1.0 / 720.0)
-        c7 = self.__class__(1.0 / 5040.0)
+        c2 = float32(1.0 / 2.0)
+        c3 = float32(1.0 / 6.0)
+        c4 = float32(1.0 / 24.0)
+        c5 = float32(1.0 / 120.0)
+        c6 = float32(1.0 / 720.0)
+        c7 = float32(1.0 / 5040.0)
 
-        term = self.__class__(addr=f"!f32_exp_t_{next_temp_id()}")
+        term = float32(addr=f"!f32_exp_t_{next_temp_id()}")
         term[:] = x
         term *= c7
         
@@ -440,28 +440,28 @@ class float32(ArithmeticSupported):
         term += c2
         term *= x
         
-        term += self.__class__(1.0)
+        term += float32(1.0)
         term *= x
         
-        term += self.__class__(1.0)
+        term += float32(1.0)
 
-        term *= self.__class__(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
-        term *= self.__class__(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
-        term *= self.__class__(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
-        term *= self.__class__(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
+        term *= float32(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
+        term *= float32(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
+        term *= float32(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
+        term *= float32(addr=f"!f32_exp_cp_{next_temp_id()}").__iset__(term)
         return term
 
     def __log__(self):
-        guess = self.__class__(1.0)
-        two = self.__class__(2.0)
+        guess = float32(1.0)
+        two = float32(2.0)
         for _ in range(5):
             e_y = guess.__exp__()
-            num = self.__class__(addr=f"!f32_log_n_{next_temp_id()}")
+            num = float32(addr=f"!f32_log_n_{next_temp_id()}")
             num[:] = self
             num -= e_y
             num *= two
             
-            den = self.__class__(addr=f"!f32_log_d_{next_temp_id()}")
+            den = float32(addr=f"!f32_log_d_{next_temp_id()}")
             den[:] = self
             den += e_y
             
@@ -473,7 +473,7 @@ class float32(ArithmeticSupported):
         if ndigits is not None and ndigits != 0:
             raise ValueError("Rounding to specific digits is unsupported to preserve minimalism")
         self._check_addr()
-        res = self.__class__()
+        res = float32()
         res[:] = self
 
         k = score(23, addr="!k")
@@ -519,7 +519,7 @@ class float32(ArithmeticSupported):
 
     def __floor__(self):
         self._check_addr()
-        res = self.__class__()
+        res = float32()
         res[:] = self
 
         k = score(23, addr="!k")
@@ -557,7 +557,7 @@ class float32(ArithmeticSupported):
 
     def __ceil__(self):
         self._check_addr()
-        res = self.__class__()
+        res = float32()
         res[:] = self
 
         k = score(23, addr="!k")

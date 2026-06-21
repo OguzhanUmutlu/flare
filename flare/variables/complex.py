@@ -14,7 +14,7 @@ class complex(ArithmeticSupported):
 
     def _alloc_temp(self):
         tid = next_temp_id()
-        t = self.__class__(self.real.__class__(addr=f"!tr{tid} {temp_obj}"),
+        t = type(self)(self.real.__class__(addr=f"!tr{tid} {temp_obj}"),
                            self.imag.__class__(addr=f"!ti{tid} {temp_obj}"))
         return t
 
