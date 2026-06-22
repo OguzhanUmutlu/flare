@@ -10,6 +10,12 @@ _orig = {"floor": math.floor, "ceil": math.ceil, "round": builtins.round, "sqrt"
 
 def _dispatch(name, *args):
     x = args[0]
+    if hasattr(x, "_eval_into"):
+        leaf = x._best_leaf()
+        temp = leaf._alloc_temp()
+        x._eval_into(temp)
+        x = temp
+        args = (x,) + args[1:]
     if hasattr(x, f"__{name}__"):
         return getattr(x, f"__{name}__")(*args[1:])
     return _orig[name](*args)

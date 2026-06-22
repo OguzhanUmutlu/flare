@@ -35,13 +35,13 @@ class nbt:
     def _alloc_temp(self):
         t = nbt(addr=f"flare:temp !t{next_temp_id()}", datatype=self._type, schema_node=self._schema_node)
         if hasattr(self, "_inner_type") and getattr(self, "_inner_type") is not None:
-            t = nbt[self._inner_type](addr=t._addr, schema_node=t._schema_node)
+            t = type(self)(addr=t._addr, schema_node=t._schema_node)
         return t
 
     def _create_var(self, varid: str):
         t = nbt(addr=f"flare:vars {varid}", datatype=self._type, schema_node=self._schema_node)
         if hasattr(self, "_inner_type") and getattr(self, "_inner_type") is not None:
-            t = nbt[self._inner_type](addr=t._addr, schema_node=t._schema_node)
+            t = type(self)(addr=t._addr, schema_node=t._schema_node)
         return t
 
     def __str__(self):
@@ -187,20 +187,16 @@ class nbt:
             target[:] = value
 
     def __getitem__(self, item):
-        if isinstance(item, type) or item is None:
+        is_type = isinstance(item, type) or getattr(item, "__origin__", typing.get_origin(item)) is not None or isinstance(item, NBTType)
+        if is_type or item is None:
             if self._type is not None and item is not None:
                 raise TypeError(
                     f"Cannot cast an NBT type that already has a specific datatype ({self._type.name}). Cast to None first.")
 
-            nbt_type = item
-            if nbt_type is not None and not isinstance(nbt_type, NBTType):
-                check_val = nbt_type.__name__ if isinstance(nbt_type, type) else str(nbt_type)
-                for enum_val in NBTType:
-                    if enum_val.value == check_val or enum_val.name == check_val:
-                        nbt_type = enum_val
-                        break
-
-            return nbt(addr=f"{self._target_type} {self._target} {self._path}".strip(), datatype=nbt_type)
+            if item is None:
+                return nbt(addr=f"{self._target_type} {self._target} {self._path}".strip(), datatype=None)
+                
+            return nbt[item](addr=f"{self._target_type} {self._target} {self._path}".strip())
 
         if self.is_number():
             raise TypeError("Cannot chain path on NBT numbers")
@@ -388,6 +384,11 @@ class nbt:
     def __iset__(self, other):
         self._check_addr()
         if hasattr(type(other), "_eval_into"):
+            leaf = other._best_leaf()
+            if leaf is not None and type(leaf).__name__ != "nbt":
+                temp = leaf._alloc_temp()
+                other._eval_into(temp)
+                return self.__iset__(temp)
             other._eval_into(self)
             return self
         if isinstance(other, (_score(), nbt)):
@@ -839,6 +840,72 @@ class nbt:
 
     def prepend(self, other):
         return self.insert(0, other)
+
+    def _do_mathp(self, other, multiplier: float, op: str):
+        self._check_addr()
+        if not self.is_number():
+            raise TypeError(f"Cannot perform arithmetic on {self._type.name.lower() if self._type else 'untyped NBT'}")
+
+        temp_self = _score()(addr=f"!mathp0 {ctx.temp_obj}", multiplier=multiplier)
+
+        runcommand(f"execute store result score {addr(temp_self)} run data get {addr(self)} {multiplier}")
+
+        if isinstance(other, (int, float)):
+            other_score = _score()(other, multiplier=multiplier)
+            if op == "+": temp_self += other_score
+            elif op == "-": temp_self -= other_score
+            elif op == "*": temp_self *= other_score
+            elif op == "/": temp_self /= other_score
+            elif op == "%": temp_self %= other_score
+            elif op == "max": temp_self.__imax__(other_score)
+            elif op == "min": temp_self.__imin__(other_score)
+        elif isinstance(other, _score()):
+            if op == "+": temp_self += other
+            elif op == "-": temp_self -= other
+            elif op == "*": temp_self *= other
+            elif op == "/": temp_self /= other
+            elif op == "%": temp_self %= other
+            elif op == "max": temp_self.__imax__(other)
+            elif op == "min": temp_self.__imin__(other)
+        elif isinstance(other, nbt):
+            other._check_addr()
+            if not other.is_number():
+                raise TypeError("Cannot perform arithmetic on non-number NBT")
+            temp_other = _score()(addr=f"!mathp1 {ctx.temp_obj}", multiplier=multiplier)
+            runcommand(f"execute store result score {addr(temp_other)} run data get {addr(other)} {multiplier}")
+            if op == "+": temp_self += temp_other
+            elif op == "-": temp_self -= temp_other
+            elif op == "*": temp_self *= temp_other
+            elif op == "/": temp_self /= temp_other
+            elif op == "%": temp_self %= temp_other
+            elif op == "max": temp_self.__imax__(temp_other)
+            elif op == "min": temp_self.__imin__(temp_other)
+        else:
+            raise TypeError("Unsupported operand type")
+
+        runcommand(f"execute store result {addr(self)} {self._store_type} {1.0 / multiplier} run scoreboard players get {addr(temp_self)}")
+        return self
+
+    def addp(self, other, multiplier: float):
+        return self._do_mathp(other, multiplier, "+")
+
+    def subp(self, other, multiplier: float):
+        return self._do_mathp(other, multiplier, "-")
+
+    def mulp(self, other, multiplier: float):
+        return self._do_mathp(other, multiplier, "*")
+
+    def divp(self, other, multiplier: float):
+        return self._do_mathp(other, multiplier, "/")
+
+    def modp(self, other, multiplier: float):
+        return self._do_mathp(other, multiplier, "%")
+
+    def maxp(self, other, multiplier: float):
+        return self._do_mathp(other, multiplier, "max")
+
+    def minp(self, other, multiplier: float):
+        return self._do_mathp(other, multiplier, "min")
 
     def __repr__(self):
         return f"NBT[{self._type}](addr=\"{addr(self)}\")"
