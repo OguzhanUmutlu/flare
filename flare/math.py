@@ -78,6 +78,8 @@ def exp(x): return _dispatch("exp", x)
 def atan2(y, x):
     if hasattr(y, "__atan2__"):
         return y.__atan2__(x)
+    if hasattr(x, "_addr") and isinstance(y, (int, float)):
+        return type(x)(y).__atan2__(x)
     return _orig["atan2"](y, x)
 
 
@@ -202,6 +204,18 @@ def fastsin(x):
     if hasattr(x, "__fastsin__"):
         return x.__fastsin__()
     return sin(x)
+
+
+def fastsqrt(x):
+    if hasattr(x, "fastsqrt"):
+        return x.fastsqrt()
+    return sqrt(x)
+
+
+def rsqrt(x):
+    if hasattr(x, "rsqrt"):
+        return x.rsqrt()
+    return 1 / sqrt(x)
 
 
 math.floor = floor

@@ -22,9 +22,10 @@ No entity was found for selector s
 Killed 0 entities
 No entity was found for selector s
 --- Big Types ---
-bigscore(size=2, base=10000)
-bigfixed(size=2, multiplier=1.0)
-Double(addr=!print_X __pack__vars__)
+4
+4
+6.28000020
+4.0769999999999999
 --- Math Functions ---
 0
 8402

@@ -15,7 +15,7 @@ class complex(ArithmeticSupported):
     def _alloc_temp(self):
         tid = next_temp_id()
         t = type(self)(self.real.__class__(addr=f"!tr{tid} {temp_obj}"),
-                           self.imag.__class__(addr=f"!ti{tid} {temp_obj}"))
+                       self.imag.__class__(addr=f"!ti{tid} {temp_obj}"))
         return t
 
     def _create_var(self, varid: str):
@@ -115,5 +115,21 @@ class complex(ArithmeticSupported):
     def __ceil__(self):
         return complex(math.ceil(self.real), math.ceil(self.imag))
 
+    def __print__(self):
+        from ..context import _to_print_component  # avoid circular import
+        comps = []
+        if hasattr(self.real, "__print__"):
+            comps.extend(self.real.__print__())
+        else:
+            comps.extend(_to_print_component(self.real, 0))
+        comps.append({"text": " + "})
+        if hasattr(self.imag, "__print__"):
+            comps.extend(self.imag.__print__())
+        else:
+            comps.extend(_to_print_component(self.imag, 1))
+        comps.append({"text": "i"})
+        return comps
+
     def __repr__(self):
+
         return f"({self.real} + {self.imag}j)"

@@ -5,14 +5,14 @@ from math import inf
 from .core import UnsupportedOperandError, BinaryOp, ArithmeticSupported
 from .score import score
 from .. import context as ctx
-from ..context import temp_obj, vars_obj, ensure_objective, next_temp_id
+from ..context import temp_obj, ensure_objective
+from ..context import temp_storage, runcommand, next_temp_id, vars_obj
 from ..control_flow import ScoreIfMatches
 
 BASE = 10000
 
 
 def _get_temps():
-    from .score import score
     return (
         score(addr=f"!rem {temp_obj}"),
         score(addr=f"!val {temp_obj}"),
@@ -339,6 +339,7 @@ class bigscore(ArithmeticSupported):
                 raise ValueError("Incompatible bigscore division")
 
             q = type(self)()
+            q._check_addr()
             r = type(self)()
             r[:] = 0
 
@@ -375,19 +376,19 @@ class bigscore(ArithmeticSupported):
 
                 ScoreIfMatches(borrow, 0).then(lambda: q.get_limb(0).__iadd__(1))
 
-                def restore_borrow():
-                    carry[:] = 0
-                    for i in range(self.size):
-                        r_limb = r.get_limb(i)
-                        r_limb += d_shifted.get_limb(i)
-                        r_limb += carry
-                        carry[:] = 0
-                        ScoreIfMatches(r_limb, (self._base, inf)).then([
-                            lambda: carry.__iset__(1),
-                            lambda: r_limb.__isub__(self._base)
-                        ])
+                borrow_cond = ScoreIfMatches(borrow, 1)
+                borrow_cond.then(lambda: carry.__iset__(0))
+                for i in range(self.size):
+                    r_limb = r.get_limb(i)
+                    dsh_limb = d_shifted.get_limb(i)
+                    borrow_cond.then(lambda r_limb=r_limb, dsh_limb=dsh_limb: r_limb.__iadd__(dsh_limb))
+                    borrow_cond.then(lambda r_limb=r_limb: r_limb.__iadd__(carry))
+                    borrow_cond.then(lambda: carry.__iset__(0))
+                    nested_cond = borrow_cond & ScoreIfMatches(r_limb, (self._base, inf))
+                    nested_cond.then(lambda: carry.__iset__(1))
+                    nested_cond.then(lambda r_limb=r_limb: r_limb.__isub__(self._base))
 
-                ScoreIfMatches(borrow, 1).then(restore_borrow)
+                carry[:] = 0
 
                 carry[:] = 0
                 for i in reversed(range(self.size)):
@@ -479,7 +480,56 @@ class bigscore(ArithmeticSupported):
             return self
         raise UnsupportedOperandError(self, "><", other)
 
+    def __print__(self):
+
+        self._check_addr()
+        tid = next_temp_id()
+        started = score(0, addr=f"!print_s_{tid} {vars_obj}")
+        comps = []
+
+        for i in reversed(range(self.size)):
+            limb = self.get_limb(i)
+            lname, lobj = limb._addr.split(" ", 1)
+            pad_path = f"__bsp_{tid}_{i}"
+            val_path = f"__bsv_{tid}_{i}"
+
+            runcommand(
+                f"execute store result storage {temp_storage} {val_path} int 1 run scoreboard players get {limb._addr}")
+
+            if i < self.size - 1:
+                runcommand(
+                    f"execute if score {limb._addr} matches 0..9    run data modify storage {temp_storage} {pad_path} set value '000'")
+                runcommand(
+                    f"execute if score {limb._addr} matches 10..99   run data modify storage {temp_storage} {pad_path} set value '00'")
+                runcommand(
+                    f"execute if score {limb._addr} matches 100..999  run data modify storage {temp_storage} {pad_path} set value '0'")
+                runcommand(
+                    f"execute if score {limb._addr} matches 1000..    run data modify storage {temp_storage} {pad_path} set value ''")
+            else:
+                runcommand(f"data modify storage {temp_storage} {pad_path} set value ''")
+                runcommand(
+                    f"execute if score {started._addr} matches 0 if score {limb._addr} matches 0 run data remove storage {temp_storage} {val_path}")
+
+            if i < self.size - 1:
+                runcommand(
+                    f"execute if score {started._addr} matches 0 run data modify storage {temp_storage} {pad_path} set value ''")
+                runcommand(
+                    f"execute if score {started._addr} matches 0 if score {limb._addr} matches 0 run data remove storage {temp_storage} {val_path}")
+
+            runcommand(f"execute if score {limb._addr} matches 1.. run scoreboard players set {started._addr} 1")
+
+            comps.append({"nbt": pad_path, "storage": str(temp_storage)})
+            comps.append({"nbt": val_path, "storage": str(temp_storage)})
+
+        runcommand(
+            f"execute if score {started._addr} matches 0 run data modify storage {temp_storage} __bs0_{tid} set value '0'")
+        runcommand(f"execute if score {started._addr} matches 1 run data remove storage {temp_storage} __bs0_{tid}")
+        comps.append({"nbt": f"__bs0_{tid}", "storage": str(temp_storage)})
+
+        return comps
+
     def __repr__(self):
+
         return f"bigscore(size={self.size}, base={self._base})"
 
 
@@ -500,5 +550,9 @@ class bigfixed(bigscore):
 
         return _TypedBigFixed
 
+    def __print__(self):
+        return super().__print__()
+
     def __repr__(self):
+
         return f"bigfixed(size={self.size}, multiplier={self._multiplier})"

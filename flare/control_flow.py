@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from typing import Callable
 from math import isinf
+from typing import Callable
 
 from . import context as ctx
 from .context import namespace
-
 from .context import push_context, runcommand, temp_obj, next_temp_id, next_func_id
 from .execute_modifiers import ExecuteChain
-from .variables.score import score
 from .variables.core import addr
+from .variables.score import score
 
 
 class ScoreIf:
@@ -29,7 +28,7 @@ class ScoreIf:
                 s[i]()
                 commands = ctx.files[ctx.current_file][file_len:]
                 if len(commands) != 1:
-                    raise AssertionError("Expected a single command in ScoreIf .then action")
+                    raise AssertionError(f"Expected a single command in ScoreIf .then action, got {commands}")
                 ctx.files[ctx.current_file] = ctx.files[ctx.current_file][:file_len]
                 s[i] = commands[0]
 
@@ -42,6 +41,17 @@ class ScoreIf:
             conds = [str(x).removeprefix("execute ").removesuffix(" run ") for x in self.t]
             return f"execute {' '.join(conds)} run "
         raise NotImplementedError("ScoreIf.__str__ is not implemented")
+
+    def __branch__(self, invert=False):
+        from .compiler import _eval_to_bool_score  # avoid circular import
+        if invert:
+            dest = _eval_to_bool_score(self)
+            return [f"unless score {addr(dest)} matches 1"]
+
+        if isinstance(self.t, list):
+            return [str(x).removeprefix("execute ").removesuffix(" run ") for x in self.t]
+
+        return [str(self).removeprefix("execute ").removesuffix(" run ")]
 
 
 class ScoreIfMatches(ScoreIf):
@@ -64,6 +74,7 @@ class ScoreIfMatches(ScoreIf):
             st = f"{a}.."
         return f"execute if score {addr(self.t)} matches {st} run "
 
+
 class ScoreIfScore(ScoreIf):
     def __init__(self, t: score, op: str, t2: score):
         super().__init__([])
@@ -73,6 +84,7 @@ class ScoreIfScore(ScoreIf):
 
     def __str__(self):
         return f"execute if score {addr(self.t)} {self.op} {addr(self.t2)} run "
+
 
 def _has_early_return(func_name):
     for cmd in ctx.files.get(func_name, []):
@@ -112,6 +124,7 @@ class expand:
     def __init__(self, cond):
         self.cond = cond
 
+
 def _flare_if(*args):
     n = len(args) // 2
     conditions = args[:n]
@@ -147,16 +160,17 @@ def _flare_if(*args):
             break
 
         cond = cond_func()
-        
+
         is_expand = isinstance(cond, expand)
         if is_expand:
             cond = cond.cond
-            
+
         current_is_dynamic = not isinstance(cond, bool)
         if is_dynamic_chain is None:
             is_dynamic_chain = current_is_dynamic
         elif is_dynamic_chain != current_is_dynamic:
-            raise TypeError("Cannot mix compile-time (static) and run-time (dynamic) conditions in the same if/elif chain. Please use nested if statements instead.")
+            raise TypeError(
+                "Cannot mix compile-time (static) and run-time (dynamic) conditions in the same if/elif chain. Please use nested if statements instead.")
 
         if isinstance(cond, bool):
             if not cond:
@@ -180,7 +194,7 @@ def _flare_if(*args):
                     body_func()
                 break
 
-        from .compiler import _flatten_and
+        from .compiler import _flatten_and  # avoid circular import
         conds = _flatten_and(cond)
         prefix = f"execute {' '.join(conds)}"
 
@@ -217,12 +231,14 @@ def _flare_if(*args):
                     _invoke_block(func_name, prefix[8:] if prefix.startswith("execute ") else "")
 
 
-def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_continue=False):
-    func_name = f"{ctx._current_namespace}:while_{ctx.next_func_id()}"
+def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_continue=False, namespace=None):
+    from .compiler import _flatten_and  # avoid circular import
+    ns = namespace or ctx._current_namespace
+    func_name = f"{ns}:while_{ctx.next_func_id()}"
 
     with push_context(func_name):
         if has_break or has_continue:
-            func_body = f"{ctx._current_namespace}:while_body_{ctx.next_func_id()}"
+            func_body = f"{ns}:while_body_{ctx.next_func_id()}"
             with push_context(func_body):
                 body_func()
 
@@ -234,7 +250,6 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
             body_func()
 
         cond = cond_func()
-        from .compiler import _flatten_and
         conds = _flatten_and(cond)
         prefix = f"execute {' '.join(conds)}"
         _invoke_block(func_name, " ".join(conds))
@@ -243,9 +258,7 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
         runcommand(f"scoreboard players set !break {temp_obj} 0")
 
     cond_init = cond_func()
-    from .compiler import _flatten_and
     conds_init = _flatten_and(cond_init)
-    prefix_init = f"execute {' '.join(conds_init)}"
     ret_temp_init = score(addr=f"!ret{ctx.next_temp_id()} {temp_obj}")
     runcommand(f"execute store result score {addr(ret_temp_init)} {' '.join(conds_init)} run function {func_name}")
     runcommand(f"execute if score {addr(ret_temp_init)} matches 1 run return 1")

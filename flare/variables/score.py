@@ -22,7 +22,7 @@ def getscore(x: int | float, multiplier: float = 1.0):
         return constants[(x, multiplier)]
 
     val = int(round(x / multiplier))
-    name = f"{x}_{multiplier}"
+    name = f"!_{x}_{multiplier}".replace('.', '_').replace('-', 'n')
 
     ctx.ensure_constant(name, constant_obj, val)
     constants[(x, multiplier)] = score(addr=f"{name} {constant_obj}", multiplier=multiplier)
@@ -304,6 +304,9 @@ class score(ArithmeticSupported):
             res = (res * res).__icopy__("!exp_res")
         return res
 
+    def fastsqrt(self):
+        return self.__sqrt__()
+
     def __sqrt__(self):
         guess = getscore(1.0, multiplier=self._multiplier)
         half = getscore(0.5, multiplier=self._multiplier)
@@ -404,7 +407,11 @@ class score(ArithmeticSupported):
         temp = score(addr="!div0", multiplier=1.0)
         if isinstance(other, (score, _nbt())):
             other._check_addr()
-        if isinstance(other, (int, float)):
+        if isinstance(other, int) or (isinstance(other, float) and other.is_integer()):
+            other = int(other)
+            runcommand(f"scoreboard players operation {addr(self)} /= {getscore(other)._addr}")
+            return self
+        if isinstance(other, float):
             self *= 1.0 / other
             return self
         if isinstance(other, _nbt()):

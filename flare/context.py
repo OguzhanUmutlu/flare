@@ -179,47 +179,78 @@ def dbg(*args):
     _flare_print(*args)
 
 
+def _invoke_stdlib(func_name, inputs, outputs, generator):
+    safe_func_name = func_name.replace(":", "_")
+    std_inputs = {k: type(v)(addr=f"!{safe_func_name}_{k} __flare_stdlib__") for k, v in inputs.items()}
+    std_outputs = {k: type(v)(addr=f"!{safe_func_name}_{k} __flare_stdlib__") for k, v in outputs.items()}
+
+    if func_name not in files:
+        with push_context(func_name):
+            generator(std_inputs, std_outputs)
+
+    for k, v in inputs.items():
+        std_inputs[k][:] = v
+    runcommand(f"function {func_name}")
+    for k, v in outputs.items():
+        v[:] = std_outputs[k]
+
+
+from .variables import score, nbt  # avoid circular import
+from .variables.core import addr  # avoid circular import
+
+
+def _to_print_component(arg, i):
+    if hasattr(arg, "__print__"):
+        p = arg.__print__()
+        if isinstance(p, list):
+            return p
+        return [p]
+
+    if hasattr(arg, "__icopy__") and getattr(type(arg), "__name__", "") in ("BinaryOp", "UnaryOp"):
+        global _temp_id
+        arg = arg.__icopy__(f"!print_{_temp_id}")
+        _temp_id += 1
+        if hasattr(arg, "__print__"):
+            p = arg.__print__()
+            return p if isinstance(p, list) else [p]
+
+    if isinstance(arg, score):
+        if getattr(arg, "multiplier", 1.0) != 1.0:
+            scale_str = f"{arg._multiplier:.15f}".rstrip("0")
+            if scale_str.endswith("."):
+                scale_str += "0"
+            runcommand(
+                f"execute store result storage {temp_storage} __flare_debug_{i} double {scale_str} run scoreboard players get {addr(arg)}")
+            return [{"nbt": f"__flare_debug_{i}", "storage": str(temp_storage)}]
+        else:
+            name, obj = arg._addr.split(" ", 1)
+            return [{"score": {"name": name, "objective": obj}}]
+    elif isinstance(arg, nbt):
+        nbt_comp = {"nbt": arg._path or "{}"}
+        if arg._path == "":
+            nbt_comp["nbt"] = "{}"
+
+        if arg._target_type == "storage":
+            nbt_comp["storage"] = arg._target
+        elif arg._target_type == "entity":
+            nbt_comp["entity"] = arg._target
+        elif arg._target_type == "block":
+            nbt_comp["block"] = arg._target
+
+        if arg._path == "":
+            nbt_comp["nbt"] = "{}"
+
+        return [nbt_comp]
+    else:
+        return [{"text": str(arg)}]
+
+
 def _flare_print(*args):
-    from .variables import score, nbt  # avoid circular import
     components = []
     for i, arg in enumerate(args):
         if i > 0:
             components.append({"text": " "})
-
-        if hasattr(arg, "__icopy__") and getattr(type(arg), "__name__", "") in ("BinaryOp", "UnaryOp"):
-            global _temp_id
-            arg = arg.__icopy__(f"!print_{_temp_id}")
-            _temp_id += 1
-
-        if isinstance(arg, score):
-            if getattr(arg, "multiplier", 1.0) != 1.0:
-                scale_str = f"{arg._multiplier:.15f}".rstrip("0")
-                if scale_str.endswith("."):
-                    scale_str += "0"
-                runcommand(
-                    f"execute store result storage {temp_storage} __flare_debug_{i} double {scale_str} run scoreboard players get {addr(arg)}")
-                components.append({"nbt": f"__flare_debug_{i}", "storage": str(temp_storage)})
-            else:
-                name, obj = arg._addr.split(" ", 1)
-                components.append({"score": {"name": name, "objective": obj}})
-        elif isinstance(arg, nbt):
-            nbt_comp = {"nbt": arg._path or "{}"}
-            if arg._path == "":
-                nbt_comp["nbt"] = "{}"
-
-            if arg._target_type == "storage":
-                nbt_comp["storage"] = arg._target
-            elif arg._target_type == "entity":
-                nbt_comp["entity"] = arg._target
-            elif arg._target_type == "block":
-                nbt_comp["block"] = arg._target
-
-            if arg._path == "":
-                nbt_comp["nbt"] = "{}"
-
-            components.append(nbt_comp)
-        else:
-            components.append({"text": str(arg)})
+        components.extend(_to_print_component(arg, i))
 
     if len(components) == 1:
         comp = components[0]
@@ -234,8 +265,6 @@ def _flare_print(*args):
 
 
 def export(func=None, *, name=None, append=False, returns=None):
-    from flare import score  # avoid circular import
-
     if isinstance(func, str):
         name = func
         func = None
@@ -296,11 +325,9 @@ def export(func=None, *, name=None, append=False, returns=None):
 
     class ProxyFunction:
         def __call__(self, *args, **call_kwargs):
-            from .variables import score, nbt  # avoid circular import
             global _temp_id
             bound = sig.bind(*args, **call_kwargs)
             bound.apply_defaults()
-            from .variables.core import addr
             for arg_name, arg_val in bound.arguments.items():
                 target = kwargs[arg_name]
 
@@ -446,7 +473,6 @@ def _flare_aug_assign(var_name, op_name, value, _locals, _globals):
 
 
 def _flare_return(value):
-    from .variables import score, nbt  # avoid circular import
     func_name = _logical_func
     if func_name is None:
         raise Exception("Return outside of exported function")

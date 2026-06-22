@@ -18,6 +18,9 @@ c = a * b
 d = float64(3.14159)
 ```
 
+> [!WARNING]
+> **Performance Impact**: `float32` and `float64` are fully software-emulated using arrays of 32-bit scoreboards. Because Minecraft lacks native floating point math, operations like multiplication, division, and transcendental math (`sin`, `exp`, etc.) on these types generate extremely large numbers of commands. They are provided as proof-of-concepts for when true arbitrary precision is absolutely necessary. For general game logic and performance-sensitive code, it is highly recommended to use `fixed` points or standard scaled `score`s instead.
+
 ## The `math` Standard Library
 
 Flare comes bundled with a highly-optimized math framework that seamlessly hooks into standard Python modules. Because the Flare compiler automatically patches the built-in modules behind the scenes, you don't even need a special import! You can just use `import math` or `from math import sin` like normal:

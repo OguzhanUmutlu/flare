@@ -69,7 +69,7 @@ class BinaryOp:
         return dest
 
     def __branch__(self, invert=False):
-        from ..compiler import _flatten_and, _compile_relational, _eval_to_bool_score
+        from ..compiler import _flatten_and, _compile_relational, _eval_to_bool_score  # avoid circular import
         if self.op == "and" and not invert:
             return _flatten_and(self.left, invert) + _flatten_and(self.right, invert)
         if self.op == "or" and invert:
@@ -145,7 +145,8 @@ class BinaryOp:
         return UnaryOp(self, "not")
 
     def __bool__(self):
-        raise TypeError("Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
+        raise TypeError(
+            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
 
 
 class UnaryOp:
@@ -200,7 +201,7 @@ class UnaryOp:
         return dest
 
     def __branch__(self, invert=False):
-        from ..compiler import _flatten_and, _eval_to_bool_score
+        from ..compiler import _flatten_and, _eval_to_bool_score  # avoid circular import
         if self.op == "not":
             return _flatten_and(self.operand, not invert)
         if self.op == "neg":
@@ -276,7 +277,8 @@ class UnaryOp:
         return UnaryOp(self, "not")
 
     def __bool__(self):
-        raise TypeError("Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
+        raise TypeError(
+            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
 
 
 class UnsupportedOperandError(Exception):
@@ -362,4 +364,5 @@ class ArithmeticSupported:
         return BinaryOp(other, self, "mod")
 
     def __bool__(self):
-        raise TypeError("Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
+        raise TypeError(
+            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")

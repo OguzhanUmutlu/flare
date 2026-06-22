@@ -5,7 +5,7 @@ import typing
 
 from .core import UnsupportedOperandError, BinaryOp, UnaryOp, addr
 from .. import context as ctx
-from ..context import runcommand, temp_obj, next_temp_id
+from ..context import runcommand, next_temp_id
 from ..nbt_schema import ENTITY_SCHEMA
 from ..types import NBTType
 from ..types import array
@@ -75,7 +75,7 @@ class nbt:
         return dest
 
     def __for__(self, body_func, orelse_func=None, has_break=False, has_continue=False):
-        from ..control_flow import _has_early_return, _invoke_block
+        from ..control_flow import _has_early_return, _invoke_block  # avoid circular import
         if not self.is_sequence():
             raise TypeError("NBT is not iterable")
 
@@ -154,7 +154,7 @@ class nbt:
         return BinaryOp(self, 0, "ne").__branch__(invert)
 
     def store(self):
-        from flare import store
+        from flare import store  # avoid circular import
         return store(self)
 
     def __getattr__(self, name):
@@ -512,7 +512,7 @@ class nbt:
         return UnaryOp(self, "not")
 
     def __in__(self, item):
-        from .score import score
+        from .score import score  # avoid circular import
         res = score(0, addr=f"!in_res{ctx.next_temp_id()} {ctx.temp_obj}")
 
         def body_func(elem):
