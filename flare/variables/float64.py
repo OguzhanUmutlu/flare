@@ -628,11 +628,13 @@ class float64(ArithmeticSupported):
 
             cond_pi = type(x)(addr="!f64_sin_cpi __flare_stdlib__")
             cond_pi[:] = 0
-            ScoreIfMatches(sub._sign, 1).then([lambda: is_neg.__iset__(1),
-                                               lambda: cond_pi._sign.__iset__(pi._sign),
-                                               lambda: cond_pi._exp.__iset__(pi._exp),
-                                               lambda: [cond_pi._mant_hi.__iset__(pi._mant_hi),
-                                                        cond_pi._mant_lo.__iset__(pi._mant_lo)]])
+            ScoreIfMatches(sub._sign, 1).then([
+                lambda: is_neg.__iset__(1),
+                lambda: cond_pi._sign.__iset__(pi._sign),
+                lambda: cond_pi._exp.__iset__(pi._exp),
+                lambda: cond_pi._mant_hi.__iset__(pi._mant_hi),
+                lambda: cond_pi._mant_lo.__iset__(pi._mant_lo)
+            ])
             x -= cond_pi
 
             term = type(x)(addr="!f64_sin_t __flare_stdlib__")
