@@ -249,7 +249,16 @@ class float64(ArithmeticSupported):
         else:
             raise UnsupportedOperandError(self, "-=", other)
         return self
+    def __ineg__(self):
+        self._check_addr()
+        self._sign *= -1
+        return self
 
+    def __neg__(self):
+        res = type(self)()
+        res[:] = self
+        res.__ineg__()
+        return res
     def __imul__(self, other):
         if isinstance(other, (int, float)):
             other = type(self)(other)
@@ -637,24 +646,66 @@ class float64(ArithmeticSupported):
             ])
             x -= cond_pi
 
-            term = type(x)(addr="!f64_sin_t __flare_stdlib__")
-            term[:] = pi
-            term -= x
-            term *= x
+            half_pi = type(x)(math.pi / 2.0)
+            sub_half = type(x)(addr="!f64_sin_sh __flare_stdlib__")
+            sub_half[:] = x
+            sub_half -= half_pi
 
-            c1 = type(x)((5.0 / 16.0) * math.pi * math.pi)
-            c2 = type(x)(0.25)
+            is_reflect = score(0, addr="!f64_sin_isref __flare_stdlib__")
+            ScoreIfMatches(sub_half._sign, 1).then(lambda: is_reflect.__iset__(1))
+            
+            x_reflected = type(x)(addr="!f64_sin_xr __flare_stdlib__")
+            x_reflected[:] = pi
+            x_reflected -= x
+            
+            ScoreIfMatches(is_reflect, 1).then([
+                lambda: x._sign.__iset__(x_reflected._sign),
+                lambda: x._exp.__iset__(x_reflected._exp),
+                lambda: x._mant_hi.__iset__(x_reflected._mant_hi),
+                lambda: x._mant_lo.__iset__(x_reflected._mant_lo)
+            ])
 
-            term_c2 = type(x)(addr="!f64_sin_tc2 __flare_stdlib__")
-            term_c2[:] = term
-            term_c2 *= c2
-
-            denom = type(x)(addr="!f64_sin_denom __flare_stdlib__")
-            denom[:] = c1
-            denom -= term_c2
-
-            res[:] = term
-            res /= denom
+            x2 = type(x)(addr="!f64_sin_x2 __flare_stdlib__"); x2[:] = x; x2 *= x
+            x3 = type(x)(addr="!f64_sin_x3 __flare_stdlib__"); x3[:] = x2; x3 *= x
+            x5 = type(x)(addr="!f64_sin_x5 __flare_stdlib__"); x5[:] = x3; x5 *= x2
+            x7 = type(x)(addr="!f64_sin_x7 __flare_stdlib__"); x7[:] = x5; x7 *= x2
+            x9 = type(x)(addr="!f64_sin_x9 __flare_stdlib__"); x9[:] = x7; x9 *= x2
+            x11 = type(x)(addr="!f64_sin_x11 __flare_stdlib__"); x11[:] = x9; x11 *= x2
+            x13 = type(x)(addr="!f64_sin_x13 __flare_stdlib__"); x13[:] = x11; x13 *= x2
+            x15 = type(x)(addr="!f64_sin_x15 __flare_stdlib__"); x15[:] = x13; x15 *= x2
+            x17 = type(x)(addr="!f64_sin_x17 __flare_stdlib__"); x17[:] = x15; x17 *= x2
+            x19 = type(x)(addr="!f64_sin_x19 __flare_stdlib__"); x19[:] = x17; x19 *= x2
+            
+            c3 = type(x)(1.0 / 6.0)
+            c5 = type(x)(1.0 / 120.0)
+            c7 = type(x)(1.0 / 5040.0)
+            c9 = type(x)(1.0 / 362880.0)
+            c11 = type(x)(1.0 / 39916800.0)
+            c13 = type(x)(1.0 / 6227020800.0)
+            c15 = type(x)(1.0 / 1307674368000.0)
+            c17 = type(x)(1.0 / 355687428096000.0)
+            c19 = type(x)(1.0 / 121645100408832000.0)
+            
+            t3 = type(x)(addr="!f64_sin_t3 __flare_stdlib__"); t3[:] = x3; t3 *= c3
+            t5 = type(x)(addr="!f64_sin_t5 __flare_stdlib__"); t5[:] = x5; t5 *= c5
+            t7 = type(x)(addr="!f64_sin_t7 __flare_stdlib__"); t7[:] = x7; t7 *= c7
+            t9 = type(x)(addr="!f64_sin_t9 __flare_stdlib__"); t9[:] = x9; t9 *= c9
+            t11 = type(x)(addr="!f64_sin_t11 __flare_stdlib__"); t11[:] = x11; t11 *= c11
+            t13 = type(x)(addr="!f64_sin_t13 __flare_stdlib__"); t13[:] = x13; t13 *= c13
+            t15 = type(x)(addr="!f64_sin_t15 __flare_stdlib__"); t15[:] = x15; t15 *= c15
+            t17 = type(x)(addr="!f64_sin_t17 __flare_stdlib__"); t17[:] = x17; t17 *= c17
+            t19 = type(x)(addr="!f64_sin_t19 __flare_stdlib__"); t19[:] = x19; t19 *= c19
+            
+            res[:] = x
+            res -= t3
+            res += t5
+            res -= t7
+            res += t9
+            res -= t11
+            res += t13
+            res -= t15
+            res += t17
+            res -= t19
 
             ScoreIfMatches(is_neg, 1).then(lambda: res.__ineg__())
 
