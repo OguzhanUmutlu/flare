@@ -2,6 +2,7 @@ import inspect
 import json
 
 from .command_parser import interpolate_command
+import copy
 
 
 def addr(var):
@@ -241,7 +242,6 @@ def _to_print_component(arg, i):
         arg.__icopy__(f"!{memo_key}_in0")
         runcommand(f"function {memo['func_path']}")
 
-        import copy
         p = copy.deepcopy(memo["res_comps"])
         return p if isinstance(p, list) else [p]
 
