@@ -1,8 +1,9 @@
+import builtins
+import copy
 import inspect
 import json
 
 from .command_parser import interpolate_command
-import copy
 
 
 def addr(var):
@@ -182,9 +183,6 @@ def runcommand(command: str, local_vars=None, global_vars=None):
                 print(f"[Flare Compiler Warning] {e}")
 
     files[current_file].append(command)
-
-
-import builtins
 
 
 def dbg(*args):

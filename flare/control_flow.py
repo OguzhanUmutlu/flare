@@ -243,11 +243,11 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
     from .compiler import _flatten_and  # avoid circular import
     ns = namespace or ctx._current_namespace
     prefix = _get_func_prefix(namespace)
-    func_name = f"{ns}:{prefix}while_{ctx.next_func_id()}"
+    func_name = f"{ns}:{prefix}__flare__while__/while_{ctx.next_func_id()}"
 
     with push_context(func_name):
         if has_break or has_continue:
-            func_body = f"{ns}:{prefix}while_body_{ctx.next_func_id()}"
+            func_body = f"{ns}:{prefix}__flare__while__/while_body_{ctx.next_func_id()}"
             with push_context(func_body):
                 body_func()
 

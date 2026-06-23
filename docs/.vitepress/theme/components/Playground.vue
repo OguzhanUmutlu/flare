@@ -199,6 +199,8 @@ def run_flare(ns, src):
         # 3. Generate Minecraft tags (load.json / tick.json)
         for tag_name, tag_funcs in tags.items():
             if tag_funcs:
+                if tag_name == "load":
+                    tag_funcs.sort(key=lambda x: (x == load_key, x))
                 tag_path = f"data/minecraft/tags/functions/{tag_name}.json"
                 output_files[tag_path] = json.dumps({"values": tag_funcs}, indent=4)
 
@@ -327,9 +329,10 @@ onMounted(async () => {
         let mcemuDisplay = "latest";
 
         try {
+            const cacheBuster = `?t=${Date.now()}`;
             const [flareRes, mcemuRes] = await Promise.all([
-                fetch("https://pypi.org/pypi/flaremc/json"),
-                fetch("https://pypi.org/pypi/mcemu/json")
+                fetch(`https://pypi.org/pypi/flaremc/json${cacheBuster}`),
+                fetch(`https://pypi.org/pypi/mcemu/json${cacheBuster}`)
             ]);
 
             if (flareRes.ok) {
