@@ -73,6 +73,8 @@ def match_node(node: dict, root: dict, reader: StringReader) -> bool:
 
 
 def validate_command(command: str, minecraft_version: str):
+    if len(command) > 0 and command[0] == "$":
+        return
     try:
         schema = get_schema(minecraft_version)
     except Exception as e:

@@ -78,9 +78,62 @@ def factorial(n: nbt[int]) -> nbt[int]:
     return n * factorial(n - 1)
 ```
 
-## Python Functions as Macros (Pass-by-Reference)
+## Minecraft Function Macros
 
-If you define a standard Python function **without** the `@export` decorator, it acts as a **macro** that runs at compile-time. 
+Flare provides first-class support for Minecraft's built-in macro functionality (`$(variable)` substitutions) inside `@export` functions.
+
+By typing an argument as `macro`, Flare will automatically treat it as a Minecraft macro placeholder. Any commands inside the function that use this variable will be automatically prefixed with `$` at compile-time.
+
+```python
+@export
+def announce(msg: macro, player: nbt[str]):
+    # Automatically becomes: $tellraw @a {"text": "$(msg)"}
+    tellraw @a {"text": msg}
+    
+    # Can also be combined with normal NBT strings!
+    # Automatically becomes: $data modify ... set value "$(msg)"
+    player = msg 
+```
+
+### Calling Macro Functions
+
+You can call a macro function in several ways, and Flare will automatically generate the most optimal Minecraft calling convention:
+
+**1. With Literals (JSON Call)**
+If you pass Python literals (ints, strings, bools), Flare generates a direct JSON macro call:
+```python
+announce("Hello World!", some_player_nbt)
+# Generates: function my_pack:announce {"msg": "Hello World!"}
+```
+
+**2. With NBT Variables (Storage Call)**
+If you pass an `nbt` variable into a macro parameter, Flare handles the complexity of packing the variable into a temporary macro storage compound and invoking the function:
+```python
+my_dynamic_msg = storage.mypack.messages.greeting
+announce(my_dynamic_msg, some_player_nbt)
+# Generates:
+# data modify storage my_pack:__flare_macros__ call_0.msg set from ...
+# function my_pack:announce with storage my_pack:__flare_macros__ call_0
+```
+
+### The `.with_()` Syntax
+
+If you want to invoke an exported function using an existing NBT compound or Entity as the macro context (equivalent to Minecraft's `function ... with <source>`), use the `.with_()` method attached to your exported function:
+
+```python
+# Assuming storage.mypack.data has a compound containing {"msg": "..."}
+announce.with_(storage.mypack.data, player=some_player_nbt)
+# Generates: function my_pack:announce with storage mypack data
+
+# You can also use entities!
+announce.with_(@s.Inventory, player=some_player_nbt)
+# Generates: function my_pack:announce with entity @s Inventory
+```
+Notice that when using `.with_()`, any non-macro arguments (like `player`) are passed as keyword arguments.
+
+## Python Compile-Time Macros (Pass-by-Reference)
+
+If you define a standard Python function **without** the `@export` decorator, it acts as a **compile-time macro** that runs during the build process.
 
 When you pass a `score` or `nbt` variable into a macro function, Flare passes the underlying memory address by **reference**, not by value. Any operations performed on the variable inside the macro directly modify the original variable without costing any assignment commands!
 

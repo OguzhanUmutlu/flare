@@ -460,6 +460,9 @@ def preprocess_minecraft_commands(source: str) -> str:
             if re.match(r"^\s*(?:" + COMMAND_KEYWORDS + r")\s*(?:[+\-*/%&|^]?=|\()", line):
                 i += 1
                 continue
+            if re.match(r"^\s*(?:" + COMMAND_KEYWORDS + r")\s*\.", line):
+                i += 1
+                continue
 
             indent = match.group(1)
             cmd = match.group(2) + match.group(3)
@@ -577,6 +580,12 @@ def preprocess_minecraft_commands(source: str) -> str:
 
             if is_func_or_attr:
                 out_tokens.append((tokenize.NAME, "_as"))
+                i += 1
+                continue
+
+        if tok.type == tokenize.NAME and tok.string == "with":
+            if i > 0 and tokens[i - 1].type == tokenize.OP and tokens[i - 1].string == ".":
+                out_tokens.append((tokenize.NAME, "with_"))
                 i += 1
                 continue
 

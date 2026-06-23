@@ -1,4 +1,4 @@
-from flare import namespace, score, nbtintarray, fixed, dbg, export, nbt, bigscore, bigfixed, float32, float64, expand
+from flare import *
 
 namespace("pack")
 
@@ -100,3 +100,9 @@ print(test(5))
 
 hello2 = nbt[int](10)
 print(test(y))
+
+@export
+def test2(mymacro: macro):
+    say mymacro
+
+test2(10)

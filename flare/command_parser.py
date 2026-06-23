@@ -1,4 +1,6 @@
 import json
+
+_macro_substituted = False
 import re
 
 TOKEN_REGEX = re.compile(r'(?P<FSTRING>f\"(?:\\\\.|[^\\"])*\"|f\'(?:\\\\.|[^\\\'])*\')|'
@@ -11,6 +13,8 @@ TOKEN_REGEX = re.compile(r'(?P<FSTRING>f\"(?:\\\\.|[^\\"])*\"|f\'(?:\\\\.|[^\\\'
 
 
 def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> str:
+    global _macro_substituted
+    _macro_substituted = False
     tokens = []
     for match in TOKEN_REGEX.finditer(command):
         tokens.append({"type": match.lastgroup, "value": match.group(str(match.lastgroup)), "start": match.start(),
@@ -64,6 +68,15 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
                 if tokens[j]["type"] == "SYMBOL" and ":" in tokens[j]["value"]:
                     is_key = True
                 break
+
+            _resolved_val = local_vars.get(ident) if not is_key else None
+            if _resolved_val is None and not is_key:
+                _resolved_val = global_vars.get(ident)
+            if _resolved_val is not None and getattr(_resolved_val, "_is_macro_param", False):
+                output.append(f"$({_resolved_val.name})")
+                _macro_substituted = True
+                i += 1
+                continue
 
             if ident in ("true", "false", "null", "run", "execute", "summon", "say", "as", "at", "positioned", "if",
                          "unless", "store", "result", "success"):

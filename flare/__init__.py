@@ -15,11 +15,11 @@ from .math import round_, floor, ceil
 from .types import NBTType, byte, boolean, short, long, double, array
 from .variables import score, nbt, fixed, tagged, ref, getscore, storage, nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, \
     nbtfloat, nbtdouble, nbtstr, nbtlist, nbtdict, nbtbytearray, nbtintarray, nbtlongarray, selector, bigscore, \
-    bigfixed, float64, float32, complex
+    bigfixed, float64, float32, complex, macro
 
 __all__ = ["round_", "floor", "ceil", "namespace", "export", "tick", "score", "nbt", "fixed", "tagged", "ref",
            "getscore", "storage", "_flare_print", "dbg", "nbtbyte", "nbtbool", "nbtshort", "nbtint", "nbtlong",
            "nbtfloat", "nbtdouble", "nbtstr", "nbtlist", "nbtdict", "nbtbytearray", "nbtintarray", "nbtlongarray",
            "selector", "_as", "at", "positioned", "aligned", "facing", "anchored", "rotated", "dimension", "applyon",
            "on", "summon", "store", "ExecuteChain", "StoreExecuteChain", "array", "bigscore", "bigfixed", "float32",
-           "float64", "complex", "byte", "boolean", "short", "long", "double", "expand", ]
+           "float64", "complex", "byte", "boolean", "short", "long", "double", "expand", "macro"]

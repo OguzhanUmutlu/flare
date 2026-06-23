@@ -9,7 +9,7 @@ echo "Running tests..."
 
 flare cli_test/main.py --run=1 2>/dev/null > tests/actual_output.raw.txt
 
-cat tests/actual_output.raw.txt | grep -v "Error parsing" | grep -v "Objective" | grep -v "Scoreboard division" | grep -v "Scoreboard modulo" | grep -v "Float(exp" | grep -v "^'$" | grep -v "Compiling" | grep -v "\[Score " | grep -v "Successfully built" | grep -v "\-\-\- Starting mcemu \-\-\-" | sed -E 's/!print_[0-9]+/!print_X/g' | sed '/^$/d' | sed -E 's/\x1b\[[0-9;]*m//g' > tests/actual_output.txt
+cat tests/actual_output.raw.txt | sed -E 's/\x1b\[[0-9;]*m//g' | grep -v "Error parsing" | grep -v "Objective" | grep -v "Scoreboard division" | grep -v "Scoreboard modulo" | grep -v "Float(exp" | grep -v "^'$" | grep -v "Compiling" | grep -v "\[Score " | grep -v "Successfully built" | grep -v "\-\-\- Starting mcemu \-\-\-" | grep -v "Command not found:" | grep -v "Available commands:" | grep -v "^  - " | sed -E 's/!print_[0-9]+/!print_X/g' | sed '/^$/d' > tests/actual_output.txt
 
 diff -u --strip-trailing-cr tests/expected_output.txt tests/actual_output.txt
 DIFF_EXIT=$?

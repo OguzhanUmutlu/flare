@@ -159,6 +159,9 @@ def _number_mod(self: nbt, other):
 
 def _string_add(self: nbt, other):
     self._check_addr()
+    if hasattr(other, "_is_macro_param") and other._is_macro_param:
+        runcommand(f"$data modify {addr(self)} append value \"$({other.name})\"")
+        return self
     if isinstance(other, (_score(), nbt)):
         other._check_addr()
     if isinstance(other, str):
@@ -264,7 +267,6 @@ class nbt(ArithmeticSupported):
         return f"[NBT {addr(self)}]"
 
     def _check_math(self, func_name: str):
-        from ..types import NBTType
         numeric_types = {NBTType.Byte, NBTType.Short, NBTType.Int, NBTType.Long, NBTType.Float, NBTType.Double}
 
         if self._type is not None and self._type not in numeric_types:
@@ -667,6 +669,14 @@ class nbt(ArithmeticSupported):
 
     def __iset__(self, other):
         self._check_addr()
+        if hasattr(other, "_is_macro_param") and other._is_macro_param:
+            if self._type is not None and self._type != NBTType.String:
+                raise TypeError(
+                    f"Cannot set {self._type.name.lower()} from a macro placeholder. "
+                    "Macro values are strings at runtime."
+                )
+            runcommand(f"$data modify {addr(self)} set value \"$({other.name})\"")
+            return self
         if hasattr(type(other), "_eval_into"):
             leaf = other._best_leaf()
             if leaf is not None and type(leaf).__name__ != "nbt":
@@ -678,8 +688,9 @@ class nbt(ArithmeticSupported):
         if isinstance(other, (_score(), nbt)):
             other._check_addr()
         if isinstance(other, (int, float)):
-            if not self.is_number():
-                raise TypeError(f"Cannot set {self._type.name.lower()} to a number")
+            if self._type is not None and not self.is_number():
+                tname = self._type.name.lower()
+                raise TypeError(f"Cannot set {tname} to a number")
             if self._type is not None and isinstance(other, float) and not self.is_floaty():
                 raise TypeError(f"Cannot set {self._type.name.lower()} with float")
             if self.is_floaty():
@@ -688,7 +699,8 @@ class nbt(ArithmeticSupported):
             return self
         if isinstance(other, _score()):
             if not self.is_number():
-                raise TypeError(f"Cannot set {self._type.name.lower()} with score")
+                tname = self._type.name.lower() if self._type else "untyped nbt"
+                raise TypeError(f"Cannot set {tname} with score")
             runcommand(
                 f"execute store result {addr(self)} {self._type.name.lower()} {1 / other._multiplier} run scoreboard players get {addr(other)}")
             return self

@@ -3,6 +3,8 @@ import math
 from math import *
 
 from flare.context import next_temp_id
+from . import context as ctx
+from .context import push_context, runcommand, vars_obj
 
 _orig = {"floor": math.floor, "ceil": math.ceil, "round": builtins.round, "sqrt": math.sqrt, "sin": math.sin,
          "cos": math.cos, "tan": math.tan, "asin": math.asin, "acos": math.acos, "atan": math.atan, "atan2": math.atan2,
@@ -25,9 +27,6 @@ def _dispatch(name, *args, memoize=True):
         type_name = type(x).__name__
         arg_types = "_".join(type(a).__name__ for a in args[1:])
         memo_key = f"{type_name}_{name}_{arg_types}" if arg_types else f"{type_name}_{name}"
-
-        from . import context as ctx
-        from .context import push_context, runcommand, next_temp_id, vars_obj
 
         def _clone_var(var, addr):
             kwargs = {}

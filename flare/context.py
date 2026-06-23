@@ -3,6 +3,7 @@ import copy
 import inspect
 import json
 
+from . import command_parser as _cp
 from .command_parser import interpolate_command
 
 
@@ -169,6 +170,8 @@ from .validator import validate_command, FlareCommandValidationError
 def runcommand(command: str, local_vars=None, global_vars=None):
     if local_vars is not None and global_vars is not None:
         command = interpolate_command(command, local_vars, global_vars)
+        if _cp._macro_substituted and not command.startswith("$"):
+            command = "$" + command
 
     if validation_level != "none":
         try:
@@ -204,7 +207,7 @@ def _invoke_stdlib(func_name, inputs, outputs, generator):
         v[:] = std_outputs[k]
 
 
-from .variables import score, nbt  # avoid circular import
+from .variables import score, nbt, macro  # avoid circular import
 from .variables.core import addr  # avoid circular import
 
 
@@ -314,7 +317,9 @@ def export(func=None, *, name=None, append=False, returns=None):
     for name, param in sig.parameters.items():
         anno = param.annotation
 
-        if hasattr(anno, "__name__") and anno.__name__ in ("score", "fixed", "_PrecisionScore"):
+        if anno is macro or (isinstance(anno, type) and issubclass(anno, macro)):
+            kwargs[name] = macro(name)
+        elif hasattr(anno, "__name__") and anno.__name__ in ("score", "fixed", "_PrecisionScore"):
             if is_recursive:
                 raise TypeError(
                     f"Recursive function '{func.__name__}' argument '{name}' needs a stack but it's a score.")
@@ -328,7 +333,7 @@ def export(func=None, *, name=None, append=False, returns=None):
             else:
                 kwargs[name] = anno(addr=f"storage {args_storage} {func.__name__}_{name}")
         elif anno is not inspect.Signature.empty:
-            raise TypeError(f"Argument '{name}' must be typed as score or nbt, not {anno}")
+            raise TypeError(f"Argument '{name}' must be typed as score, nbt, or macro, not {anno}")
         else:
             kwargs[name] = score(addr=f"{func.__name__}_{name} {vars_obj}")
 
@@ -350,13 +355,11 @@ def export(func=None, *, name=None, append=False, returns=None):
     _logical_func = func_name
 
     class ProxyFunction:
-        def __call__(self, *args, **call_kwargs):
-            global _temp_id
-            bound = sig.bind(*args, **call_kwargs)
-            bound.apply_defaults()
+        def _write_non_macro_args(self, bound):
             for arg_name, arg_val in bound.arguments.items():
                 target = kwargs[arg_name]
-
+                if isinstance(target, macro):
+                    continue  # macro args handled separately
                 if is_recursive and isinstance(target, nbt):
                     base_addr = f"storage {args_storage} {func.__name__}_{arg_name}"
                     if isinstance(arg_val, (int, float, str)):
@@ -368,6 +371,7 @@ def export(func=None, *, name=None, append=False, returns=None):
                         runcommand(
                             f"execute store result {base_addr}[-1] int {1 / arg_val._multiplier} run scoreboard players get {addr(arg_val)}")
                     elif hasattr(type(arg_val), "_eval_into"):
+                        global _temp_id
                         temp = nbt(addr=f"storage {temp_storage} !t{_temp_id}", datatype=target._type)
                         _temp_id += 1
                         arg_val._eval_into(temp)
@@ -375,28 +379,19 @@ def export(func=None, *, name=None, append=False, returns=None):
                 else:
                     target.__iset__(arg_val)
 
-            runcommand(f"function {func_name}")
-
-            if is_recursive:
-                for arg_name in bound.arguments.keys():
-                    if isinstance(kwargs[arg_name], nbt):
-                        base_addr = f"storage {args_storage} {func.__name__}_{arg_name}"
-                        runcommand(f"data remove {base_addr}[-1]")
-
+        def _emit_return(self):
             if func_name in return_targets:
                 return return_targets[func_name]
-
             ret_anno = return_types.get(func_name, sig.return_annotation)
             if ret_anno == "UNKNOWN":
                 return "UNKNOWN_RETURN"
             elif ret_anno is not inspect.Signature.empty and ret_anno is not None:
+                global _temp_id
                 if hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
                     temp_ret = score(addr=f"!ret{_temp_id}")
                     _temp_id += 1
                     runcommand(
-                        f"scoreboard players operation {addr(temp_ret)} = {func_name.replace(":", "_")}_ret {vars_obj}")
-                    if ret_anno.__name__ in ("fixed", "_PrecisionScore"):
-                        pass
+                        f"scoreboard players operation {addr(temp_ret)} = {func_name.replace(':', '_')}_ret {vars_obj}")
                     return temp_ret
                 else:
                     temp_ret = nbt(addr=f"storage {temp_storage} !ret{_temp_id}")
@@ -404,6 +399,77 @@ def export(func=None, *, name=None, append=False, returns=None):
                     runcommand(
                         f"data modify {addr(temp_ret)} set from storage {returns_storage} {func_name.replace(':', '_')}")
                     return temp_ret
+
+        def __call__(self, *args, **call_kwargs):
+            global _temp_id
+            bound = sig.bind(*args, **call_kwargs)
+            bound.apply_defaults()
+
+            macro_args = {}
+            for arg_name, arg_val in bound.arguments.items():
+                if isinstance(kwargs[arg_name], macro):
+                    macro_args[arg_name] = arg_val
+
+            self._write_non_macro_args(bound)
+
+            if macro_args:
+                all_literal = all(isinstance(v, (int, float, str, bool)) for v in macro_args.values())
+                if all_literal:
+                    # e.g. function my_pack:test {"mymacro": 10}
+                    json_obj = {k: v for k, v in macro_args.items()}
+                    runcommand(f"function {func_name} {json.dumps(json_obj)}")
+                else:
+                    storage_ns = _current_namespace
+                    storage_path = f"{storage_ns}:__flare_macros__"
+                    call_key = f"call_{_temp_id}"
+                    _temp_id += 1
+                    runcommand(f"data modify storage {storage_path} {call_key} set value {{}}")
+                    for k, v in macro_args.items():
+                        if isinstance(v, (int, float, str, bool)):
+                            val_str = json.dumps(v)
+                            runcommand(
+                                f"data modify storage {storage_path} {call_key}.{k} set value {val_str}")
+                        elif isinstance(v, nbt):
+                            v._check_addr()
+                            runcommand(f"data modify storage {storage_path} {call_key}.{k} set from {addr(v)}")
+                        else:
+                            raise TypeError(
+                                f"Macro argument '{k}' must be a literal or NBT value, got {type(v).__name__}")
+                    runcommand(f"function {func_name} with storage {storage_path} {call_key}")
+            else:
+                runcommand(f"function {func_name}")
+
+            if is_recursive:
+                for arg_name in bound.arguments.keys():
+                    if isinstance(kwargs[arg_name], nbt):
+                        base_addr = f"storage {args_storage} {func.__name__}_{arg_name}"
+                        runcommand(f"data remove {base_addr}[-1]")
+
+            return self._emit_return()
+
+        def with_(self, source_nbt, **call_kwargs):
+            non_macro_bound_args = {}
+            for arg_name, arg_val in call_kwargs.items():
+                if arg_name not in kwargs:
+                    raise TypeError(f"{func.__name__}() got unexpected keyword argument '{arg_name}'")
+                if not isinstance(kwargs[arg_name], macro):
+                    non_macro_bound_args[arg_name] = arg_val
+
+            for arg_name, arg_val in non_macro_bound_args.items():
+                target = kwargs[arg_name]
+                target.__iset__(arg_val)
+
+            if isinstance(source_nbt, nbt):
+                source_nbt._check_addr()
+                parts = [source_nbt._target_type, source_nbt._target]
+                if source_nbt._path:
+                    parts.append(source_nbt._path)
+                with_src = " ".join(parts)
+            else:
+                raise TypeError(f"with_() source must be an nbt value, got {type(source_nbt).__name__}")
+
+            runcommand(f"function {func_name} with {with_src}")
+            return self._emit_return()
 
     proxy = ProxyFunction()
 
