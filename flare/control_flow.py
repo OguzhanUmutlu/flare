@@ -231,14 +231,23 @@ def _flare_if(*args):
                     _invoke_block(func_name, prefix[8:] if prefix.startswith("execute ") else "")
 
 
+def _get_func_prefix(namespace=None):
+    if not namespace and ":" in ctx.current_file:
+        file_path = ctx.current_file.split(":", 1)[1]
+        if "/" in file_path:
+            return file_path.rsplit("/", 1)[0] + "/"
+    return ""
+
+
 def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_continue=False, namespace=None):
     from .compiler import _flatten_and  # avoid circular import
     ns = namespace or ctx._current_namespace
-    func_name = f"{ns}:while_{ctx.next_func_id()}"
+    prefix = _get_func_prefix(namespace)
+    func_name = f"{ns}:{prefix}while_{ctx.next_func_id()}"
 
     with push_context(func_name):
         if has_break or has_continue:
-            func_body = f"{ns}:while_body_{ctx.next_func_id()}"
+            func_body = f"{ns}:{prefix}while_body_{ctx.next_func_id()}"
             with push_context(func_body):
                 body_func()
 
@@ -265,7 +274,7 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
 
     if orelse_func:
         if has_break:
-            orelse_name = f"{ctx._current_namespace}:while_else_{ctx.next_func_id()}"
+            orelse_name = f"{ctx._current_namespace}:{prefix}while_else_{ctx.next_func_id()}"
             with push_context(orelse_name):
                 orelse_func()
             runcommand(f"execute if score !break {temp_obj} matches 0 run function {orelse_name}")

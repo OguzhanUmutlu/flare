@@ -77,7 +77,7 @@ def next_func_id():
 
 
 def reset_context():
-    global current_file, _current_namespace, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, minecraft_version, nbt_schema_missing, _in_recursive_context, _logical_func
+    global current_file, _current_namespace, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, minecraft_version, nbt_schema_missing, _in_recursive_context, _logical_func, memoized_math
     files.clear()
     files["main"] = []
     current_file = "main"
@@ -94,6 +94,11 @@ def reset_context():
     has_returns.clear()
     return_targets.clear()
     _logical_func = None
+    if "memoized_math" not in globals():
+        global memoized_math
+        memoized_math = {}
+    else:
+        memoized_math.clear()
 
 
 def ensure_objective(obj: str):
@@ -127,17 +132,25 @@ class _ContextManager:
     def __init__(self, new_file: str):
         self.new_file = new_file
         self.old_file = None
+        self.old_namespace = None
 
     def __enter__(self):
-        global current_file
+        global current_file, _current_namespace
         self.old_file = current_file
         current_file = self.new_file
+
+        if ":" in self.new_file:
+            self.old_namespace = _current_namespace
+            _current_namespace = self.new_file.split(":")[0]
+
         if self.new_file not in files:
             files[self.new_file] = []
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        global current_file
+        global current_file, _current_namespace
         current_file = self.old_file
+        if self.old_namespace is not None:
+            _current_namespace = self.old_namespace
 
 
 def push_context(name: str):
@@ -200,19 +213,37 @@ from .variables.core import addr  # avoid circular import
 
 
 def _to_print_component(arg, i):
-    if hasattr(arg, "__print__"):
-        p = arg.__print__()
-        if isinstance(p, list):
-            return p
-        return [p]
-
     if hasattr(arg, "__icopy__") and getattr(type(arg), "__name__", "") in ("BinaryOp", "UnaryOp"):
         global _temp_id
         arg = arg.__icopy__(f"!print_{_temp_id}")
         _temp_id += 1
-        if hasattr(arg, "__print__"):
-            p = arg.__print__()
-            return p if isinstance(p, list) else [p]
+
+    if hasattr(arg, "__print__"):
+        type_name = type(arg).__name__
+        memo_key = f"{type_name}_print"
+
+        global memoized_math
+        if memo_key not in memoized_math:
+            in_var = type(arg)(addr=f"!{memo_key}_in0 {vars_obj}")
+
+            memoized_math[memo_key] = {
+                "in_var": in_var,
+                "func_path": f"{_current_namespace}:__flare_print__/{type_name}"
+            }
+
+            with push_context(f"{_current_namespace}:__flare_print__/{type_name}"):
+                res_comps = in_var.__print__()
+
+            memoized_math[memo_key]["res_comps"] = res_comps
+
+        memo = memoized_math[memo_key]
+
+        arg.__icopy__(f"!{memo_key}_in0")
+        runcommand(f"function {memo['func_path']}")
+
+        import copy
+        p = copy.deepcopy(memo["res_comps"])
+        return p if isinstance(p, list) else [p]
 
     if isinstance(arg, score):
         if getattr(arg, "multiplier", 1.0) != 1.0:

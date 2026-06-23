@@ -171,6 +171,8 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict = None):
     tag_dir = build_dir / "data" / "minecraft" / "tags" / "functions"
     for tag_name, tag_funcs in tags.items():
         if tag_funcs:
+            if tag_name == "load":
+                tag_funcs.sort(key=lambda x: (x == load_key, x))
             tag_dir.mkdir(parents=True, exist_ok=True)
             tag_path = tag_dir / f"{tag_name}.json"
             with open(tag_path, "w") as f:

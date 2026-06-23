@@ -8,7 +8,7 @@ _orig = {"floor": math.floor, "ceil": math.ceil, "round": builtins.round, "sqrt"
          "acosh": math.acosh, "atanh": math.atanh, "pow": math.pow, "min": builtins.min, "max": builtins.max}
 
 
-def _dispatch(name, *args):
+def _dispatch(name, *args, memoize=True):
     x = args[0]
     if hasattr(x, "_eval_into"):
         leaf = x._best_leaf()
@@ -17,7 +17,62 @@ def _dispatch(name, *args):
         x = temp
         args = (x,) + args[1:]
     if hasattr(x, f"__{name}__"):
-        return getattr(x, f"__{name}__")(*args[1:])
+        if not memoize or not hasattr(x, "_addr"):
+            return getattr(x, f"__{name}__")(*args[1:])
+
+        type_name = type(x).__name__
+        arg_types = "_".join(type(a).__name__ for a in args[1:])
+        memo_key = f"{type_name}_{name}_{arg_types}" if arg_types else f"{type_name}_{name}"
+
+        from . import context as ctx
+        from .context import push_context, runcommand, next_temp_id, vars_obj
+
+        if not hasattr(ctx, "memoized_math"):
+            ctx.memoized_math = {}
+
+        if memo_key not in ctx.memoized_math:
+            in_vars = [type(x)(addr=f"!{memo_key}_in0 {vars_obj}")]
+            for i, arg in enumerate(args[1:]):
+                in_vars.append(type(arg)(addr=f"!{memo_key}_in{i + 1} {vars_obj}"))
+
+            out_var_addr = f"!{memo_key}_out {vars_obj}"
+
+            ctx.memoized_math[memo_key] = {
+                "in_vars": in_vars,
+                "out_addr": out_var_addr,
+                "func_path": f"__flare_stdlib__:__flare_math_{memo_key}"
+            }
+
+            with push_context(f"__flare_stdlib__:__flare_math_{memo_key}"):
+                res = getattr(in_vars[0], f"__{name}__")(*in_vars[1:])
+                res_type = type(res)
+                out_var = res_type(addr=out_var_addr)
+                if hasattr(out_var, "__iset__"):
+                    out_var.__iset__(res)
+                else:
+                    out_var[:] = res
+
+            ctx.memoized_math[memo_key]["res_type"] = res_type
+
+        memo = ctx.memoized_math[memo_key]
+
+        x.__icopy__(f"!{memo_key}_in0")
+        for i, arg in enumerate(args[1:]):
+            if hasattr(arg, "__icopy__"):
+                arg.__icopy__(f"!{memo_key}_in{i + 1}")
+            else:
+                in_var = memo["in_vars"][i + 1]
+                if hasattr(in_var, "__iset__"):
+                    in_var.__iset__(arg)
+                else:
+                    in_var[:] = arg
+
+        runcommand(f"function {memo['func_path']}")
+
+        res_type = memo["res_type"]
+        out_var = res_type(addr=memo["out_addr"])
+        return out_var.__icopy__(f"!{memo_key}_res_{next_temp_id()}")
+
     return _orig[name](*args)
 
 
@@ -57,10 +112,10 @@ def max_(*args, **kwargs):
     return res
 
 
-def floor(x): return _dispatch("floor", x)
+def floor(x): return _dispatch("floor", x, memoize=False)
 
 
-def ceil(x): return _dispatch("ceil", x)
+def ceil(x): return _dispatch("ceil", x, memoize=False)
 
 
 def round_(x, ndigits=None):
