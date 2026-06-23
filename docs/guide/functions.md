@@ -156,3 +156,56 @@ def main():
 ```
 
 This is incredibly useful for writing reusable command-generation logic without incurring the overhead of a standard `@export` function call ABI.
+
+## Scheduled Functions (`schedule`)
+
+Flare provides a `schedule` context manager that compiles the body into a standalone generated function and emits a `schedule function` command to run it after a delay.
+
+```python
+from flare import *
+
+namespace("my_pack")
+
+with schedule("5t", append=True) as s:
+    say Hello from 5 ticks later!
+# Generates:
+#   schedule function my_pack:__flare__schedule__/sched_0 5t append
+# And creates: data/my_pack/functions/__flare__schedule__/sched_0.mcfunction
+#   say Hello from 5 ticks later!
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `time` | `str` | *(required)* | The delay — a Minecraft time value like `"5t"`, `"2s"`, `"1d"` |
+| `append` | `bool` | `False` | `True` → `append` mode (stacks with existing schedule). `False` → `replace` mode (cancels any existing schedule for that function) |
+
+### The `as` Variable & `.clear()`
+
+Bind the context manager to a variable with `as` to get a handle for cancelling it later:
+
+```python
+with schedule("100t") as repeating:
+    say Still ticking!
+
+# Somewhere else in your code:
+repeating.clear()
+# Generates: schedule clear my_pack:__flare__schedule__/sched_0
+```
+
+You can also call `.clear()` from **inside** the body if you want the function to self-cancel:
+
+```python
+run_count = nbt[int](addr="storage my_pack:vars run_count")
+run_count = 0
+
+with schedule("20t", append=True) as timer:
+    run_count += 1
+    if run_count >= 10:
+        timer.clear()  # stop scheduling after 10 runs
+```
+
+::: tip
+Scheduled functions are placed under `__flare__schedule__/` in your datapack. They behave like any other exported function and can call other exported functions, use scores, NBT, etc.
+:::

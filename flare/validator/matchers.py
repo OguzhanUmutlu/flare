@@ -172,7 +172,7 @@ def parse_minecraft_nbt_path(reader: StringReader, props: dict):
 
 def parse_minecraft_resource_location(reader: StringReader, props: dict):
     start = reader.cursor
-    allowed = set("0123456789abcdefghijklmnopqrstuvwxyz_.-:")
+    allowed = set("0123456789abcdefghijklmnopqrstuvwxyz_.-:/")
     while reader.can_read() and reader.peek() in allowed:
         reader.read()
     if reader.cursor == start:

@@ -290,6 +290,38 @@ def _flare_for(iterable, body_func, orelse_func=None, has_break=False, has_conti
             body_func(item)
 
 
+class schedule:
+    """Context manager that wraps its body in a generated function and schedules it.
+
+    Usage::
+
+        with schedule("5t", append=True) as s:
+            say Hello!   # runs 5 ticks later
+
+        s.clear()        # emits: schedule clear <generated_func>
+    """
+
+    def __init__(self, time: str, append: bool = False):
+        self._time = time
+        self._mode = "append" if append else "replace"
+        self._func_name = None
+
+    def __with__(self, body_func):
+        ns = ctx._current_namespace
+        func_name = f"{ns}:__flare__schedule__/sched_{ctx.next_func_id()}"
+        self._func_name = func_name
+
+        with ctx.push_context(func_name):
+            body_func()
+
+        runcommand(f"schedule function {func_name} {self._time} {self._mode}")
+
+    def clear(self):
+        if self._func_name is None:
+            raise RuntimeError("schedule.clear() called before the 'with schedule(...)' block was executed")
+        runcommand(f"schedule clear {self._func_name}")
+
+
 def _flare_with(*args):
     body_func = args[-1]
     chains = args[:-1]
