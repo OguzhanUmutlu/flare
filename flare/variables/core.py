@@ -1,7 +1,106 @@
 from __future__ import annotations
 
 
-class BinaryOp:
+class ArithmeticSupported:
+    def __iset__(self, other):
+        raise NotImplementedError()
+
+    def __setitem__(self, key, value):
+        if isinstance(key, slice) and key.start is None and key.stop is None and key.step is None:
+            self.__iset__(value)
+            return
+        raise TypeError(f"'{type(self).__name__}' object does not support item assignment")
+
+    def __add__(self, other):
+        return BinaryOp(self, other, "add")
+
+    def __radd__(self, other):
+        return BinaryOp(other, self, "add")
+
+    def __sub__(self, other):
+        return BinaryOp(self, other, "sub")
+
+    def __rsub__(self, other):
+        return BinaryOp(other, self, "sub")
+
+    def __mul__(self, other):
+        return BinaryOp(self, other, "mul")
+
+    def __rmul__(self, other):
+        return BinaryOp(other, self, "mul")
+
+    def __idiv__(self, other):
+        raise NotImplementedError()
+
+    def __itruediv__(self, other):
+        return self.__idiv__(other)
+
+    def __neg__(self):
+        return UnaryOp(self, "neg")
+
+    def __pos__(self):
+        return self
+
+    def __eq__(self, other):
+        return BinaryOp(self, other, "eq")
+
+    def __ne__(self, other):
+        return BinaryOp(self, other, "ne")
+
+    def __lt__(self, other):
+        return BinaryOp(self, other, "lt")
+
+    def __le__(self, other):
+        return BinaryOp(self, other, "le")
+
+    def __gt__(self, other):
+        return BinaryOp(self, other, "gt")
+
+    def __ge__(self, other):
+        return BinaryOp(self, other, "ge")
+
+    def __and__(self, other):
+        return BinaryOp(self, other, "and")
+
+    def __or__(self, other):
+        return BinaryOp(self, other, "or")
+
+    def __invert__(self):
+        return UnaryOp(self, "not")
+
+    def __truediv__(self, other):
+        return BinaryOp(self, other, "truediv")
+
+    def __rtruediv__(self, other):
+        return BinaryOp(other, self, "truediv")
+
+    def __mod__(self, other):
+        return BinaryOp(self, other, "mod")
+
+    def __rmod__(self, other):
+        return BinaryOp(other, self, "mod")
+
+    def __bool__(self):
+        raise TypeError(
+            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
+
+    def __implicit_cast__(self, target_types):
+        raise NotImplementedError()
+
+    def _try_math(self, fn, op, other, possibilities=None):
+        if possibilities is None:
+            possibilities = (type(self),)
+        if type(other) not in possibilities:
+            if type(other) in getattr(type(self), "_implements_set", tuple()):
+                return getattr(self, fn)(type(self)(other))
+            if hasattr(other, "__implicit_cast__"):
+                return getattr(self, fn)(other.__implicit_cast__(possibilities))
+        raise UnsupportedOperandError(self, op, other)
+
+
+class BinaryOp(ArithmeticSupported):
+    _implements_set = tuple()
+
     def __init__(self, left, right, op: str):
         self.left = left
         self.right = right
@@ -81,69 +180,6 @@ class BinaryOp:
         keyword = "unless" if invert else "if"
         return [f"{keyword} score {addr(dest)} matches 1"]
 
-    def __add__(self, other):
-        return BinaryOp(self, other, "add")
-
-    def __radd__(self, other):
-        return BinaryOp(other, self, "add")
-
-    def __sub__(self, other):
-        return BinaryOp(self, other, "sub")
-
-    def __rsub__(self, other):
-        return BinaryOp(other, self, "sub")
-
-    def __mul__(self, other):
-        return BinaryOp(self, other, "mul")
-
-    def __rmul__(self, other):
-        return BinaryOp(other, self, "mul")
-
-    def __truediv__(self, other):
-        return BinaryOp(self, other, "truediv")
-
-    def __rtruediv__(self, other):
-        return BinaryOp(other, self, "truediv")
-
-    def __mod__(self, other):
-        return BinaryOp(self, other, "mod")
-
-    def __rmod__(self, other):
-        return BinaryOp(other, self, "mod")
-
-    def __neg__(self):
-        return UnaryOp(self, "neg")
-
-    def __pos__(self):
-        return self
-
-    def __eq__(self, other):
-        return BinaryOp(self, other, "eq")
-
-    def __ne__(self, other):
-        return BinaryOp(self, other, "ne")
-
-    def __lt__(self, other):
-        return BinaryOp(self, other, "lt")
-
-    def __le__(self, other):
-        return BinaryOp(self, other, "le")
-
-    def __gt__(self, other):
-        return BinaryOp(self, other, "gt")
-
-    def __ge__(self, other):
-        return BinaryOp(self, other, "ge")
-
-    def __and__(self, other):
-        return BinaryOp(self, other, "and")
-
-    def __or__(self, other):
-        return BinaryOp(self, other, "or")
-
-    def __invert__(self):
-        return UnaryOp(self, "not")
-
     def __bool__(self):
         raise TypeError(
             "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
@@ -216,66 +252,6 @@ class UnaryOp:
             return self.operand
         return UnaryOp(self, "neg")
 
-    def __pos__(self):
-        return self
-
-    def __add__(self, other):
-        return BinaryOp(self, other, "add")
-
-    def __radd__(self, other):
-        return BinaryOp(other, self, "add")
-
-    def __sub__(self, other):
-        return BinaryOp(self, other, "sub")
-
-    def __rsub__(self, other):
-        return BinaryOp(other, self, "sub")
-
-    def __mul__(self, other):
-        return BinaryOp(self, other, "mul")
-
-    def __rmul__(self, other):
-        return BinaryOp(other, self, "mul")
-
-    def __truediv__(self, other):
-        return BinaryOp(self, other, "truediv")
-
-    def __rtruediv__(self, other):
-        return BinaryOp(other, self, "truediv")
-
-    def __mod__(self, other):
-        return BinaryOp(self, other, "mod")
-
-    def __rmod__(self, other):
-        return BinaryOp(other, self, "mod")
-
-    def __eq__(self, other):
-        return BinaryOp(self, other, "eq")
-
-    def __ne__(self, other):
-        return BinaryOp(self, other, "ne")
-
-    def __lt__(self, other):
-        return BinaryOp(self, other, "lt")
-
-    def __le__(self, other):
-        return BinaryOp(self, other, "le")
-
-    def __gt__(self, other):
-        return BinaryOp(self, other, "gt")
-
-    def __ge__(self, other):
-        return BinaryOp(self, other, "ge")
-
-    def __and__(self, other):
-        return BinaryOp(self, other, "and")
-
-    def __or__(self, other):
-        return BinaryOp(self, other, "or")
-
-    def __invert__(self):
-        return UnaryOp(self, "not")
-
     def __bool__(self):
         raise TypeError(
             "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
@@ -288,81 +264,3 @@ class UnsupportedOperandError(Exception):
 
 def addr(var):
     return var._addr
-
-
-class ArithmeticSupported:
-    def __setitem__(self, key, value):
-        if isinstance(key, slice) and key.start is None and key.stop is None and key.step is None:
-            self.__iset__(value)
-            return
-        raise TypeError(f"'{type(self).__name__}' object does not support item assignment")
-
-    def __add__(self, other):
-        return BinaryOp(self, other, "add")
-
-    def __radd__(self, other):
-        return BinaryOp(other, self, "add")
-
-    def __sub__(self, other):
-        return BinaryOp(self, other, "sub")
-
-    def __rsub__(self, other):
-        return BinaryOp(other, self, "sub")
-
-    def __mul__(self, other):
-        return BinaryOp(self, other, "mul")
-
-    def __rmul__(self, other):
-        return BinaryOp(other, self, "mul")
-
-    def __itruediv__(self, other):
-        return self.__idiv__(other)
-
-    def __neg__(self):
-        return UnaryOp(self, "neg")
-
-    def __pos__(self):
-        return self
-
-    def __eq__(self, other):
-        return BinaryOp(self, other, "eq")
-
-    def __ne__(self, other):
-        return BinaryOp(self, other, "ne")
-
-    def __lt__(self, other):
-        return BinaryOp(self, other, "lt")
-
-    def __le__(self, other):
-        return BinaryOp(self, other, "le")
-
-    def __gt__(self, other):
-        return BinaryOp(self, other, "gt")
-
-    def __ge__(self, other):
-        return BinaryOp(self, other, "ge")
-
-    def __and__(self, other):
-        return BinaryOp(self, other, "and")
-
-    def __or__(self, other):
-        return BinaryOp(self, other, "or")
-
-    def __invert__(self):
-        return UnaryOp(self, "not")
-
-    def __truediv__(self, other):
-        return BinaryOp(self, other, "truediv")
-
-    def __rtruediv__(self, other):
-        return BinaryOp(other, self, "truediv")
-
-    def __mod__(self, other):
-        return BinaryOp(self, other, "mod")
-
-    def __rmod__(self, other):
-        return BinaryOp(other, self, "mod")
-
-    def __bool__(self):
-        raise TypeError(
-            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")

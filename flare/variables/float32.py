@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from math import inf
 
-from .core import UnsupportedOperandError, ArithmeticSupported
+from .core import UnsupportedOperandError, ArithmeticSupported, addr
 from .score import score, getscore
 from .. import context as ctx
 from ..context import _invoke_stdlib, runcommand, temp_storage
@@ -421,9 +421,9 @@ class float32(ArithmeticSupported):
             res += temp
             res /= two
 
-        res = type(self)(addr=f"!f32_sqrt_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_sqrt", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_sqrt_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_sqrt", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def rsqrt(self):
         def gen(inputs, outputs):
@@ -454,9 +454,9 @@ class float32(ArithmeticSupported):
             one_point_five -= temp
             y *= one_point_five
 
-        y = type(self)(addr=f"!f32_rsqrt_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_rsqrt", {"x": self}, {"res": y}, gen)
-        return y
+        _y = type(self)(addr=f"!f32_rsqrt_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_rsqrt", {"x": self}, {"res": _y}, gen)
+        return _y
 
     def __sin__(self):
         def gen(inputs, outputs):
@@ -496,33 +496,51 @@ class float32(ArithmeticSupported):
 
             is_reflect = score(0, addr="!f32_sin_isref __flare_stdlib__")
             ScoreIfMatches(sub_half._sign, 1).then(lambda: is_reflect.__iset__(1))
-            
+
             x_reflected = type(x)(addr="!f32_sin_xr __flare_stdlib__")
             x_reflected[:] = pi
             x_reflected -= x
-            
+
             ScoreIfMatches(is_reflect, 1).then([
                 lambda: x._sign.__iset__(x_reflected._sign),
                 lambda: x._exp.__iset__(x_reflected._exp),
                 lambda: x._mant.__iset__(x_reflected._mant)
             ])
 
-            x2 = type(x)(addr="!f32_sin_x2 __flare_stdlib__"); x2[:] = x; x2 *= x
-            x3 = type(x)(addr="!f32_sin_x3 __flare_stdlib__"); x3[:] = x2; x3 *= x
-            x5 = type(x)(addr="!f32_sin_x5 __flare_stdlib__"); x5[:] = x3; x5 *= x2
-            x7 = type(x)(addr="!f32_sin_x7 __flare_stdlib__"); x7[:] = x5; x7 *= x2
-            x9 = type(x)(addr="!f32_sin_x9 __flare_stdlib__"); x9[:] = x7; x9 *= x2
-            
+            x2 = type(x)(addr="!f32_sin_x2 __flare_stdlib__");
+            x2[:] = x;
+            x2 *= x
+            x3 = type(x)(addr="!f32_sin_x3 __flare_stdlib__");
+            x3[:] = x2;
+            x3 *= x
+            x5 = type(x)(addr="!f32_sin_x5 __flare_stdlib__");
+            x5[:] = x3;
+            x5 *= x2
+            x7 = type(x)(addr="!f32_sin_x7 __flare_stdlib__");
+            x7[:] = x5;
+            x7 *= x2
+            x9 = type(x)(addr="!f32_sin_x9 __flare_stdlib__");
+            x9[:] = x7;
+            x9 *= x2
+
             c3 = type(x)(1.0 / 6.0)
             c5 = type(x)(1.0 / 120.0)
             c7 = type(x)(1.0 / 5040.0)
             c9 = type(x)(1.0 / 362880.0)
-            
-            t3 = type(x)(addr="!f32_sin_t3 __flare_stdlib__"); t3[:] = x3; t3 *= c3
-            t5 = type(x)(addr="!f32_sin_t5 __flare_stdlib__"); t5[:] = x5; t5 *= c5
-            t7 = type(x)(addr="!f32_sin_t7 __flare_stdlib__"); t7[:] = x7; t7 *= c7
-            t9 = type(x)(addr="!f32_sin_t9 __flare_stdlib__"); t9[:] = x9; t9 *= c9
-            
+
+            t3 = type(x)(addr="!f32_sin_t3 __flare_stdlib__");
+            t3[:] = x3;
+            t3 *= c3
+            t5 = type(x)(addr="!f32_sin_t5 __flare_stdlib__");
+            t5[:] = x5;
+            t5 *= c5
+            t7 = type(x)(addr="!f32_sin_t7 __flare_stdlib__");
+            t7[:] = x7;
+            t7 *= c7
+            t9 = type(x)(addr="!f32_sin_t9 __flare_stdlib__");
+            t9[:] = x9;
+            t9 *= c9
+
             res[:] = x
             res -= t3
             res += t5
@@ -531,9 +549,9 @@ class float32(ArithmeticSupported):
 
             ScoreIfMatches(is_neg, 1).then(lambda: res.__ineg__())
 
-        res = type(self)(addr=f"!f32_sin_r_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_sin", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_sin_r_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_sin", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __cos__(self):
         def gen(inputs, outputs):
@@ -545,9 +563,9 @@ class float32(ArithmeticSupported):
             x += half_pi
             res[:] = x.__sin__()
 
-        res = type(self)(addr=f"!f32_cos_r_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_cos", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_cos_r_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_cos", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __exp__(self):
         x = float32(addr=f"!f32_exp_x_{next_temp_id()}")
@@ -614,9 +632,9 @@ class float32(ArithmeticSupported):
                 guess += num
             res[:] = guess
 
-        res = type(self)(addr=f"!f32_log_r_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_log", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_log_r_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_log", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __tan__(self):
         def gen(inputs, outputs):
@@ -631,9 +649,9 @@ class float32(ArithmeticSupported):
             res[:] = s
             res /= c
 
-        res = type(self)(addr=f"!f32_tan_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_tan", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_tan_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_tan", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __atan__(self):
         def gen(inputs, outputs):
@@ -682,9 +700,9 @@ class float32(ArithmeticSupported):
             res[:] = atan_val
             ScoreIfMatches(is_neg, 1).then(lambda: res.__ineg__())
 
-        res = type(self)(addr=f"!f32_atan_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_atan", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_atan_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_atan", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __atan2__(self, x):
         def gen(inputs, outputs):
@@ -718,9 +736,9 @@ class float32(ArithmeticSupported):
             ScoreIfMatches(x_is_zero, 1) & ScoreIfMatches(y_in._sign, -1).then([lambda: res.__iset__(pi_half),
                                                                                 lambda: res.__ineg__()])
 
-        res = type(self)(addr=f"!f32_atan2_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_atan2", {"y": self, "x": x}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_atan2_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_atan2", {"y": self, "x": x}, {"res": _res}, gen)
+        return _res
 
     def __asin__(self):
         def gen(inputs, outputs):
@@ -744,9 +762,9 @@ class float32(ArithmeticSupported):
             at2 = x.__atan2__(sq)
             res[:] = at2
 
-        res = type(self)(addr=f"!f32_asin_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_asin", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_asin_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_asin", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __acos__(self):
         def gen(inputs, outputs):
@@ -770,9 +788,9 @@ class float32(ArithmeticSupported):
             at2 = sq.__atan2__(x)
             res[:] = at2
 
-        res = type(self)(addr=f"!f32_acos_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_acos", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_acos_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_acos", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __sinh__(self):
         def gen(inputs, outputs):
@@ -793,9 +811,9 @@ class float32(ArithmeticSupported):
             res -= emx
             res /= type(x)(2.0)
 
-        res = type(self)(addr=f"!f32_sinh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_sinh", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_sinh_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_sinh", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __cosh__(self):
         def gen(inputs, outputs):
@@ -816,9 +834,9 @@ class float32(ArithmeticSupported):
             res += emx
             res /= type(x)(2.0)
 
-        res = type(self)(addr=f"!f32_cosh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_cosh", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_cosh_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_cosh", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __tanh__(self):
         def gen(inputs, outputs):
@@ -833,9 +851,9 @@ class float32(ArithmeticSupported):
             res[:] = sh
             res /= ch
 
-        res = type(self)(addr=f"!f32_tanh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_tanh", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_tanh_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_tanh", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __asinh__(self):
         def gen(inputs, outputs):
@@ -853,9 +871,9 @@ class float32(ArithmeticSupported):
             sq += x
             res[:] = sq.__log__()
 
-        res = type(self)(addr=f"!f32_asinh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_asinh", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_asinh_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_asinh", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __acosh__(self):
         def gen(inputs, outputs):
@@ -873,9 +891,9 @@ class float32(ArithmeticSupported):
             sq += x
             res[:] = sq.__log__()
 
-        res = type(self)(addr=f"!f32_acosh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_acosh", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_acosh_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_acosh", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __atanh__(self):
         def gen(inputs, outputs):
@@ -901,9 +919,9 @@ class float32(ArithmeticSupported):
             res[:] = lg
             res /= type(x)(2.0)
 
-        res = type(self)(addr=f"!f32_atanh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_atanh", {"x": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_atanh_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_atanh", {"x": self}, {"res": _res}, gen)
+        return _res
 
     def __round__(self, ndigits=None):
         if ndigits is not None and ndigits != 0:
@@ -956,9 +974,9 @@ class float32(ArithmeticSupported):
                 lambda: res._exp.__iadd__(1)
             ])
 
-        res = type(self)(addr=f"!f32_round_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_round", {"self": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_round_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_round", {"self": self}, {"res": _res}, gen)
+        return _res
 
     def __floor__(self):
         self._check_addr()
@@ -1000,9 +1018,9 @@ class float32(ArithmeticSupported):
                 lambda: res._exp.__isub__(1)
             ])
 
-        res = type(self)(addr=f"!f32_floor_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_floor", {"self": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_floor_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_floor", {"self": self}, {"res": _res}, gen)
+        return _res
 
     def __ceil__(self):
         self._check_addr()
@@ -1044,9 +1062,9 @@ class float32(ArithmeticSupported):
                 lambda: res._exp.__iadd__(1)
             ])
 
-        res = type(self)(addr=f"!f32_ceil_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float32_ceil", {"self": self}, {"res": res}, gen)
-        return res
+        _res = type(self)(addr=f"!f32_ceil_{next_temp_id()}")
+        _invoke_stdlib("flare_math:float32_ceil", {"self": self}, {"res": _res}, gen)
+        return _res
 
     def __print__(self):
         self._check_addr()
@@ -1073,8 +1091,8 @@ class float32(ArithmeticSupported):
         comps = []
 
         runcommand(
-            f"execute if score {self._sign._addr} matches -1 run data modify storage {temp_storage} __f32s_{tid} set value '-'")
-        runcommand(f"execute if score {self._sign._addr} matches 1 run data remove storage {temp_storage} __f32s_{tid}")
+            f"execute if score {addr(self._sign)} matches -1 run data modify storage {temp_storage} __f32s_{tid} set value '-'")
+        runcommand(f"execute if score {addr(self._sign)} matches 1 run data remove storage {temp_storage} __f32s_{tid}")
         comps.append({"nbt": f"__f32s_{tid}", "storage": str(temp_storage)})
 
         started = score(0, addr=f"!f32prt_st_{tid} {vars_obj}")
@@ -1083,30 +1101,30 @@ class float32(ArithmeticSupported):
             pp = f"__f32ip_{tid}_{i}"
             vp = f"__f32iv_{tid}_{i}"
             runcommand(
-                f"execute store result storage {temp_storage} {vp} int 1 run scoreboard players get {limb._addr}")
+                f"execute store result storage {temp_storage} {vp} int 1 run scoreboard players get {addr(limb)}")
             if i < 7:
                 runcommand(
-                    f"execute if score {started._addr} matches 1 if score {limb._addr} matches 0..9   run data modify storage {temp_storage} {pp} set value \'000\'")
+                    f"execute if score {addr(started)} matches 1 if score {addr(limb)} matches 0..9 run data modify storage {temp_storage} {pp} set value \'000\'")
                 runcommand(
-                    f"execute if score {started._addr} matches 1 if score {limb._addr} matches 10..99  run data modify storage {temp_storage} {pp} set value \'00\'")
+                    f"execute if score {addr(started)} matches 1 if score {addr(limb)} matches 10..99 run data modify storage {temp_storage} {pp} set value \'00\'")
                 runcommand(
-                    f"execute if score {started._addr} matches 1 if score {limb._addr} matches 100..999 run data modify storage {temp_storage} {pp} set value \'0\'")
+                    f"execute if score {addr(started)} matches 1 if score {addr(limb)} matches 100..999 run data modify storage {temp_storage} {pp} set value \'0\'")
                 runcommand(
-                    f"execute if score {started._addr} matches 1 if score {limb._addr} matches 1000..  run data modify storage {temp_storage} {pp} set value \'\'")
-                runcommand(f"execute if score {started._addr} matches 0 run data remove storage {temp_storage} {pp}")
+                    f"execute if score {addr(started)} matches 1 if score {addr(limb)} matches 1000.. run data modify storage {temp_storage} {pp} set value \'\'")
+                runcommand(f"execute if score {addr(started)} matches 0 run data remove storage {temp_storage} {pp}")
                 runcommand(
-                    f"execute if score {started._addr} matches 0 if score {limb._addr} matches 0 run data remove storage {temp_storage} {vp}")
+                    f"execute if score {addr(started)} matches 0 if score {addr(limb)} matches 0 run data remove storage {temp_storage} {vp}")
             else:
                 runcommand(
-                    f"execute if score {started._addr} matches 0 if score {limb._addr} matches 0 run data remove storage {temp_storage} {vp}")
+                    f"execute if score {addr(started)} matches 0 if score {addr(limb)} matches 0 run data remove storage {temp_storage} {vp}")
                 runcommand(f"data remove storage {temp_storage} {pp}")
-            runcommand(f"execute if score {limb._addr} matches 1.. run scoreboard players set {started._addr} 1")
+            runcommand(f"execute if score {addr(limb)} matches 1.. run scoreboard players set {addr(started)} 1")
             comps.append({"nbt": pp, "storage": str(temp_storage)})
             comps.append({"nbt": vp, "storage": str(temp_storage)})
 
         runcommand(
-            f"execute if score {started._addr} matches 0 run data modify storage {temp_storage} __f32z_{tid} set value \'0\'")
-        runcommand(f"execute if score {started._addr} matches 1 run data remove storage {temp_storage} __f32z_{tid}")
+            f"execute if score {addr(started)} matches 0 run data modify storage {temp_storage} __f32z_{tid} set value \'0\'")
+        runcommand(f"execute if score {addr(started)} matches 1 run data remove storage {temp_storage} __f32z_{tid}")
         comps.append({"nbt": f"__f32z_{tid}", "storage": str(temp_storage)})
 
         comps.append({"text": "."})
@@ -1116,20 +1134,19 @@ class float32(ArithmeticSupported):
             pp = f"__f32fp_{tid}_{i}"
             vp = f"__f32fv_{tid}_{i}"
             runcommand(
-                f"execute store result storage {temp_storage} {vp} int 1 run scoreboard players get {limb._addr}")
+                f"execute store result storage {temp_storage} {vp} int 1 run scoreboard players get {addr(limb)}")
             runcommand(
-                f"execute if score {limb._addr} matches 0..9   run data modify storage {temp_storage} {pp} set value \'000\'")
+                f"execute if score {addr(limb)} matches 0..9 run data modify storage {temp_storage} {pp} set value \'000\'")
             runcommand(
-                f"execute if score {limb._addr} matches 10..99  run data modify storage {temp_storage} {pp} set value \'00\'")
+                f"execute if score {addr(limb)} matches 10..99 run data modify storage {temp_storage} {pp} set value \'00\'")
             runcommand(
-                f"execute if score {limb._addr} matches 100..999 run data modify storage {temp_storage} {pp} set value \'0\'")
+                f"execute if score {addr(limb)} matches 100..999 run data modify storage {temp_storage} {pp} set value \'0\'")
             runcommand(
-                f"execute if score {limb._addr} matches 1000..  run data modify storage {temp_storage} {pp} set value \'\'")
+                f"execute if score {addr(limb)} matches 1000.. run data modify storage {temp_storage} {pp} set value \'\'")
             comps.append({"nbt": pp, "storage": str(temp_storage)})
             comps.append({"nbt": vp, "storage": str(temp_storage)})
 
         return comps
 
     def __repr__(self):
-
-        return f"Float(exp={self._exp}, sign={self._sign}, mant={self._mant})"
+        return f"float32(exp={self._exp}, sign={self._sign}, mant={self._mant})"

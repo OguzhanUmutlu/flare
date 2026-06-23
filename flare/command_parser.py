@@ -4,16 +4,16 @@ import re
 TOKEN_REGEX = re.compile(r'(?P<FSTRING>f\"(?:\\\\.|[^\\"])*\"|f\'(?:\\\\.|[^\\\'])*\')|'
                          r'(?P<STRING>\"(?:\\\\.|[^\\"])*\"|\'(?:\\\\.|[^\\\'])*\')|'
                          r'(?P<NUMBER>-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:[dDfFsSbBL])?)|'
-                         r'(?P<IDENTIFIER>[a-zA-Z_][a-zA-Z0-9_\.\-]*)|'
+                         r'(?P<IDENTIFIER>[a-zA-Z_][a-zA-Z0-9_.\-]*)|'
                          r'(?P<SELECTOR>@[parse])|'
-                         r'(?P<SYMBOL>[~^@\{\}\[\]\:\,=\.!#\$%\&\*\+\-\/\<\>\?\|\\`]+)|'
+                         r'(?P<SYMBOL>[~^@{}\[\]:,=.!#$%&*+\-/<>?|\\`]+)|'
                          r'(?P<WHITESPACE>\s+)')
 
 
 def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> str:
     tokens = []
     for match in TOKEN_REGEX.finditer(command):
-        tokens.append({"type": match.lastgroup, "value": match.group(match.lastgroup), "start": match.start(),
+        tokens.append({"type": match.lastgroup, "value": match.group(str(match.lastgroup)), "start": match.start(),
                        "end": match.end()})
 
     output = []
@@ -26,7 +26,7 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
             try:
                 val = eval(tok["value"], global_vars, local_vars)
                 output.append(json.dumps(val))
-            except Exception as e:
+            except:  # noqa
                 output.append(tok["value"])
 
         elif tok["type"] == "WHITESPACE":
@@ -47,7 +47,7 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
             val = tok["value"]
             if is_key:
                 inner = val[1:-1]
-                if re.match(r'^[a-zA-Z0-9_\-\.]+$', inner):
+                if re.match(r'^[a-zA-Z0-9_\-.]+$', inner):
                     output.append(inner)
                 else:
                     output.append(val)
@@ -78,7 +78,7 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
                     output[-1] = output[-1][:-2]
                     items = []
                     for k, v in val.items():
-                        if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-\.]+$', k):
+                        if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):
                             k = json.dumps(k)
                         v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
                         items.append(f"{k}: {v_str}")
@@ -95,7 +95,7 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
                     output[-1] = output[-1][:-2]
                     items = []
                     for k, v in val.items():
-                        if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-\.]+$', k):
+                        if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):
                             k = json.dumps(k)
                         v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
                         items.append(f"{k}: {v_str}")

@@ -20,7 +20,6 @@ def parse_brigadier_string(reader: StringReader, props: dict):
 
 
 def parse_brigadier_integer(reader: StringReader, props: dict):
-    start = reader.cursor
     if reader.peek() == "-":
         reader.read()
     if not reader.can_read() or not reader.peek().isdigit():
@@ -30,7 +29,6 @@ def parse_brigadier_integer(reader: StringReader, props: dict):
 
 
 def parse_brigadier_float(reader: StringReader, props: dict):
-    start = reader.cursor
     if reader.peek() == "-":
         reader.read()
     if not reader.can_read() or not reader.peek().isdigit():
@@ -146,6 +144,7 @@ def parse_fallback(reader: StringReader, props: dict):
     while reader.can_read() and not reader.peek().isspace():
         reader.read()
 
+
 def parse_minecraft_nbt_path(reader: StringReader, props: dict):
     in_string = False
     quote = ""
@@ -170,6 +169,7 @@ def parse_minecraft_nbt_path(reader: StringReader, props: dict):
             elif c in ("]", "}"):
                 brackets -= 1
 
+
 def parse_minecraft_resource_location(reader: StringReader, props: dict):
     start = reader.cursor
     allowed = set("0123456789abcdefghijklmnopqrstuvwxyz_.-:")
@@ -180,14 +180,15 @@ def parse_minecraft_resource_location(reader: StringReader, props: dict):
 
 
 MATCHERS = {"brigadier:string": parse_brigadier_string, "brigadier:integer": parse_brigadier_integer,
-    "brigadier:float": parse_brigadier_float, "brigadier:double": parse_brigadier_float,
-    "brigadier:bool": parse_brigadier_bool, "minecraft:entity": parse_minecraft_entity,
-    "minecraft:game_profile": parse_minecraft_entity, "minecraft:score_holder": parse_minecraft_entity,
-    "minecraft:vec3": parse_minecraft_vec3, "minecraft:vec2": parse_minecraft_vec2,
-    "minecraft:rotation": parse_minecraft_vec2, "minecraft:nbt_compound_tag": parse_minecraft_nbt,
-    "minecraft:nbt_tag": parse_minecraft_nbt, "minecraft:component": parse_minecraft_nbt,
-    "minecraft:message": lambda r, p: parse_brigadier_string(r, {"type": "greedy"}),
-    "minecraft:objective": parse_minecraft_entity, "minecraft:item_stack": parse_minecraft_item_stack,
-    "minecraft:item_predicate": parse_minecraft_item_stack, "minecraft:nbt_path": parse_minecraft_nbt_path,
-    "minecraft:block_pos": parse_minecraft_vec3, "minecraft:column_pos": parse_minecraft_vec2, 
-    "minecraft:resource_location": parse_minecraft_resource_location, "minecraft:function": parse_minecraft_resource_location}
+            "brigadier:float": parse_brigadier_float, "brigadier:double": parse_brigadier_float,
+            "brigadier:bool": parse_brigadier_bool, "minecraft:entity": parse_minecraft_entity,
+            "minecraft:game_profile": parse_minecraft_entity, "minecraft:score_holder": parse_minecraft_entity,
+            "minecraft:vec3": parse_minecraft_vec3, "minecraft:vec2": parse_minecraft_vec2,
+            "minecraft:rotation": parse_minecraft_vec2, "minecraft:nbt_compound_tag": parse_minecraft_nbt,
+            "minecraft:nbt_tag": parse_minecraft_nbt, "minecraft:component": parse_minecraft_nbt,
+            "minecraft:message": lambda r, p: parse_brigadier_string(r, {"type": "greedy"}),
+            "minecraft:objective": parse_minecraft_entity, "minecraft:item_stack": parse_minecraft_item_stack,
+            "minecraft:item_predicate": parse_minecraft_item_stack, "minecraft:nbt_path": parse_minecraft_nbt_path,
+            "minecraft:block_pos": parse_minecraft_vec3, "minecraft:column_pos": parse_minecraft_vec2,
+            "minecraft:resource_location": parse_minecraft_resource_location,
+            "minecraft:function": parse_minecraft_resource_location}

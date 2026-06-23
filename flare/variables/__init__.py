@@ -11,6 +11,13 @@ from ..types import byte, boolean, short, long, double
 
 storage = _Storage()
 
+
+class _Macro:
+    pass
+
+
+macro = _Macro()
+
 nbtbyte = nbt[byte]
 nbtbool = nbt[boolean]
 nbtshort = nbt[short]

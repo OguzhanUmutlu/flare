@@ -26,9 +26,7 @@ print(score(addr=b._addr))
 print(c)
 dbg(c)
 
-res = _flare_in(5, myarray)
-print(res)
-if res:
+if 5 in myarray:
     print("5 is in myarray")
 
 @export

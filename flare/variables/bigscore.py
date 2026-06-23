@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from math import inf
 
-from .core import UnsupportedOperandError, BinaryOp, ArithmeticSupported
+from .core import UnsupportedOperandError, BinaryOp, ArithmeticSupported, addr
 from .score import score
 from .. import context as ctx
 from ..context import temp_obj, ensure_objective
@@ -26,6 +26,7 @@ class bigscore(ArithmeticSupported):
     _size = 2
     _multiplier = 1.0
     _base = BASE
+    _implements_set = (int, float, score)
 
     def __init__(self, value: int | float | None = None, *, addr: str | None = None, size: int | None = None,
                  multiplier: float | None = None):
@@ -134,15 +135,11 @@ class bigscore(ArithmeticSupported):
                 )
             return self
 
-        raise UnsupportedOperandError(self, "=", other)
+        return self._try_math("__iset__", "=", other, (float, int, bigscore, score))
 
     def __iadd__(self, other):
         rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
-        if isinstance(other, (int, float)):
-            t = type(self)(other)
-            return self.__iadd__(t)
-
         if isinstance(other, bigscore):
             other._check_addr()
             if self.size != other.size:
@@ -164,15 +161,12 @@ class bigscore(ArithmeticSupported):
                     lambda: self.get_limb(i).__iadd__(self._base)
                 ])
             return self
-        raise UnsupportedOperandError(self, "+", other)
+
+        return self._try_math("__iadd__", "+", other)
 
     def __isub__(self, other):
         rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
-        if isinstance(other, (int, float)):
-            t = type(self)(other)
-            return self.__isub__(t)
-
         if isinstance(other, bigscore):
             other._check_addr()
             if self.size != other.size:
@@ -192,15 +186,12 @@ class bigscore(ArithmeticSupported):
                     lambda: self.get_limb(i).__iadd__(self._base)
                 ])
             return self
-        raise UnsupportedOperandError(self, "-", other)
+
+        return self._try_math("__isub__", "-", other)
 
     def __imul__(self, other):
         rem, val, carry, borrow, mul = _get_temps()
         self._check_addr()
-        if isinstance(other, (int, float)):
-            t = type(self)(other)
-            return self.__imul__(t)
-
         if isinstance(other, bigscore):
             other._check_addr()
             if self.size != other.size:
@@ -252,35 +243,8 @@ class bigscore(ArithmeticSupported):
                 self.get_limb(i)[:] = temp_c[i]
 
             return self
-        raise UnsupportedOperandError(self, "*", other)
 
-    def __icopy__(self, varid: str, is_recursive: bool = False):
-        if is_recursive:
-            raise TypeError("Local variable needs a stack in recursive context, but it's a bigscore")
-        if self._addr is None:
-            self._objective = vars_obj
-            self._name = f"{varid}"
-            self._addr = f"{self._name} {self._objective}"
-            ctx.ensure_objective(self._objective)
-            if self._value_to_set is not None:
-                self[:] = self._value_to_set
-        else:
-            dest = type(self)(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
-            dest[:] = self
-            return dest
-        return self
-
-    def __round__(self, ndigits=None):
-        # todo
-        pass
-
-    def __floor__(self):
-        # todo
-        pass
-
-    def __ceil__(self):
-        # todo
-        pass
+        return self._try_math("__imul__", "*", other)
 
     def __idiv__(self, other):
         rem, val, carry, borrow, mul = _get_temps()
@@ -381,12 +345,12 @@ class bigscore(ArithmeticSupported):
                 for i in range(self.size):
                     r_limb = r.get_limb(i)
                     dsh_limb = d_shifted.get_limb(i)
-                    borrow_cond.then(lambda r_limb=r_limb, dsh_limb=dsh_limb: r_limb.__iadd__(dsh_limb))
-                    borrow_cond.then(lambda r_limb=r_limb: r_limb.__iadd__(carry))
+                    borrow_cond.then(lambda: r_limb.__iadd__(dsh_limb))
+                    borrow_cond.then(lambda: r_limb.__iadd__(carry))
                     borrow_cond.then(lambda: carry.__iset__(0))
                     nested_cond = borrow_cond & ScoreIfMatches(r_limb, (self._base, inf))
                     nested_cond.then(lambda: carry.__iset__(1))
-                    nested_cond.then(lambda r_limb=r_limb: r_limb.__isub__(self._base))
+                    nested_cond.then(lambda: r_limb.__isub__(self._base))
 
                 carry[:] = 0
 
@@ -407,7 +371,7 @@ class bigscore(ArithmeticSupported):
             self._last_rem = r
             return self
 
-        raise UnsupportedOperandError(self, "/", other)
+        return self._try_math("__idiv__", "/", other, (float, int, bigscore, score))
 
     def __imod__(self, other):
         rem, val, carry, borrow, mul = _get_temps()
@@ -437,11 +401,25 @@ class bigscore(ArithmeticSupported):
         self.__idiv__(other)
         return self.__imod__(other)
 
+    def __icopy__(self, varid: str, is_recursive: bool = False):
+        if is_recursive:
+            raise TypeError("Local variable needs a stack in recursive context, but it's a bigscore")
+        if self._addr is None:
+            self._objective = vars_obj
+            self._name = f"{varid}"
+            self._addr = f"{self._name} {self._objective}"
+            ctx.ensure_objective(self._objective)
+            if self._value_to_set is not None:
+                self[:] = self._value_to_set
+        else:
+            dest = type(self)(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
+            dest[:] = self
+            return dest
+        return self
+
     def __imax__(self, other):
         borrow = _get_temps()[3]
-        if isinstance(other, bigscore) and self.size == other.size and getattr(self, "multiplier", 1) == getattr(other,
-                                                                                                                 "multiplier",
-                                                                                                                 1):
+        if isinstance(other, bigscore) and self.size == other.size and self._multiplier == other._multiplier:
             temp = type(self)()
             temp[:] = self
             temp.__isub__(other)
@@ -456,9 +434,7 @@ class bigscore(ArithmeticSupported):
 
     def __imin__(self, other):
         borrow = _get_temps()[3]
-        if (isinstance(other, bigscore) and self.size == other.size and getattr(self, "multiplier", 1) == getattr(other,
-                                                                                                                  "multiplier",
-                                                                                                                  1)):
+        if isinstance(other, bigscore) and self.size == other.size and self._multiplier == other._multiplier:
             temp = type(self)()
             temp[:] = self
             temp.__isub__(other)
@@ -472,9 +448,7 @@ class bigscore(ArithmeticSupported):
         return BinaryOp(self, other, "imin")
 
     def __swap__(self, other):
-        if isinstance(other, bigscore) and self.size == other.size and getattr(self, "multiplier", 1) == getattr(other,
-                                                                                                                 "multiplier",
-                                                                                                                 1):
+        if isinstance(other, bigscore) and self.size == other.size and self._multiplier == other._multiplier:
             for i in range(self.size):
                 self.get_limb(i).__swap__(other.get_limb(i))
             return self
@@ -489,41 +463,40 @@ class bigscore(ArithmeticSupported):
 
         for i in reversed(range(self.size)):
             limb = self.get_limb(i)
-            lname, lobj = limb._addr.split(" ", 1)
             pad_path = f"__bsp_{tid}_{i}"
             val_path = f"__bsv_{tid}_{i}"
 
             runcommand(
-                f"execute store result storage {temp_storage} {val_path} int 1 run scoreboard players get {limb._addr}")
+                f"execute store result storage {temp_storage} {val_path} int 1 run scoreboard players get {addr(limb)}")
 
             if i < self.size - 1:
                 runcommand(
-                    f"execute if score {limb._addr} matches 0..9    run data modify storage {temp_storage} {pad_path} set value '000'")
+                    f"execute if score {addr(limb)} matches 0..9    run data modify storage {temp_storage} {pad_path} set value '000'")
                 runcommand(
-                    f"execute if score {limb._addr} matches 10..99   run data modify storage {temp_storage} {pad_path} set value '00'")
+                    f"execute if score {addr(limb)} matches 10..99   run data modify storage {temp_storage} {pad_path} set value '00'")
                 runcommand(
-                    f"execute if score {limb._addr} matches 100..999  run data modify storage {temp_storage} {pad_path} set value '0'")
+                    f"execute if score {addr(limb)} matches 100..999  run data modify storage {temp_storage} {pad_path} set value '0'")
                 runcommand(
-                    f"execute if score {limb._addr} matches 1000..    run data modify storage {temp_storage} {pad_path} set value ''")
+                    f"execute if score {addr(limb)} matches 1000..    run data modify storage {temp_storage} {pad_path} set value ''")
             else:
                 runcommand(f"data modify storage {temp_storage} {pad_path} set value ''")
                 runcommand(
-                    f"execute if score {started._addr} matches 0 if score {limb._addr} matches 0 run data remove storage {temp_storage} {val_path}")
+                    f"execute if score {addr(started)} matches 0 if score {addr(limb)} matches 0 run data remove storage {temp_storage} {val_path}")
 
             if i < self.size - 1:
                 runcommand(
-                    f"execute if score {started._addr} matches 0 run data modify storage {temp_storage} {pad_path} set value ''")
+                    f"execute if score {addr(started)} matches 0 run data modify storage {temp_storage} {pad_path} set value ''")
                 runcommand(
-                    f"execute if score {started._addr} matches 0 if score {limb._addr} matches 0 run data remove storage {temp_storage} {val_path}")
+                    f"execute if score {addr(started)} matches 0 if score {addr(limb)} matches 0 run data remove storage {temp_storage} {val_path}")
 
-            runcommand(f"execute if score {limb._addr} matches 1.. run scoreboard players set {started._addr} 1")
+            runcommand(f"execute if score {addr(limb)} matches 1.. run scoreboard players set {addr(started)} 1")
 
             comps.append({"nbt": pad_path, "storage": str(temp_storage)})
             comps.append({"nbt": val_path, "storage": str(temp_storage)})
 
         runcommand(
-            f"execute if score {started._addr} matches 0 run data modify storage {temp_storage} __bs0_{tid} set value '0'")
-        runcommand(f"execute if score {started._addr} matches 1 run data remove storage {temp_storage} __bs0_{tid}")
+            f"execute if score {addr(started)} matches 0 run data modify storage {temp_storage} __bs0_{tid} set value '0'")
+        runcommand(f"execute if score {addr(started)} matches 1 run data remove storage {temp_storage} __bs0_{tid}")
         comps.append({"nbt": f"__bs0_{tid}", "storage": str(temp_storage)})
 
         return comps

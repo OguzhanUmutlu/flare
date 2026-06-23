@@ -2,6 +2,8 @@ import builtins
 import math
 from math import *
 
+from flare.context import next_temp_id
+
 _orig = {"floor": math.floor, "ceil": math.ceil, "round": builtins.round, "sqrt": math.sqrt, "sin": math.sin,
          "cos": math.cos, "tan": math.tan, "asin": math.asin, "acos": math.acos, "atan": math.atan, "atan2": math.atan2,
          "exp": math.exp, "log": math.log, "sinh": math.sinh, "cosh": math.cosh, "tanh": math.tanh, "asinh": math.asinh,
@@ -32,9 +34,6 @@ def _dispatch(name, *args, memoize=True):
             if hasattr(var, "_multiplier"):
                 kwargs["multiplier"] = var._multiplier
             return type(var)(addr=addr, **kwargs)
-
-        if not hasattr(ctx, "memoized_math"):
-            ctx.memoized_math = {}
 
         if memo_key not in ctx.memoized_math:
             in_vars = [_clone_var(x, f"!{memo_key}_in0 {vars_obj}")]
@@ -89,8 +88,8 @@ def min_(*args, **kwargs):
         if not any(hasattr(x, "__imin__") for x in search_args):
             return _orig["min"](*args, **kwargs)
 
-    var = next((x for x in search_args if hasattr(x, "__imin__")), None)
-    res = var.__icopy__(f"!min_{next_temp_id()}")
+    res = next((x for x in search_args if hasattr(x, "__imin__")), None)
+    res = res.__icopy__(f"!min_{next_temp_id()}")
     res[:] = search_args[0]
     for x in search_args[1:]:
         res.__imin__(x)
@@ -160,7 +159,7 @@ def log(x, base=None):
 def ln(x): return log(x)
 
 
-def pow(x, y):
+def pow_(x, y):
     if hasattr(x, "__pow__"):
         return x.__pow__(y)
     if hasattr(x, "_addr") or hasattr(x, "real"):
@@ -300,7 +299,7 @@ math.tanh = tanh
 math.asinh = asinh
 math.acosh = acosh
 math.atanh = atanh
-math.pow = pow
+math.pow = pow_
 builtins.round = round_
 builtins.min = min_
 builtins.max = max_

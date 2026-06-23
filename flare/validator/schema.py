@@ -2,8 +2,8 @@ import json
 import urllib.request
 from pathlib import Path
 
-
 _memory_cache = {}
+
 
 def get_schema(minecraft_version: str) -> dict:
     if minecraft_version in _memory_cache:

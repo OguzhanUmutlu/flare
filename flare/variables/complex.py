@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import math
 
-from .core import UnsupportedOperandError, ArithmeticSupported
+from .core import ArithmeticSupported
 from ..context import temp_obj, next_temp_id
 
 
@@ -52,7 +52,7 @@ class complex(ArithmeticSupported):
             self.real[:] = other.real
             self.imag[:] = other.imag
             return self
-        raise UnsupportedOperandError(self, "=", other)
+        return self._try_math("__iset__", "=", other)
 
     def __iadd__(self, other):
         if isinstance(other, complex):
@@ -122,12 +122,12 @@ class complex(ArithmeticSupported):
             comps.extend(self.real.__print__())
         else:
             comps.extend(_to_print_component(self.real, 0))
-        comps.append({"text": " + "})
+        comps.append(" + ")
         if hasattr(self.imag, "__print__"):
             comps.extend(self.imag.__print__())
         else:
             comps.extend(_to_print_component(self.imag, 1))
-        comps.append({"text": "i"})
+        comps.append("i")
         return comps
 
     def __repr__(self):

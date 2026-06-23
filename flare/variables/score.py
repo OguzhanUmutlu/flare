@@ -31,7 +31,7 @@ def getscore(x: int | float, multiplier: float = 1.0):
 
 
 class score(ArithmeticSupported):
-    def __init__(self, value: int | float | None = None, *, addr: str = None, multiplier: float = 1.0):
+    def __init__(self, value: int | float | None = None, *, addr: str | None = None, multiplier: float = 1.0):
         self._multiplier = float(multiplier)
         self._readonly = False
         self._value_to_set = value if value is not None else (0 if addr is None else None)
@@ -105,7 +105,7 @@ class score(ArithmeticSupported):
     @classmethod
     def __class_getitem__(cls, multiplier: int):
         class _PrecisionScore(cls):
-            def __init__(self, value: int | float | None = None, *, addr: str = None, mult: float = multiplier):
+            def __init__(self, value: int | float | None = None, *, addr: str | None = None, mult: float = multiplier):
                 super().__init__(value, addr=addr, multiplier=mult)
 
         return _PrecisionScore
@@ -384,11 +384,11 @@ class score(ArithmeticSupported):
             if other == 1.0:
                 return self
             frac = Fraction(other).limit_denominator(1000000)
-            N, D = frac.numerator, frac.denominator
-            if N != 1:
-                runcommand(f"scoreboard players operation {addr(self)} *= {getscore(N)._addr}")
-            if D != 1:
-                runcommand(f"scoreboard players operation {addr(self)} /= {getscore(D)._addr}")
+            n, d = frac.numerator, frac.denominator
+            if n != 1:
+                runcommand(f"scoreboard players operation {addr(self)} *= {getscore(n)._addr}")
+            if d != 1:
+                runcommand(f"scoreboard players operation {addr(self)} /= {getscore(d)._addr}")
             return self
         if isinstance(other, _nbt()):
             if other._type is not None and not other.is_number():

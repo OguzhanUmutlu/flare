@@ -44,7 +44,7 @@ def init_project(path: str):
     print(f"Created {json_path.absolute()}")
 
 
-def _build_datapack_inner(file_path: str, cli_overrides: dict = None):
+def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
     p = Path(file_path).parent
     json_path = p / "flare.json"
 
@@ -59,7 +59,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict = None):
         config.update(cli_overrides)
 
     namespace = config.get("namespace", "flare")
-    build_dir = Path(config.get("build_dir", "dist"))
+    build_dir = Path(str(config.get("build_dir", "dist")))
     if not build_dir.is_absolute():
         build_dir = p / build_dir
 
@@ -120,7 +120,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict = None):
     for mod_name in new_modules:
         mod = sys.modules.get(mod_name)
         if mod and getattr(mod, "__file__", None):
-            mod_file = os.path.abspath(mod.__file__)
+            mod_file = os.path.abspath(str(mod.__file__))
             if (mod_file.endswith(".fl") or mod_file.endswith(
                     ".py")) and "site-packages" not in mod_file and "lib/python" not in mod_file:
                 watch_files.add(mod_file)
@@ -156,7 +156,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict = None):
             file_p = build_dir / "data" / ns / "functions" / f"{name}.mcfunction"
             is_top_level = "generated_" not in name and "while_" not in name and name not in ("main", "load")
         else:
-            file_p = build_dir / "data" / context._current_namespace / "functions" / f"{filename}.mcfunction"
+            file_p = build_dir / "data" / str(context._current_namespace) / "functions" / f"{filename}.mcfunction"
             is_top_level = "generated_" not in filename and "while_" not in filename and filename not in ("main",
                                                                                                           "load")
 
@@ -182,7 +182,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict = None):
     return True, watch_files, build_dir
 
 
-def build_datapack(file_path: str, cli_overrides: dict = None):
+def build_datapack(file_path: str, cli_overrides: dict | None = None):
     with build_lock:
         return _build_datapack_inner(file_path, cli_overrides)
 
@@ -205,7 +205,7 @@ def get_tags(build_dir: Path, tag_type: str, tag_name: str) -> list[str]:
             with open(tag_path, "r") as f:
                 data = json.load(f)
                 return data.get("values", [])
-        except Exception:
+        except:  # noqa
             pass
     return []
 
@@ -227,12 +227,30 @@ def main():
                         help="Run the compiled datapack in mcemu. Optionally specify a timeout in seconds.")
     parser.add_argument("--nbt-schema-missing", choices=["error", "warning", "ignore"], default="error",
                         help="Action when indexing an NBT path that does not exist in the attached schema.")
+    parser.add_argument("--namespace", type=str, default=None, help="Override the namespace for the datapack.")
+    parser.add_argument("--pack-format", type=int, default=None, help="Override the pack_format for the datapack.")
+    parser.add_argument("--description", type=str, default=None, help="Override the description for the datapack.")
+    parser.add_argument("--out-dir", type=str, default=None,
+                        help="Override the output directory for the compiled datapack.")
+    parser.add_argument("--validation", action="store_true", help="Enable validation of the compiled datapack.")
+    parser.add_argument("--version", type=str, default=None,
+                        help="Specify the version of Minecraft to use for building.")
 
     args, unknown_args = parser.parse_known_args()
 
     cli_overrides = {}
-    if hasattr(args, 'nbt_schema_missing'):
+    if hasattr(args, "nbt_schema_missing"):
         cli_overrides["nbt_schema_missing"] = args.nbt_schema_missing
+    if hasattr(args, "namespace"):
+        cli_overrides["namespace"] = args.namespace
+    if hasattr(args, "pack_format"):
+        cli_overrides["pack_format"] = args.pack_format
+    if hasattr(args, "description"):
+        cli_overrides["description"] = args.description
+    if hasattr(args, "out_dir"):
+        cli_overrides["out_dir"] = args.out_dir
+    if hasattr(args, "version"):
+        cli_overrides["version"] = args.version
     i = 0
     while i < len(unknown_args):
         arg = unknown_args[i]
@@ -274,27 +292,27 @@ def main():
     emu_thread = None
     running = True
 
-    def run_loop(emu, timeout):
+    def run_loop(emulator: mcemu.Emulator, timeout: float):
         try:
             start_time = time.time()
             while running:
                 if timeout is not None and timeout >= 0:
                     if time.time() - start_time >= timeout:
                         break
-                if emu:
-                    emu.tick()
+                if emulator:
+                    emulator.tick()
                 time.sleep(0.05)
         except KeyboardInterrupt:
             pass
 
     if success and args.run is not None:
         try:
-            timeout = float(args.run) if args.run != "-1" else None
+            _timeout = float(args.run) if args.run != "-1" else None
         except ValueError:
-            timeout = None
+            _timeout = None
         emu = run_emulator(build_dir)
         if emu:
-            emu_thread = threading.Thread(target=run_loop, args=(emu, timeout))
+            emu_thread = threading.Thread(target=run_loop, args=(emu, _timeout))
             emu_thread.daemon = True
             emu_thread.start()
 
@@ -333,12 +351,12 @@ def main():
                     if success and args.run is not None:
                         running = True
                         try:
-                            timeout = float(args.run) if args.run != "-1" else None
+                            _timeout = float(args.run) if args.run != "-1" else None
                         except ValueError:
-                            timeout = None
+                            _timeout = None
                         emu = run_emulator(build_dir)
                         if emu:
-                            emu_thread = threading.Thread(target=run_loop, args=(emu, timeout))
+                            emu_thread = threading.Thread(target=run_loop, args=(emu, _timeout))
                             emu_thread.daemon = True
                             emu_thread.start()
 

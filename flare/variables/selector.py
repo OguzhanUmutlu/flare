@@ -6,7 +6,7 @@ from ..nbt_schema import ENTITY_SCHEMA
 
 
 class tagged:
-    def __init__(self, target: str, *, tag_name: str = None):
+    def __init__(self, target: str, *, tag_name: str | None = None):
         self._target = target
         self.tag_name = tag_name
 
@@ -56,7 +56,7 @@ class selector:
     def __with__(self, body_func):
         self._as().__with__(body_func)
 
-    def __for__(self, body_func, orelse_func=None, has_break=False, has_continue=False):
+    def __for__(self, body_func, orelse_func=None, _has_break=False, _has_continue=False):
         self.__with__(lambda: body_func(selector("@s")))
         if orelse_func:
             orelse_func()
@@ -82,36 +82,28 @@ class selector:
         return rotated(self)
 
     def attacker(self):
-        from ..execute_modifiers import applyon
-        return applyon("attacker")
+        return self._as().applyon("attacker")
 
     def controller(self):
-        from ..execute_modifiers import applyon
-        return applyon("controller")
+        return self._as().applyon("controller")
 
     def leasher(self):
-        from ..execute_modifiers import applyon
-        return applyon("leasher")
+        return self._as().applyon("leasher")
 
     def origin(self):
-        from ..execute_modifiers import applyon
-        return applyon("origin")
+        return self._as().applyon("origin")
 
     def owner(self):
-        from ..execute_modifiers import applyon
-        return applyon("owner")
+        return self._as().applyon("owner")
 
     def passengers(self):
-        from ..execute_modifiers import applyon
-        return applyon("passengers")
+        return self._as().applyon("passengers")
 
     def target(self):
-        from ..execute_modifiers import applyon
-        return applyon("target")
+        return self._as().applyon("target")
 
     def vehicle(self):
-        from ..execute_modifiers import applyon
-        return applyon("vehicle")
+        return self._as().applyon("vehicle")
 
 
 class _SelectorAttribute(nbt):

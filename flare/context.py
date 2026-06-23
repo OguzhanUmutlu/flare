@@ -12,7 +12,7 @@ def addr(var):
 
 files = {"main": []}
 current_file = "main"
-_current_namespace = "flare"
+_current_namespace: str = "flare"
 functions = {}
 constants = {}
 return_targets = {}
@@ -58,6 +58,7 @@ _in_recursive_context = False
 return_types = {}
 has_returns = {}
 _logical_func = None
+memoized_math = {}
 
 validation_level = "strict"
 minecraft_version = "1.20.4"
@@ -96,11 +97,7 @@ def reset_context():
     has_returns.clear()
     return_targets.clear()
     _logical_func = None
-    if "memoized_math" not in globals():
-        global memoized_math
-        memoized_math = {}
-    else:
-        memoized_math.clear()
+    memoized_math.clear()
 
 
 def ensure_objective(obj: str):
@@ -188,7 +185,7 @@ def runcommand(command: str, local_vars=None, global_vars=None):
 def dbg(*args):
     processed_str = " ".join(str(arg) for arg in args)
     builtins.print(processed_str)
-    _flare_print(*args)
+    _flare_print(processed_str)
 
 
 def _invoke_stdlib(func_name, inputs, outputs, generator):
@@ -244,7 +241,7 @@ def _to_print_component(arg, i):
         return p if isinstance(p, list) else [p]
 
     if isinstance(arg, score):
-        if getattr(arg, "multiplier", 1.0) != 1.0:
+        if arg._multiplier != 1.0:
             scale_str = f"{arg._multiplier:.15f}".rstrip("0")
             if scale_str.endswith("."):
                 scale_str += "0"
