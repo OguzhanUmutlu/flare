@@ -68,13 +68,13 @@ export default defineConfig({
                         { text: "Scores", link: "/guide/scores" },
                         { text: "NBT Variables", link: "/guide/nbt" },
                         { text: "Execute Modifiers", link: "/guide/execute" },
-                        { text: "Control Flow", link: "/guide/control-flow" }
+                        { text: "Control Flow", link: "/guide/control-flow" },
+                        { text: "Exported Functions", link: "/guide/functions" }
                     ]
                 },
                 {
                     text: "Advanced",
                     items: [
-                        { text: "Exported Functions", link: "/guide/functions" },
                         { text: "Advanced Math", link: "/guide/math" },
                         { text: "Entity Selectors", link: "/guide/selectors" },
                         { text: "Internals", link: "/guide/internals" }
