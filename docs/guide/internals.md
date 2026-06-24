@@ -37,3 +37,9 @@ item.name = "data"  # Sets 'root.child[0].name'
 | `__iset__` | `y = x` (existing `y`) | Updates `y`'s existing address with `x`'s value without creating a new variable. Intercepted automatically by the preprocessor! |
 
 Because Flare uses an AST preprocessor, you do **not** need to use slice notation (`y[:] = x`) to update an existing variable. `y = x` works perfectly and will not lose track of the original address.
+
+## Command Memoization
+
+To drastically speed up compile times, the Flare compiler uses automatic memoization for Minecraft command evaluation.
+
+When Flare processes a raw Minecraft command, it compiles the template string into an internal operations list. If that exact command template is encountered again, Flare bypasses its internal string parser entirely and simply swaps in the new variable values. This optimization applies even when using a massive `for` loop where Python variables are constantly changing (like `say i`). Because the operations cache isolates variable injection from static text, you don't need to manually optimize your command loops. Write clean, readable generation logic, and Flare will ensure it compiles instantly.

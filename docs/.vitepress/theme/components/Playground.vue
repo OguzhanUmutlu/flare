@@ -383,6 +383,17 @@ onMounted(async () => {
 
         await compile();
     } catch (err) {
+        if (err.message && err.message.includes("Can't find a pure Python 3 wheel")) {
+            loadingMessage.value = "Cache issue detected. Clearing cache and reloading...";
+            if (window.caches) {
+                caches.keys().then(keys => {
+                    Promise.all(keys.map(key => caches.delete(key))).then(() => {
+                        window.location.reload();
+                    });
+                });
+                return;
+            }
+        }
         statusText.value = "Failed to load";
         loadingMessage.value = `Error: ${err.message}. Try refreshing the page.`;
     }

@@ -178,7 +178,7 @@ with schedule("5t", append=True) as s:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `time` | `str` | *(required)* | The delay — a Minecraft time value like `"5t"`, `"2s"`, `"1d"` |
+| `time` | `str` | *(required)* | The delay, a Minecraft time value like `"5t"`, `"2s"`, `"1d"` |
 | `append` | `bool` | `False` | `True` → `append` mode (stacks with existing schedule). `False` → `replace` mode (cancels any existing schedule for that function) |
 
 ### The `as` Variable & `.clear()`
