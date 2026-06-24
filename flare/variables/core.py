@@ -84,7 +84,7 @@ class ArithmeticSupported:
         raise TypeError(
             "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
 
-    def __implicit_cast__(self, target_types):
+    def __irset__(self, target_types):
         raise NotImplementedError()
 
     def _try_math(self, fn, op, other, possibilities=None):
@@ -93,8 +93,8 @@ class ArithmeticSupported:
         if type(other) not in possibilities:
             if type(other) in getattr(type(self), "_implements_set", tuple()):
                 return getattr(self, fn)(type(self)(other))
-            if hasattr(other, "__implicit_cast__"):
-                return getattr(self, fn)(other.__implicit_cast__(possibilities))
+            if hasattr(other, "__irset__"):
+                return getattr(self, fn)(other.__irset__(possibilities))
         raise UnsupportedOperandError(self, op, other)
 
 
@@ -264,3 +264,27 @@ class UnsupportedOperandError(Exception):
 
 def addr(var):
     return var._addr
+
+
+class macro:
+    _is_macro_param = True
+
+    def __init__(self, name: str):
+        self.name = name
+
+    def __str__(self):
+        return f"$({self.name})"
+
+    def __format__(self, format_spec):
+        return format(str(self), format_spec)
+
+    def __repr__(self):
+        return f"macro({self.name!r})"
+
+    def _bad_op(self, *_):
+        raise TypeError(
+            f"Macro '{self.name}' cannot be used in arithmetic expressions. "
+            "Use it inside commands or NBT string assignments."
+        )
+
+    __add__ = __radd__ = __sub__ = __rsub__ = __mul__ = __rmul__ = _bad_op

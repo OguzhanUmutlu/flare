@@ -493,20 +493,20 @@ class float32(ArithmeticSupported):
                 lambda: x._mant.__iset__(x_reflected._mant)
             ])
 
-            x2 = type(x)(addr="!f32_sin_x2 __flare_stdlib__");
-            x2[:] = x;
+            x2 = type(x)(addr="!f32_sin_x2 __flare_stdlib__")
+            x2[:] = x
             x2 *= x
-            x3 = type(x)(addr="!f32_sin_x3 __flare_stdlib__");
-            x3[:] = x2;
+            x3 = type(x)(addr="!f32_sin_x3 __flare_stdlib__")
+            x3[:] = x2
             x3 *= x
-            x5 = type(x)(addr="!f32_sin_x5 __flare_stdlib__");
-            x5[:] = x3;
+            x5 = type(x)(addr="!f32_sin_x5 __flare_stdlib__")
+            x5[:] = x3
             x5 *= x2
-            x7 = type(x)(addr="!f32_sin_x7 __flare_stdlib__");
-            x7[:] = x5;
+            x7 = type(x)(addr="!f32_sin_x7 __flare_stdlib__")
+            x7[:] = x5
             x7 *= x2
-            x9 = type(x)(addr="!f32_sin_x9 __flare_stdlib__");
-            x9[:] = x7;
+            x9 = type(x)(addr="!f32_sin_x9 __flare_stdlib__")
+            x9[:] = x7
             x9 *= x2
 
             c3 = type(x)(1.0 / 6.0)
@@ -514,17 +514,17 @@ class float32(ArithmeticSupported):
             c7 = type(x)(1.0 / 5040.0)
             c9 = type(x)(1.0 / 362880.0)
 
-            t3 = type(x)(addr="!f32_sin_t3 __flare_stdlib__");
-            t3[:] = x3;
+            t3 = type(x)(addr="!f32_sin_t3 __flare_stdlib__")
+            t3[:] = x3
             t3 *= c3
-            t5 = type(x)(addr="!f32_sin_t5 __flare_stdlib__");
-            t5[:] = x5;
+            t5 = type(x)(addr="!f32_sin_t5 __flare_stdlib__")
+            t5[:] = x5
             t5 *= c5
-            t7 = type(x)(addr="!f32_sin_t7 __flare_stdlib__");
-            t7[:] = x7;
+            t7 = type(x)(addr="!f32_sin_t7 __flare_stdlib__")
+            t7[:] = x7
             t7 *= c7
-            t9 = type(x)(addr="!f32_sin_t9 __flare_stdlib__");
-            t9[:] = x9;
+            t9 = type(x)(addr="!f32_sin_t9 __flare_stdlib__")
+            t9[:] = x9
             t9 *= c9
 
             res[:] = x

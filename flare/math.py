@@ -167,25 +167,25 @@ def pow_(x, y):
 
 
 def tan(x):
-    if hasattr(x, "__tan__"): return x.__tan__();
+    if hasattr(x, "__tan__"): return x.__tan__()
     if hasattr(x, "_addr") or hasattr(x, "real"): return sin(x) / cos(x)
     return _orig["tan"](x)
 
 
 def asin(x):
-    if hasattr(x, "__asin__"): return x.__asin__();
+    if hasattr(x, "__asin__"): return x.__asin__()
     if hasattr(x, "_addr") or hasattr(x, "real"): return atan2(x, sqrt(1 - x * x))
     return _orig["asin"](x)
 
 
 def acos(x):
-    if hasattr(x, "__acos__"): return x.__acos__();
+    if hasattr(x, "__acos__"): return x.__acos__()
     if hasattr(x, "_addr") or hasattr(x, "real"): return atan2(sqrt(1 - x * x), x)
     return _orig["acos"](x)
 
 
 def atan(x):
-    if hasattr(x, "__atan__"): return x.__atan__();
+    if hasattr(x, "__atan__"): return x.__atan__()
     if hasattr(x, "_addr") or hasattr(x, "real"): return atan2(x, 1)
     return _orig["atan"](x)
 
@@ -209,19 +209,19 @@ def acot(x): return atan(1 / x)
 
 
 def sinh(x):
-    if hasattr(x, "__sinh__"): return x.__sinh__();
+    if hasattr(x, "__sinh__"): return x.__sinh__()
     if hasattr(x, "_addr") or hasattr(x, "real"): return (exp(x) - exp(-x)) / 2
     return _orig["sinh"](x)
 
 
 def cosh(x):
-    if hasattr(x, "__cosh__"): return x.__cosh__();
+    if hasattr(x, "__cosh__"): return x.__cosh__()
     if hasattr(x, "_addr") or hasattr(x, "real"): return (exp(x) + exp(-x)) / 2
     return _orig["cosh"](x)
 
 
 def tanh(x):
-    if hasattr(x, "__tanh__"): return x.__tanh__();
+    if hasattr(x, "__tanh__"): return x.__tanh__()
     if hasattr(x, "_addr") or hasattr(x, "real"): return sinh(x) / cosh(x)
     return _orig["tanh"](x)
 
@@ -236,19 +236,19 @@ def coth(x): return 1 / tanh(x)
 
 
 def asinh(x):
-    if hasattr(x, "__asinh__"): return x.__asinh__();
+    if hasattr(x, "__asinh__"): return x.__asinh__()
     if hasattr(x, "_addr") or hasattr(x, "real"): return ln(x + sqrt(x * x + 1))
     return _orig["asinh"](x)
 
 
 def acosh(x):
-    if hasattr(x, "__acosh__"): return x.__acosh__();
+    if hasattr(x, "__acosh__"): return x.__acosh__()
     if hasattr(x, "_addr") or hasattr(x, "real"): return ln(x + sqrt(x * x - 1))
     return _orig["acosh"](x)
 
 
 def atanh(x):
-    if hasattr(x, "__atanh__"): return x.__atanh__();
+    if hasattr(x, "__atanh__"): return x.__atanh__()
     if hasattr(x, "_addr") or hasattr(x, "real"): return 0.5 * ln((1 + x) / (1 - x))
     return _orig["atanh"](x)
 

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Union, Any
 
+import flare
 from . import context as ctx
 from .variables.core import addr
 from .variables.nbt import nbt
-from .variables.score import score
 from .variables.selector import selector
 
 
@@ -64,7 +64,8 @@ class ExecuteChain:
     def summon(self, entity: str) -> ExecuteChain:
         return self._add(f"summon {entity}")
 
-    def store(self, target: Union[score, nbt, str]) -> ExecuteChain:
+    def store(self, target: Union["flare.variables.score", nbt, str]) -> ExecuteChain:
+        from .variables.score import score
         if isinstance(target, score):
             target._check_addr()
             return self._add(f"store result score {addr(target)}")
@@ -84,6 +85,7 @@ class ExecuteChain:
         return self.fragments
 
     def __with__(self, body_func):
+        from .variables.score import score
         prefix = " ".join(self.fragments)
         func_name = f"{ctx._current_namespace}:with_{ctx.next_func_id()}"
 
@@ -188,5 +190,5 @@ def summon(entity: str) -> ExecuteChain:
     return ExecuteChain().summon(entity)
 
 
-def store(target: Union[score, nbt, str]) -> ExecuteChain:
+def store(target: Union["flare.variables.score", nbt, str]) -> ExecuteChain:
     return ExecuteChain().store(target)

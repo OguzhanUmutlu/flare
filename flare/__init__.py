@@ -7,8 +7,10 @@ except Exception:
 
 from .compiler import _flatten_and, _eval_to_bool_score, _compile_relational
 from .context import namespace, export, tick, push_context, runcommand, files, temp_obj, constant_obj, vars_obj, \
-    constants, _flare_assign, _flare_aug_assign, _flare_print, dbg, _flare_return, _flare_in, _flare_notin
-from .control_flow import _flare_if, _flare_while, _flare_for, _flare_with, _flare_break, _flare_continue, expand, schedule
+    constants, _flare_assign, _flare_aug_assign, _flare_print, dbg, _flare_return, _flare_in, _flare_notin, \
+    _flare_print as print, style
+from .control_flow import _flare_if, _flare_while, _flare_for, _flare_with, _flare_break, _flare_continue, expand, \
+    schedule
 from .execute_modifiers import _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, \
     store, ExecuteChain, StoreExecuteChain
 from .math import round_, floor, ceil
@@ -22,4 +24,5 @@ __all__ = ["round_", "floor", "ceil", "namespace", "export", "tick", "score", "n
            "nbtfloat", "nbtdouble", "nbtstr", "nbtlist", "nbtdict", "nbtbytearray", "nbtintarray", "nbtlongarray",
            "selector", "_as", "at", "positioned", "aligned", "facing", "anchored", "rotated", "dimension", "applyon",
            "on", "summon", "store", "ExecuteChain", "StoreExecuteChain", "array", "bigscore", "bigfixed", "float32",
-           "float64", "complex", "byte", "boolean", "short", "long", "double", "expand", "macro", "schedule"]
+           "float64", "complex", "byte", "boolean", "short", "long", "double", "expand", "macro", "schedule", "print",
+           "style"]

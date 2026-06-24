@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import typing
+from typing import Any
 
 from .core import UnsupportedOperandError, BinaryOp, addr, ArithmeticSupported
 from .. import context as ctx
@@ -9,7 +10,8 @@ from ..context import runcommand, next_temp_id
 from ..nbt_schema import ENTITY_SCHEMA
 from ..types import NBTType
 from ..types import array
-from .score import score
+
+score: Any = None
 
 
 def _number_add(self: nbt, other):
@@ -236,6 +238,9 @@ class nbt(ArithmeticSupported):
 
     def __init__(self, value=None, *, addr: str | None = None, datatype: NBTType | None = None,
                  schema_node: dict | None = None):
+        global score
+        from .score import score as _score
+        score = _score
         self._type = datatype
         self._value_to_set = value
         self._addr = None

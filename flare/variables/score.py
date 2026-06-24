@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import math
 from fractions import Fraction
+from math import inf
 from math import log
 
 from .core import BinaryOp, addr, ArithmeticSupported
 from .. import context as ctx
 from ..context import runcommand, temp_obj, constant_obj, constants, vars_obj, next_temp_id
+from ..control_flow import ScoreIfScore, ScoreIfMatches
 
 INT32_LIMIT = (2 ** 31) - 1
 
@@ -198,24 +200,20 @@ class score(ArithmeticSupported):
         return temp
 
     def __fastsin__(self):
-        pi = self._num(math.pi)
-        two_pi = self._num(2 * math.pi)
-
         x = self.__icopy__("!sin_x")
-        x %= two_pi
+        x %= 2 * math.pi
 
         is_neg = score(0, addr="!neg_fastsin")
-        runcommand(f"execute if score {addr(x)} > {addr(pi)} run scoreboard players set {addr(is_neg)} 1")
-        runcommand(f"execute if score {addr(x)} > {addr(pi)} run scoreboard players operation {addr(x)} -= {addr(pi)}")
+        ScoreIfScore(x, ">", self._num(math.pi)).then([
+            lambda: is_neg.__iset__(1),
+            lambda: x.__isub__(math.pi)
+        ])
 
-        term = x * (pi - x)
+        term = x * (math.pi - x)
 
-        result_op = term / ((5.0 / 16.0) * math.pi * math.pi - 0.25 * term)
         result = self._tmp()
-        result[:] = result_op
-
-        runcommand(
-            f"execute if score {addr(is_neg)} matches 1 run scoreboard players operation {addr(result)} *= {addr(getscore(-1))}")
+        result[:] = term / ((5.0 / 16.0) * math.pi * math.pi - 0.25 * term)
+        ScoreIfMatches(is_neg, 1).then(lambda: result.__imul__(-1))
         return result
 
     def __sin__(self):
@@ -229,9 +227,7 @@ class score(ArithmeticSupported):
 
     def __abs__(self):
         temp = self.__icopy__("!abs")
-        m1 = getscore(-1, multiplier=1.0)
-        runcommand(
-            f"execute if score {addr(temp)} matches ..-1 run scoreboard players operation {addr(temp)} *= {addr(m1)}")
+        ScoreIfMatches(temp, (-inf, -1)).then(lambda: temp.__imul__(-1))
         return temp
 
     def __atan2__(self, x):
@@ -240,6 +236,7 @@ class score(ArithmeticSupported):
         x_abs = x.__abs__()
 
         a = score(multiplier=self._multiplier)
+
         runcommand(f"scoreboard players operation {addr(a)} = {addr(y_abs)}")
         runcommand(
             f"execute if score {addr(x_abs)} < {addr(y_abs)} run scoreboard players operation {addr(a)} /= {addr(y_abs)}")
@@ -549,6 +546,41 @@ class score(ArithmeticSupported):
         if self._multiplier != 1.0:
             return f"score[{self._multiplier}](addr=\"{addr(self)}\")"
         return f"score(addr=\"{addr(self)}\")"
+
+    def __gt__(self, other):
+        if isinstance(other, (int, float)):
+            val = int(math.floor(other / self._multiplier)) + 1
+            adjusted_val = val / self._multiplier if self._multiplier != 0 else val
+            return ScoreIfMatches(self, (adjusted_val, inf))
+        return super().__gt__(other)
+
+    def __ge__(self, other):
+        if isinstance(other, (int, float)):
+            val = int(math.ceil(other / self._multiplier))
+            adjusted_val = val / self._multiplier if self._multiplier != 0 else val
+            return ScoreIfMatches(self, (adjusted_val, inf))
+        return super().__ge__(other)
+
+    def __lt__(self, other):
+        if isinstance(other, (int, float)):
+            val = int(math.ceil(other / self._multiplier)) - 1
+            adjusted_val = val / self._multiplier if self._multiplier != 0 else val
+            return ScoreIfMatches(self, (-inf, adjusted_val))
+        return super().__lt__(other)
+
+    def __le__(self, other):
+        if isinstance(other, (int, float)):
+            val = int(math.floor(other / self._multiplier))
+            adjusted_val = val / self._multiplier if self._multiplier != 0 else val
+            return ScoreIfMatches(self, (-inf, adjusted_val))
+        return super().__le__(other)
+
+    def __eq__(self, other):
+        if isinstance(other, (int, float)):
+            val = int(round(other / self._multiplier))
+            adjusted_val = val / self._multiplier if self._multiplier != 0 else val
+            return ScoreIfMatches(self, adjusted_val)
+        return super().__eq__(other)
 
 
 class fixed(score):

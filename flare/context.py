@@ -1,5 +1,4 @@
 import builtins
-import copy
 import inspect
 import json
 
@@ -207,86 +206,26 @@ def _invoke_stdlib(func_name, inputs, outputs, generator):
         v[:] = std_outputs[k]
 
 
-from .variables import score, nbt, macro  # avoid circular import
-from .variables.core import addr  # avoid circular import
+from .variables.score import score
+from .variables.nbt import nbt
+from .variables.core import addr, macro
+from .print import style, hover_event, click_event, Color
 
 
-def _to_print_component(arg, i):
-    if hasattr(arg, "__icopy__") and getattr(type(arg), "__name__", "") in ("BinaryOp", "UnaryOp"):
-        global _temp_id
-        arg = arg.__icopy__(f"!print_{_temp_id}")
-        _temp_id += 1
+def _flare_print(*args, sep: str = " ", color: str | int | Color | None = None, font: str | None = None,
+                 bold: bool | None = None,
+                 italic: bool | None = None, underlined: bool | None = None, strikethrough: bool | None = None,
+                 obfuscate: bool | None = None, shadow_color: str | int | Color | None = None,
+                 insertion: str | None = None, click_event: click_event | dict | None = None,
+                 hover_event: hover_event | dict | None = None):
+    components = style(*args, color=color, font=font, bold=bold, italic=italic, underlined=underlined,
+                       strikethrough=strikethrough, obfuscate=obfuscate, shadow_color=shadow_color,
+                       insertion=insertion, click_event=click_event, hover_event=hover_event, sep=sep).__print__()
+    while isinstance(components, list) and len(components) == 1:
+        components = components[0]
 
-    if hasattr(arg, "__print__"):
-        type_name = type(arg).__name__
-        memo_key = f"{type_name}_print"
-
-        global memoized_math
-        if memo_key not in memoized_math:
-            in_var = type(arg)(addr=f"!{memo_key}_in0 {vars_obj}")
-
-            memoized_math[memo_key] = {
-                "in_var": in_var,
-                "func_path": f"{_current_namespace}:__flare_print__/{type_name}"
-            }
-
-            with push_context(f"{_current_namespace}:__flare_print__/{type_name}"):
-                res_comps = in_var.__print__()
-
-            memoized_math[memo_key]["res_comps"] = res_comps
-
-        memo = memoized_math[memo_key]
-
-        arg.__icopy__(f"!{memo_key}_in0")
-        runcommand(f"function {memo['func_path']}")
-
-        p = copy.deepcopy(memo["res_comps"])
-        return p if isinstance(p, list) else [p]
-
-    if isinstance(arg, score):
-        if arg._multiplier != 1.0:
-            scale_str = f"{arg._multiplier:.15f}".rstrip("0")
-            if scale_str.endswith("."):
-                scale_str += "0"
-            runcommand(
-                f"execute store result storage {temp_storage} __flare_debug_{i} double {scale_str} run scoreboard players get {addr(arg)}")
-            return [{"nbt": f"__flare_debug_{i}", "storage": str(temp_storage)}]
-        else:
-            name, obj = arg._addr.split(" ", 1)
-            return [{"score": {"name": name, "objective": obj}}]
-    elif isinstance(arg, nbt):
-        nbt_comp = {"nbt": arg._path or "{}"}
-        if arg._path == "":
-            nbt_comp["nbt"] = "{}"
-
-        if arg._target_type == "storage":
-            nbt_comp["storage"] = arg._target
-        elif arg._target_type == "entity":
-            nbt_comp["entity"] = arg._target
-        elif arg._target_type == "block":
-            nbt_comp["block"] = arg._target
-
-        if arg._path == "":
-            nbt_comp["nbt"] = "{}"
-
-        return [nbt_comp]
-    else:
-        return [{"text": str(arg)}]
-
-
-def _flare_print(*args):
-    components = []
-    for i, arg in enumerate(args):
-        if i > 0:
-            components.append({"text": " "})
-        components.extend(_to_print_component(arg, i))
-
-    if len(components) == 1:
-        comp = components[0]
-        if "text" in comp and len(comp) == 1:
-            cmd_text = json.dumps(comp["text"])
-        else:
-            cmd_text = json.dumps(comp)
+    if len(components) == 1 and isinstance(components, dict) and "text" in components:
+        cmd_text = json.dumps(components["text"])
     else:
         cmd_text = json.dumps(components)
 
@@ -359,7 +298,7 @@ def export(func=None, *, name=None, append=False, returns=None):
             for arg_name, arg_val in bound.arguments.items():
                 target = kwargs[arg_name]
                 if isinstance(target, macro):
-                    continue  # macro args handled separately
+                    continue
                 if is_recursive and isinstance(target, nbt):
                     base_addr = f"storage {args_storage} {func.__name__}_{arg_name}"
                     if isinstance(arg_val, (int, float, str)):
@@ -415,7 +354,6 @@ def export(func=None, *, name=None, append=False, returns=None):
             if macro_args:
                 all_literal = all(isinstance(v, (int, float, str, bool)) for v in macro_args.values())
                 if all_literal:
-                    # e.g. function my_pack:test {"mymacro": 10}
                     json_obj = {k: v for k, v in macro_args.items()}
                     runcommand(f"function {func_name} {json.dumps(json_obj)}")
                 else:

@@ -16,6 +16,34 @@ else:
     print("Y is bigger!")
 ```
 
+## Inline Expansion (`expand`)
+
+By default, if an `if` block contains multiple commands, Flare generates a new, separate `.mcfunction` file and calls it (e.g., `execute if ... run function ...`).
+
+If you want to avoid generating a new function file for a small block of code, you can wrap your condition in `expand()`. This tells Flare to **inline** the execution by rewriting the same `execute if` prefix in front of every command within the block, keeping everything in the same file.
+
+```python
+from flare import expand, score
+
+x = score(10)
+
+# Using expand() keeps these commands in the current file
+if expand(x > 5):
+    print("Condition met!")
+    print("Running inline!")
+```
+
+Becomes:
+
+```mcfunction
+execute if score flare_x __flare__vars__ matches 6.. run tellraw @a "Condition met!"
+execute if score flare_x __flare__vars__ matches 6.. run tellraw @a "Running inline!"
+```
+
+::: tip When to use expand
+Use `expand()` for small blocks (1-3 commands) to avoid the minor overhead of generating and calling an external function. For larger blocks, omit `expand()` so the game only evaluates the condition once before running the block!
+:::
+
 ## Loops
 
 ```python

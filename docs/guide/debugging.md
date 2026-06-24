@@ -12,6 +12,35 @@ print("The value of x is:", x)
 # Emits: tellraw @a ["The value of x is: ", {"score": {...}}]
 ```
 
+You can also style your output using the `style()` function, and these styling options can be applied directly to the `print()` function itself!
+
+```python
+from flare import style, score
+
+x = score(5)
+print(
+    style(x),
+    style(x, color="red"),
+    style(x, color="red", bold=True),
+    style(x, x, style(x, color="blue"), color="red", bold=True, italic=True),
+    color="green", italic=True
+)
+```
+
+The full list of available styling options that you can pass to `style()` and `print()` are:
+- `color`: `str | int | Color`
+- `shadow_color`: `str | int | Color` 
+- `font`: `str`
+- `bold`: `bool`
+- `italic`: `bool`
+- `underlined`: `bool`
+- `strikethrough`: `bool`
+- `obfuscate`: `bool`
+- `insertion`: `str`
+- `click_event`: `click_event | dict`
+- `hover_event`: `hover_event | dict`
+- `sep`: `str` (default: `" "`)
+
 ## `dbg()`
 
 If you want to inspect the raw underlying Python objects, use Flare's `dbg()` function. It:
