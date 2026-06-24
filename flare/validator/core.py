@@ -72,14 +72,16 @@ def match_node(node: dict, root: dict, reader: StringReader) -> bool:
     return False
 
 
-def validate_command(command: str, minecraft_version: str):
-    if len(command) > 0 and command[0] == "$":
-        return
+from functools import lru_cache
+
+
+@lru_cache(maxsize=4096)
+def _validate_command_cached(command: str, minecraft_version: str):
     try:
         schema = get_schema(minecraft_version)
     except Exception as e:
         print(f"[Flare Validator Warning] {e}")
-        return
+        return None
 
     reader = StringReader(command)
     reader.skip_whitespace()
@@ -89,3 +91,11 @@ def validate_command(command: str, minecraft_version: str):
 
     if not match_node(schema, schema, reader):
         raise FlareCommandValidationError("Invalid command syntax", command, reader.cursor)
+
+    return None
+
+
+def validate_command(command: str, minecraft_version: str):
+    if len(command) > 0 and command[0] == "$":
+        return
+    _validate_command_cached(command, minecraft_version)

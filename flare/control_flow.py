@@ -291,16 +291,6 @@ def _flare_for(iterable, body_func, orelse_func=None, has_break=False, has_conti
 
 
 class schedule:
-    """Context manager that wraps its body in a generated function and schedules it.
-
-    Usage::
-
-        with schedule("5t", append=True) as s:
-            say Hello!   # runs 5 ticks later
-
-        s.clear()        # emits: schedule clear <generated_func>
-    """
-
     def __init__(self, time: str, append: bool = False):
         self._time = time
         self._mode = "append" if append else "replace"

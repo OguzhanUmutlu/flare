@@ -232,7 +232,7 @@ def main():
     parser.add_argument("--description", type=str, default=None, help="Override the description for the datapack.")
     parser.add_argument("--out-dir", type=str, default=None,
                         help="Override the output directory for the compiled datapack.")
-    parser.add_argument("--validation", action="store_true", help="Enable validation of the compiled datapack.")
+    parser.add_argument("--validation", type=str, help="Set the validation level of the compiled datapack.")
     parser.add_argument("--version", type=str, default=None,
                         help="Specify the version of Minecraft to use for building.")
 
@@ -251,6 +251,11 @@ def main():
         cli_overrides["out_dir"] = args.out_dir
     if hasattr(args, "version"):
         cli_overrides["version"] = args.version
+    if hasattr(args, "validation") and args.validation is not None:
+        cli_overrides["validation_level"] = args.validation
+        if args.validation not in ("none", "warning", "strict"):
+            print(f"Invalid validation level: {args.validation}. Must be one of 'none', 'warning', or 'strict'.")
+            sys.exit(1)
     i = 0
     while i < len(unknown_args):
         arg = unknown_args[i]

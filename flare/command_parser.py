@@ -1,7 +1,11 @@
 import json
+import re
 
 _macro_substituted = False
-import re
+
+_static_interp_cache: dict[str, tuple[str, bool]] = {}
+
+_op_cache: dict[str, list] = {}
 
 TOKEN_REGEX = re.compile(r'(?P<FSTRING>f\"(?:\\\\.|[^\\"])*\"|f\'(?:\\\\.|[^\\\'])*\')|'
                          r'(?P<STRING>\"(?:\\\\.|[^\\"])*\"|\'(?:\\\\.|[^\\\'])*\')|'
@@ -14,75 +18,108 @@ TOKEN_REGEX = re.compile(r'(?P<FSTRING>f\"(?:\\\\.|[^\\"])*\"|f\'(?:\\\\.|[^\\\'
 
 def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> str:
     global _macro_substituted
-    _macro_substituted = False
-    tokens = []
-    for match in TOKEN_REGEX.finditer(command):
-        tokens.append({"type": match.lastgroup, "value": match.group(str(match.lastgroup)), "start": match.start(),
-                       "end": match.end()})
 
-    output = []
-    bracket_depth = 0
-    i = 0
-    while i < len(tokens):
-        tok = tokens[i]
+    cached = _static_interp_cache.get(command)
+    if cached is not None:
+        _macro_substituted = cached[1]
+        return cached[0]
 
-        if tok["type"] == "FSTRING":
-            try:
-                val = eval(tok["value"], global_vars, local_vars)
-                output.append(json.dumps(val))
-            except:  # noqa
-                output.append(tok["value"])
+    ops = _op_cache.get(command)
+    if ops is None:
+        tokens = []
+        for match in TOKEN_REGEX.finditer(command):
+            tokens.append({"type": match.lastgroup, "value": match.group(str(match.lastgroup))})
 
-        elif tok["type"] == "WHITESPACE":
-            if bracket_depth == 0:
-                output.append(tok["value"])
-            else:
-                pass
+        ops = []
+        bracket_depth = 0
+        i = 0
+        while i < len(tokens):
+            tok = tokens[i]
+            if tok["type"] == "FSTRING":
+                ops.append(("fstring", tok["value"]))
+            elif tok["type"] == "WHITESPACE":
+                if bracket_depth == 0:
+                    ops.append(("static", tok["value"]))
+            elif tok["type"] == "STRING":
+                is_key = False
+                for j in range(i + 1, len(tokens)):
+                    if tokens[j]["type"] == "WHITESPACE":
+                        continue
+                    if tokens[j]["type"] == "SYMBOL" and ":" in tokens[j]["value"]:
+                        is_key = True
+                    break
 
-        elif tok["type"] == "STRING":
-            is_key = False
-            for j in range(i + 1, len(tokens)):
-                if tokens[j]["type"] == "WHITESPACE":
-                    continue
-                if tokens[j]["type"] == "SYMBOL" and ":" in tokens[j]["value"]:
-                    is_key = True
-                break
-
-            val = tok["value"]
-            if is_key:
-                inner = val[1:-1]
-                if re.match(r'^[a-zA-Z0-9_\-.]+$', inner):
-                    output.append(inner)
+                val = tok["value"]
+                if is_key:
+                    inner = val[1:-1]
+                    if re.match(r'^[a-zA-Z0-9_\-.]+$', inner):
+                        ops.append(("static", inner))
+                    else:
+                        ops.append(("static", val))
                 else:
-                    output.append(val)
+                    ops.append(("static", val))
+            elif tok["type"] == "IDENTIFIER":
+                ident = tok["value"]
+                is_key = False
+                for j in range(i + 1, len(tokens)):
+                    if tokens[j]["type"] == "WHITESPACE":
+                        continue
+                    if tokens[j]["type"] == "SYMBOL" and ":" in tokens[j]["value"]:
+                        is_key = True
+                    break
+
+                if ident in ("true", "false", "null", "run", "execute", "summon", "say", "as", "at", "positioned", "if",
+                             "unless", "store", "result", "success") or is_key:
+                    ops.append(("static", ident))
+                else:
+                    ops.append(("ident", ident))
+            elif tok["type"] == "SYMBOL":
+                val = tok["value"]
+                for char in val:
+                    if char in "{[":
+                        bracket_depth += 1
+                    elif char in "]}":
+                        bracket_depth = max(0, bracket_depth - 1)
+                ops.append(("static", val))
             else:
-                output.append(val)
+                ops.append(("static", tok["value"]))
+            i += 1
 
-        elif tok["type"] == "IDENTIFIER":
-            ident = tok["value"]
+        collapsed_ops = []
+        for op in ops:
+            if op[0] == "static" and collapsed_ops and collapsed_ops[-1][0] == "static":
+                collapsed_ops[-1] = ("static", collapsed_ops[-1][1] + op[1])
+            else:
+                collapsed_ops.append(op)
+        ops = collapsed_ops
+        _op_cache[command] = ops
 
-            is_key = False
-            for j in range(i + 1, len(tokens)):
-                if tokens[j]["type"] == "WHITESPACE":
-                    continue
-                if tokens[j]["type"] == "SYMBOL" and ":" in tokens[j]["value"]:
-                    is_key = True
-                break
+    _macro_substituted = False
+    _any_var_resolved = False
+    output = []
 
-            _resolved_val = local_vars.get(ident) if not is_key else None
-            if _resolved_val is None and not is_key:
+    for op in ops:
+        if op[0] == "static":
+            output.append(op[1])
+        elif op[0] == "fstring":
+            try:
+                val = eval(op[1], global_vars, local_vars)
+                output.append(json.dumps(val))
+            except:
+                output.append(op[1])
+        elif op[0] == "ident":
+            ident = op[1]
+            _resolved_val = local_vars.get(ident)
+            if _resolved_val is None:
                 _resolved_val = global_vars.get(ident)
+
             if _resolved_val is not None and getattr(_resolved_val, "_is_macro_param", False):
                 output.append(f"$({_resolved_val.name})")
                 _macro_substituted = True
-                i += 1
-                continue
-
-            if ident in ("true", "false", "null", "run", "execute", "summon", "say", "as", "at", "positioned", "if",
-                         "unless", "store", "result", "success"):
-                output.append(ident)
-            elif not is_key and ident in local_vars:
+                _any_var_resolved = True
+            elif ident in local_vars:
                 val = local_vars[ident]
+                _any_var_resolved = True
                 if hasattr(val, "addr"):
                     output.append(val._addr)
                 elif hasattr(val, "target"):
@@ -98,8 +135,9 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
                     output.append(", ".join(items))
                 else:
                     output.append(str(val))
-            elif not is_key and ident in global_vars:
+            elif ident in global_vars:
                 val = global_vars[ident]
+                _any_var_resolved = True
                 if hasattr(val, "addr"):
                     output.append(val._addr)
                 elif hasattr(val, "target"):
@@ -118,18 +156,9 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
             else:
                 output.append(ident)
 
-        elif tok["type"] == "SYMBOL":
-            val = tok["value"]
-            for char in val:
-                if char in "{[":
-                    bracket_depth += 1
-                elif char in "]}":
-                    bracket_depth = max(0, bracket_depth - 1)
-            output.append(val)
+    result = "".join(output)
 
-        else:
-            output.append(tok["value"])
+    if not _any_var_resolved:
+        _static_interp_cache[command] = (result, _macro_substituted)
 
-        i += 1
-
-    return "".join(output)
+    return result
