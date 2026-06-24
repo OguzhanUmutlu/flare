@@ -1,19 +1,21 @@
 {
-    "name": "test_flare",
-    "description": "testing flare beet plugin",
-    "require": [
-        "flare"
-    ],
-    "data_pack": {
-        "load": [
-            "src"
-        ]
-    },
-    "meta": {
-        "flare": {
-            "run": "0"
-        }
-    },
-    "pipeline": ["flare.beet"],
-    "output": "build"
+  "name": "test_flare",
+  "description": "testing flare beet plugin",
+  "require": [
+    "flare"
+  ],
+  "data_pack": {
+    "load": [
+      "src"
+    ]
+  },
+  "meta": {
+    "flare": {
+      "run": "0"
+    }
+  },
+  "pipeline": [
+    "flare.beet"
+  ],
+  "output": "build"
 }

@@ -540,7 +540,7 @@ def _flare_return(value):
         target = return_targets[func_name]
         target.__iset__(value)
     elif hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
-        target = score(addr=f"{func_name.replace(":", "_")}_ret {vars_obj}")
+        target = score(addr=f"{func_name.replace(':', '_')}_ret {vars_obj}")
         target.__iset__(value)
     else:
         if inspect.isclass(ret_anno) and issubclass(ret_anno, nbt):
