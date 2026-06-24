@@ -4,6 +4,81 @@ from flare.context import addr
 from . import context as ctx
 from .context import vars_obj, next_temp_id, runcommand, push_context, temp_storage
 
+_COLORS = (
+    "black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray", "dark_gray", "blue",
+    "green", "aqua", "red", "light_purple", "yellow"
+)
+
+
+class _PrintStyle:
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
+    def __print__(self):
+        styling = {}
+        if "color" in self.kwargs and self.kwargs["color"] is not None:
+            color = self.kwargs["color"]
+            color = _parse_color(color).hex_argb() if color not in _COLORS else color
+            styling["color"] = color
+        if "shadow_color" in self.kwargs and self.kwargs["shadow_color"] is not None:
+            shadow_color = self.kwargs["shadow_color"]
+            shadow_color = _parse_color(shadow_color).hex_argb() if shadow_color not in _COLORS else shadow_color
+            styling["shadow_color"] = shadow_color
+        if "font" in self.kwargs and self.kwargs["font"] is not None:
+            styling["font"] = self.kwargs["font"]
+        if "bold" in self.kwargs and self.kwargs["bold"] is not None:
+            styling["bold"] = self.kwargs["bold"]
+        if "italic" in self.kwargs and self.kwargs["italic"] is not None:
+            styling["italic"] = self.kwargs["italic"]
+        if "underlined" in self.kwargs and self.kwargs["underlined"] is not None:
+            styling["underlined"] = self.kwargs["underlined"]
+        if "strikethrough" in self.kwargs and self.kwargs["strikethrough"] is not None:
+            styling["strikethrough"] = self.kwargs["strikethrough"]
+        if "obfuscated" in self.kwargs and self.kwargs["obfuscated"] is not None:
+            styling["obfuscated"] = self.kwargs["obfuscated"]
+        if "insertion" in self.kwargs and self.kwargs["insertion"] is not None:
+            styling["insertion"] = self.kwargs["insertion"]
+        if "click_event" in self.kwargs and self.kwargs["click_event"] is not None:
+            event = self.kwargs["click_event"]
+            if hasattr(event, "__print__"):
+                if not isinstance(event, click_event):
+                    raise ValueError(f"Invalid click_event type: {type(event)}")
+                event = event.__print__()
+            styling["click_event"] = event
+        if "hover_event" in self.kwargs and self.kwargs["hover_event"] is not None:
+            event = self.kwargs["hover_event"]
+            if hasattr(event, "__print__"):
+                if not isinstance(event, hover_event):
+                    raise ValueError(f"Invalid hover_event type: {type(event)}")
+                event = event.__print__()
+            styling["hover_event"] = event
+        components = []
+        sep = self.kwargs.get("sep", " ")
+        for i, arg in enumerate(self.args):
+            if i > 0:
+                components.append({"text": sep})
+            components.extend(_to_print_component(arg, i))
+        i = 1
+        while i < len(components):
+            back = components[i - 1]
+            comp = components[i]
+            if isinstance(back, dict) and isinstance(comp, dict):
+                if len(back) == 1 and "text" in back and len(comp) == 1 and "text" in comp:
+                    back["text"] += comp["text"]
+                    components.pop(i)
+                    continue
+            i += 1
+        if not components:
+            return ""
+        if isinstance(components, list):
+            if len(components) > 1:
+                return {"extra": components, **styling}
+            components = components[0]
+        if isinstance(components, str):
+            components = {"text": components}
+        return {**components, **styling}
+
 
 def _to_print_component(arg, i):
     from .variables.score import score
@@ -124,6 +199,107 @@ class hover_event:
     pass
 
 
+class DialogAction:
+    def __init__(self, label: str | dict | list, action: dict | click_event | None = None,
+                 tooltip: str | dict | list | None = None, width: int | None = None):
+        self.label = label
+        self.action = action
+        self.tooltip = tooltip
+        self.width = width
+
+    def __print__(self):
+        res = {"label": self.label}
+        if self.action is not None:
+            res["action"] = self.action.__print__() if hasattr(self.action, "__print__") else self.action
+        if self.tooltip is not None:
+            res["tooltip"] = self.tooltip
+        if self.width is not None:
+            res["width"] = self.width
+        return res
+
+
+class Dialog:
+    def __init__(self, type_: str, title: str | dict | list, external_title: str | dict | list | None = None,
+                 body: list | dict | None = None, can_close_with_escape: bool | None = None):
+        self.type = type_
+        self.title = title
+        self.external_title = external_title
+        self.body = body
+        self.can_close_with_escape = can_close_with_escape
+
+    def __print__(self):
+        res = {"type": self.type, "title": self.title}
+        if self.external_title is not None:
+            res["external_title"] = self.external_title
+        if self.body is not None:
+            if isinstance(self.body, list):
+                res["body"] = [b.__print__() if hasattr(b, "__print__") else b for b in self.body]
+            else:
+                res["body"] = self.body.__print__() if hasattr(self.body, "__print__") else self.body
+        if self.can_close_with_escape is not None:
+            res["can_close_with_escape"] = self.can_close_with_escape
+        return res
+
+
+class NoticeDialog(Dialog):
+    def __init__(self, title: str | dict | list, action: DialogAction | dict | None = None, **kwargs):
+        super().__init__("minecraft:notice", title, **kwargs)
+        self.action = action
+
+    def __print__(self):
+        res = super().__print__()
+        if self.action is not None:
+            res["action"] = self.action.__print__() if hasattr(self.action, "__print__") else self.action
+        return res
+
+
+class MultiActionDialog(Dialog):
+    def __init__(self, title: str | dict | list, actions: list[DialogAction | dict], columns: int | None = None,
+                 button_width: int | None = None, exit_action: DialogAction | dict | None = None, **kwargs):
+        super().__init__("minecraft:multi_action", title, **kwargs)
+        self.actions = actions
+        self.columns = columns
+        self.button_width = button_width
+        self.exit_action = exit_action
+
+    def __print__(self):
+        res = super().__print__()
+        res["actions"] = [a.__print__() if hasattr(a, "__print__") else a for a in self.actions]
+        if self.columns is not None:
+            res["columns"] = self.columns
+        if self.button_width is not None:
+            res["button_width"] = self.button_width
+        if self.exit_action is not None:
+            res["exit_action"] = self.exit_action.__print__() if hasattr(self.exit_action, "__print__") \
+                else self.exit_action
+        return res
+
+
+class DialogList(Dialog):
+    def __init__(self, title: str | dict | list, dialogs: list | str, columns: int | None = None,
+                 button_width: int | None = None, exit_action: DialogAction | dict | None = None, **kwargs):
+        super().__init__("minecraft:dialog_list", title, **kwargs)
+        self.dialogs = dialogs
+        self.columns = columns
+        self.button_width = button_width
+        self.exit_action = exit_action
+
+    def __print__(self):
+        res = super().__print__()
+        if isinstance(self.dialogs, list):
+            res["dialogs"] = [d.__print__() if hasattr(d, "__print__") else d for d in self.dialogs]
+        else:
+            res["dialogs"] = self.dialogs
+        if self.columns is not None:
+            res["columns"] = self.columns
+        if self.button_width is not None:
+            res["button_width"] = self.button_width
+        if self.exit_action is not None:
+            res["exit_action"] = self.exit_action.__print__() if hasattr(self.exit_action,
+                                                                         "__print__") else self.exit_action
+        return res
+
+
 class open_url(click_event):
     def __init__(self, url: str):
         self.url = url
@@ -157,8 +333,6 @@ class suggest_command(click_event):
 
 
 class change_page(click_event):
-    type = "click_event"
-
     def __init__(self, page: int):
         self.page = page
 
@@ -175,11 +349,14 @@ class copy_to_clipboard(click_event):
 
 
 class show_dialog(click_event):
-    def __init__(self, dialog: str):  # todo
+    def __init__(self, dialog: str | dict | Dialog):
         self.dialog = dialog
 
     def __print__(self):
-        return {"action": "show_dialog", "dialog": self.dialog}
+        dialog_val = self.dialog
+        if hasattr(dialog_val, "__print__"):
+            dialog_val = dialog_val.__print__()
+        return {"action": "show_dialog", "dialog": dialog_val}
 
 
 class custom_event(click_event):
@@ -192,11 +369,19 @@ class custom_event(click_event):
 
 
 class show_text(hover_event):
-    def __init__(self, text: str):  # todo
-        self.text = text
+    def __init__(self, value: str | dict | list | _PrintStyle):
+        self.value = value
 
     def __print__(self):
-        return {"action": "show_text", "text": self.text}
+        val = self.value
+
+        if hasattr(val, "__print__"):
+            val = val.__print__()
+
+            if isinstance(val, list) and len(val) == 1:
+                val = val[0]
+
+        return {"action": "show_text", "value": val}
 
 
 class show_item(hover_event):
@@ -225,82 +410,6 @@ class show_entity(hover_event):
         if self.uuid is not None:
             res["uuid"] = self.uuid
         return res
-
-
-_COLORS = (
-    "black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray", "dark_gray", "blue",
-    "green", "aqua", "red", "light_purple", "yellow"
-)
-
-
-class _PrintStyle:
-    def __init__(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
-
-    def __print__(self):
-        styling = {}
-        if "color" in self.kwargs and self.kwargs["color"] is not None:
-            color = self.kwargs["color"]
-            color = _parse_color(color).hex_argb() if color not in _COLORS else color
-            styling["color"] = color
-        if "shadow_color" in self.kwargs and self.kwargs["shadow_color"] is not None:
-            shadow_color = self.kwargs["shadow_color"]
-            shadow_color = _parse_color(shadow_color).hex_argb() if shadow_color not in _COLORS else shadow_color
-            styling["shadow_color"] = shadow_color
-        if "font" in self.kwargs and self.kwargs["font"] is not None:
-            styling["font"] = self.kwargs["font"]
-        if "bold" in self.kwargs and self.kwargs["bold"] is not None:
-            styling["bold"] = self.kwargs["bold"]
-        if "italic" in self.kwargs and self.kwargs["italic"] is not None:
-            styling["italic"] = self.kwargs["italic"]
-        if "underlined" in self.kwargs and self.kwargs["underlined"] is not None:
-            styling["underlined"] = self.kwargs["underlined"]
-        if "strikethrough" in self.kwargs and self.kwargs["strikethrough"] is not None:
-            styling["strikethrough"] = self.kwargs["strikethrough"]
-        if "obfuscated" in self.kwargs and self.kwargs["obfuscated"] is not None:
-            styling["obfuscated"] = self.kwargs["obfuscated"]
-        if "insertion" in self.kwargs and self.kwargs["insertion"] is not None:
-            styling["insertion"] = self.kwargs["insertion"]
-        if "click_event" in self.kwargs and self.kwargs["click_event"] is not None:
-            event = self.kwargs["click_event"]
-            if hasattr(event, "__print__"):
-                if type(event).type != "click_event":
-                    raise ValueError(f"Invalid click_event type: {type(event)}")
-                event = event.__print__()
-            styling["click_event"] = event
-        if "hover_event" in self.kwargs and self.kwargs["hover_event"] is not None:
-            event = self.kwargs["hover_event"]
-            if hasattr(event, "__print__"):
-                if type(event).type != "hover_event":
-                    raise ValueError(f"Invalid hover_event type: {type(event)}")
-                event = event.__print__()
-            styling["hover_event"] = event
-        components = []
-        sep = self.kwargs.get("sep", " ")
-        for i, arg in enumerate(self.args):
-            if i > 0:
-                components.append({"text": sep})
-            components.extend(_to_print_component(arg, i))
-        i = 1
-        while i < len(components):
-            back = components[i - 1]
-            comp = components[i]
-            if isinstance(back, dict) and isinstance(comp, dict):
-                if len(back) == 1 and "text" in back and len(comp) == 1 and "text" in comp:
-                    back["text"] += comp["text"]
-                    components.pop(i)
-                    continue
-            i += 1
-        if not components:
-            return ""
-        if isinstance(components, list):
-            if len(components) > 1:
-                return {"extra": components, **styling}
-            components = components[0]
-        if isinstance(components, str):
-            components = {"text": components}
-        return {**components, **styling}
 
 
 def style(*args, color: str | int | Color | None = None, font: str | None = None, bold: bool | None = None,
