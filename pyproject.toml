@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flaremc"
-version = "0.4.7"
+version = "0.4.8"
 description = "Flare datapack compiler framework"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,6 +15,9 @@ dependencies = [
 [project.optional-dependencies]
 cli = [
     "watchdog"
+]
+beet = [
+    "beet"
 ]
 
 [project.scripts]

@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Literal, Optional
+
+from beet import Context, configurable
+from beet.core.utils import FileSystemPath
+from beet.toolchain.config import load_config, locate_config
+from pydantic import BaseModel, ConfigDict
+
+from .cli import build_datapack, EmulatorRunner
+
+
+class FlareOptions(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
+
+    path: Optional[FileSystemPath] = None
+    namespace: Optional[str] = None
+    pack_format: Optional[int] = None
+    description: Optional[str] = None
+    validation: Optional[Literal["none", "warning", "strict"]] = None
+    minecraft_version: Optional[str] = None
+    nbt_schema_missing: Optional[Literal["error", "warning", "ignore"]] = None
+
+
+def beet_default(ctx: Context) -> None:
+    ctx.require(flare)
+
+
+@configurable(validator=FlareOptions)
+def flare(ctx: Context, opts: FlareOptions) -> None:
+    if opts.path:
+        entry = (ctx.directory / opts.path).resolve()
+    else:
+        entry = _find_entry(ctx)
+
+    if not entry.exists():
+        raise FileNotFoundError(
+            f"Flare entry-point not found: {entry}\n"
+            "Add a load path to data_pack.load, or set 'path' under meta.flare."
+        )
+
+    cli_overrides: dict = {}
+    if ctx.project_name:
+        cli_overrides["namespace"] = ctx.project_name
+
+    root_flare_json = ctx.directory / "flare.json"
+    if root_flare_json.exists() and root_flare_json != (entry.parent / "flare.json"):
+        with open(root_flare_json) as fh:
+            cli_overrides.update(json.load(fh))
+
+    if opts.namespace is not None:
+        cli_overrides["namespace"] = opts.namespace
+    if opts.pack_format is not None:
+        cli_overrides["pack_format"] = opts.pack_format
+    if opts.description is not None:
+        cli_overrides["description"] = opts.description
+    if opts.validation is not None:
+        cli_overrides["validation_level"] = opts.validation
+    if opts.minecraft_version is not None:
+        cli_overrides["minecraft_version"] = opts.minecraft_version
+    if opts.nbt_schema_missing is not None:
+        cli_overrides["nbt_schema_missing"] = opts.nbt_schema_missing
+
+    if opts.model_extra:
+        for key, value in opts.model_extra.items():
+            if key != "run":
+                cli_overrides[key] = value
+
+    output_dir: Path = ctx.cache["flare"].directory / "dist"
+    cli_overrides["build_dir"] = str(output_dir)
+
+    success, _watch_files, build_dir = build_datapack(str(entry), cli_overrides)
+
+    if not success or build_dir is None:
+        raise RuntimeError(f"Flare compilation failed for entry-point: {entry}")
+
+    ctx.data.load(build_dir)
+
+    if opts.model_extra and "run" in opts.model_extra:
+        run_val = opts.model_extra["run"]
+        runner = EmulatorRunner(build_dir, run_val)
+        if runner.start():
+            runner.wait()
+
+
+def _find_entry(ctx: Context) -> Path:
+    candidates: list[Path] = []
+
+    try:
+        config = load_config(locate_config(ctx.directory, parents=True))
+        for item in config.data_pack.load.entries():
+            if isinstance(item, dict):
+                continue
+            item_path = str(item)
+            if Path(item_path).is_absolute():
+                load_dir = Path(item_path)
+            else:
+                load_dir = ctx.directory / item_path
+
+            if load_dir.is_dir():
+                candidates.append(load_dir)
+    except Exception:
+        pass
+
+    candidates.append(ctx.directory)
+
+    for directory in candidates:
+        for name in ("main.fl", "main.py"):
+            candidate = directory / name
+            if candidate.exists():
+                return candidate
+
+    return ctx.directory / "main.fl"

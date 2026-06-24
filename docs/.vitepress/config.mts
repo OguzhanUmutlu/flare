@@ -77,6 +77,7 @@ export default defineConfig({
                     items: [
                         { text: "Advanced Math", link: "/guide/math" },
                         { text: "Entity Selectors", link: "/guide/selectors" },
+                        { text: "Beet Integration", link: "/guide/beet" },
                         { text: "Internals", link: "/guide/internals" }
                     ]
                 }

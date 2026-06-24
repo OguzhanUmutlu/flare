@@ -218,6 +218,53 @@ def run_emulator(build_dir: Path):
     return emu
 
 
+class EmulatorRunner:
+    def __init__(self, build_dir: Path, timeout_val: str | float | None):
+        self.build_dir = build_dir
+        self.running = True
+        self.emu_thread = None
+        try:
+            self.timeout = float(timeout_val) if timeout_val != "-1" and timeout_val is not None else None
+        except ValueError:
+            self.timeout = None
+
+    def start(self):
+        emu = run_emulator(self.build_dir)
+        if not emu:
+            return False
+
+        def run_loop():
+            try:
+                start_time = time.time()
+                while self.running:
+                    if self.timeout is not None and self.timeout >= 0:
+                        if time.time() - start_time >= self.timeout:
+                            break
+                    emu.tick()
+                    time.sleep(0.05)
+            except KeyboardInterrupt:
+                pass
+
+        self.emu_thread = threading.Thread(target=run_loop)
+        self.emu_thread.daemon = True
+        self.emu_thread.start()
+        return True
+
+    def stop(self):
+        self.running = False
+        if self.emu_thread:
+            self.emu_thread.join()
+
+    def wait(self):
+        if self.emu_thread:
+            try:
+                while self.emu_thread.is_alive():
+                    time.sleep(0.1)
+            except KeyboardInterrupt:
+                self.running = False
+                print("\nStopped emulator.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Flare CLI Datapack Compiler")
     parser.add_argument("target", nargs="?", default=".",
@@ -294,32 +341,10 @@ def main():
 
     success, watch_files, build_dir = build_datapack(file_path, cli_overrides)
 
-    emu_thread = None
-    running = True
-
-    def run_loop(emulator: mcemu.Emulator, timeout: float):
-        try:
-            start_time = time.time()
-            while running:
-                if timeout is not None and timeout >= 0:
-                    if time.time() - start_time >= timeout:
-                        break
-                if emulator:
-                    emulator.tick()
-                time.sleep(0.05)
-        except KeyboardInterrupt:
-            pass
-
+    runner = None
     if success and args.run is not None:
-        try:
-            _timeout = float(args.run) if args.run != "-1" else None
-        except ValueError:
-            _timeout = None
-        emu = run_emulator(build_dir)
-        if emu:
-            emu_thread = threading.Thread(target=run_loop, args=(emu, _timeout))
-            emu_thread.daemon = True
-            emu_thread.start()
+        runner = EmulatorRunner(build_dir, args.run)
+        runner.start()
 
     if args.watch:
         print(f"Watching for changes in {len(watch_files)} files...")
@@ -339,9 +364,8 @@ def main():
                     print("\nChange detected. Rebuilding...")
                     handler.rebuild_pending = False
 
-                    if emu_thread:
-                        running = False
-                        emu_thread.join()
+                    if runner:
+                        runner.stop()
 
                     success, new_watch_files, build_dir = build_datapack(file_path, cli_overrides)
 
@@ -354,30 +378,18 @@ def main():
                             observer.schedule(handler, d, recursive=False)
 
                     if success and args.run is not None:
-                        running = True
-                        try:
-                            _timeout = float(args.run) if args.run != "-1" else None
-                        except ValueError:
-                            _timeout = None
-                        emu = run_emulator(build_dir)
-                        if emu:
-                            emu_thread = threading.Thread(target=run_loop, args=(emu, _timeout))
-                            emu_thread.daemon = True
-                            emu_thread.start()
+                        runner = EmulatorRunner(build_dir, args.run)
+                        runner.start()
 
         except KeyboardInterrupt:
             observer.stop()
-            running = False
+            if runner:
+                runner.stop()
             print("\nStopped watching.")
         observer.join()
     else:
-        if emu_thread:
-            try:
-                while emu_thread.is_alive():
-                    time.sleep(0.1)
-            except KeyboardInterrupt:
-                running = False
-                print("\nStopped emulator.")
+        if runner:
+            runner.wait()
 
 
 if __name__ == "__main__":

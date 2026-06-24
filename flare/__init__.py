@@ -26,3 +26,8 @@ __all__ = ["round_", "floor", "ceil", "namespace", "export", "tick", "score", "n
            "on", "summon", "store", "ExecuteChain", "StoreExecuteChain", "array", "bigscore", "bigfixed", "float32",
            "float64", "complex", "byte", "boolean", "short", "long", "double", "expand", "macro", "schedule", "print",
            "style"]
+
+try:
+    from .beet import beet_default as beet_default  # noqa: F401
+except ImportError:
+    pass
