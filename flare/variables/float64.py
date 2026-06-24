@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from math import inf, frexp
 
-from .core import UnsupportedOperandError, ArithmeticSupported, addr
+from .core import ArithmeticSupported, addr
 from .score import score
 from .. import context as ctx
 from ..context import _invoke_stdlib, runcommand, temp_storage
@@ -13,6 +13,8 @@ from ..variables import bigscore
 
 
 class float64(ArithmeticSupported):
+    _implements_set = (int, float)
+
     def __init__(self, value: float | int | None = None, *, addr: str | None = None):
         self._value_to_set = value
         self._addr = None
@@ -109,11 +111,9 @@ class float64(ArithmeticSupported):
             other._eval_into(self)
             return self
 
-        raise UnsupportedOperandError(self, "=", other)
+        return self._try_math("__iset__", "=", other, (float, int, float64))
 
     def __iadd__(self, other):
-        if isinstance(other, (int, float)):
-            other = type(self)(other)
         if isinstance(other, float64):
             def gen(inputs, outputs):
                 a_in = inputs["a"]
@@ -234,21 +234,19 @@ class float64(ArithmeticSupported):
             _res = type(self)(addr=f"!f64_add_{next_temp_id()}")
             _invoke_stdlib("flare_math:float64_add", {"a": self, "b": other}, {"res": _res}, gen)
             self[:] = _res
-        else:
-            raise UnsupportedOperandError(self, "+=", other)
-        return self
+            return self
+
+        return self._try_math("__iadd__", "+=", other)
 
     def __isub__(self, other):
-        if isinstance(other, (int, float)):
-            other = type(self)(other)
         if isinstance(other, float64):
             temp = type(self)()
             temp[:] = other
             temp._sign *= -1
             self += temp
-        else:
-            raise UnsupportedOperandError(self, "-=", other)
-        return self
+            return self
+
+        return self._try_math("__isub__", "-=", other)
 
     def __ineg__(self):
         self._check_addr()
@@ -256,8 +254,6 @@ class float64(ArithmeticSupported):
         return self
 
     def __imul__(self, other):
-        if isinstance(other, (int, float)):
-            other = type(self)(other)
         if isinstance(other, float64):
             def gen(inputs, outputs):
                 a_in = inputs["a"]
@@ -405,9 +401,9 @@ class float64(ArithmeticSupported):
             _res = type(self)(addr=f"!f64_mul_{next_temp_id()}")
             _invoke_stdlib("flare_math:float64_mul", {"a": self, "b": other}, {"res": _res}, gen)
             self[:] = _res
-        else:
-            raise UnsupportedOperandError(self, "*=", other)
-        return self
+            return self
+
+        return self._try_math("__imul__", "*=", other)
 
     def __idiv__(self, other):
         if isinstance(other, (int, float)):
@@ -505,9 +501,9 @@ class float64(ArithmeticSupported):
             _res = type(self)(addr=f"!f64_div_{next_temp_id()}")
             _invoke_stdlib("flare_math:float64_div", {"a": self, "b": other}, {"res": _res}, gen)
             self[:] = _res
-        else:
-            raise UnsupportedOperandError(self, "/=", other)
-        return self
+            return self
+
+        return self._try_math("__idiv__", "/=", other)
 
     def __floor__(self):
         def gen(inputs, outputs):

@@ -9,24 +9,20 @@ from ..context import runcommand, next_temp_id
 from ..nbt_schema import ENTITY_SCHEMA
 from ..types import NBTType
 from ..types import array
-
-
-def _score():
-    from .score import score  # avoid circular import
-    return score
+from .score import score
 
 
 def _number_add(self: nbt, other):
     self._check_addr()
-    if isinstance(other, (_score(), nbt)):
+    if isinstance(other, (score, nbt)):
         other._check_addr()
-    temp = _score()(addr=f"!add0 {ctx.temp_obj}")
-    temp2 = _score()(addr=f"!add1 {ctx.temp_obj}")
-    if isinstance(other, (int, float, _score())):
-        if self.is_floaty() and isinstance(other, _score()):
-            raise TypeError("Use nbt.addp(_score(), multiplier) for float addition")
+    temp = score(addr=f"!add0 {ctx.temp_obj}")
+    temp2 = score(addr=f"!add1 {ctx.temp_obj}")
+    if isinstance(other, (int, float, score)):
+        if self.is_floaty() and isinstance(other, score):
+            raise TypeError("Use nbt.addp(score, multiplier) for float addition")
         if isinstance(other, float):
-            raise TypeError("Use nbt.addp(_score(), multiplier) for float addition")
+            raise TypeError("Use nbt.addp(score, multiplier) for float addition")
         runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
         temp += other
         runcommand(
@@ -42,20 +38,20 @@ def _number_add(self: nbt, other):
             runcommand(
                 f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
             return self
-    return self._try_math("__iadd__", "+", other, (float, int, _score(), nbt))
+    return self._try_math("__iadd__", "+", other, (float, int, score, nbt))
 
 
 def _number_sub(self: nbt, other):
     self._check_addr()
-    if isinstance(other, (_score(), nbt)):
+    if isinstance(other, (score, nbt)):
         other._check_addr()
-    temp = _score()(addr=f"!sub0 {ctx.temp_obj}")
-    temp2 = _score()(addr=f"!sub1 {ctx.temp_obj}")
-    if isinstance(other, (int, float, _score())):
-        if self.is_floaty() and isinstance(other, _score()):
-            raise TypeError("Use nbt.subp(_score(), multiplier) for float subtraction")
+    temp = score(addr=f"!sub0 {ctx.temp_obj}")
+    temp2 = score(addr=f"!sub1 {ctx.temp_obj}")
+    if isinstance(other, (int, float, score)):
+        if self.is_floaty() and isinstance(other, score):
+            raise TypeError("Use nbt.subp(score, multiplier) for float subtraction")
         if isinstance(other, float):
-            raise TypeError("Use nbt.subp(_score(), multiplier) for float subtraction")
+            raise TypeError("Use nbt.subp(score, multiplier) for float subtraction")
         runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
         temp -= other
         runcommand(
@@ -70,20 +66,20 @@ def _number_sub(self: nbt, other):
         runcommand(
             f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
         return self
-    return self._try_math("__isub__", "-", other, (float, int, _score(), nbt))
+    return self._try_math("__isub__", "-", other, (float, int, score, nbt))
 
 
 def _number_mul(self: nbt, other):
     self._check_addr()
-    if isinstance(other, (_score(), nbt)):
+    if isinstance(other, (score, nbt)):
         other._check_addr()
-    temp = _score()(addr=f"!mul0 {ctx.temp_obj}")
-    temp2 = _score()(addr=f"!mul1 {ctx.temp_obj}")
-    if isinstance(other, (int, float, _score())):
-        if self.is_floaty() and isinstance(other, _score()):
-            raise TypeError("Use nbt.mul(_score(), multiplier) for float multiplication")
+    temp = score(addr=f"!mul0 {ctx.temp_obj}")
+    temp2 = score(addr=f"!mul1 {ctx.temp_obj}")
+    if isinstance(other, (int, float, score)):
+        if self.is_floaty() and isinstance(other, score):
+            raise TypeError("Use nbt.mul(score, multiplier) for float multiplication")
         if isinstance(other, float):
-            raise TypeError("Use nbt.mul(_score(), multiplier) for float multiplication")
+            raise TypeError("Use nbt.mul(score, multiplier) for float multiplication")
         runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
         temp *= other
         runcommand(
@@ -98,20 +94,20 @@ def _number_mul(self: nbt, other):
         runcommand(
             f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
         return self
-    return self._try_math("__imul__", "*", other, (float, int, _score(), nbt))
+    return self._try_math("__imul__", "*", other, (float, int, score, nbt))
 
 
 def _number_div(self: nbt, other):
     self._check_addr()
-    if isinstance(other, (_score(), nbt)):
+    if isinstance(other, (score, nbt)):
         other._check_addr()
-    temp = _score()(addr=f"!div0 {ctx.temp_obj}")
-    temp2 = _score()(addr=f"!div1 {ctx.temp_obj}")
-    if isinstance(other, (int, float, _score())):
-        if self.is_floaty() and isinstance(other, _score()):
-            raise TypeError("Use nbt.divp(_score(), multiplier) for float division")
+    temp = score(addr=f"!div0 {ctx.temp_obj}")
+    temp2 = score(addr=f"!div1 {ctx.temp_obj}")
+    if isinstance(other, (int, float, score)):
+        if self.is_floaty() and isinstance(other, score):
+            raise TypeError("Use nbt.divp(score, multiplier) for float division")
         if isinstance(other, float):
-            raise TypeError("Use nbt.divp(_score(), multiplier) for float division")
+            raise TypeError("Use nbt.divp(score, multiplier) for float division")
         runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
         temp /= other
         runcommand(
@@ -126,20 +122,20 @@ def _number_div(self: nbt, other):
         runcommand(
             f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
         return self
-    return self._try_math("__idiv__", "/", other, (float, int, _score(), nbt))
+    return self._try_math("__idiv__", "/", other, (float, int, score, nbt))
 
 
 def _number_mod(self: nbt, other):
     self._check_addr()
-    if isinstance(other, (_score(), nbt)):
+    if isinstance(other, (score, nbt)):
         other._check_addr()
-    temp = _score()(addr=f"!mod0 {ctx.temp_obj}")
-    temp2 = _score()(addr=f"!mod1 {ctx.temp_obj}")
-    if isinstance(other, (int, float, _score())):
-        if self.is_floaty() and isinstance(other, _score()):
-            raise TypeError("Use nbt.modp(_score(), multiplier) for float modulo")
+    temp = score(addr=f"!mod0 {ctx.temp_obj}")
+    temp2 = score(addr=f"!mod1 {ctx.temp_obj}")
+    if isinstance(other, (int, float, score)):
+        if self.is_floaty() and isinstance(other, score):
+            raise TypeError("Use nbt.modp(score, multiplier) for float modulo")
         if isinstance(other, float):
-            raise TypeError("Use nbt.modp(_score(), multiplier) for float modulo")
+            raise TypeError("Use nbt.modp(score, multiplier) for float modulo")
         runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
         temp %= other
         runcommand(
@@ -154,7 +150,7 @@ def _number_mod(self: nbt, other):
         runcommand(
             f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
         return self
-    return self._try_math("__imod__", "%", other, (float, int, _score(), nbt))
+    return self._try_math("__imod__", "%", other, (float, int, score, nbt))
 
 
 def _string_add(self: nbt, other):
@@ -162,7 +158,7 @@ def _string_add(self: nbt, other):
     if hasattr(other, "_is_macro_param") and other._is_macro_param:
         runcommand(f"$data modify {addr(self)} append value \"$({other.name})\"")
         return self
-    if isinstance(other, (_score(), nbt)):
+    if isinstance(other, (score, nbt)):
         other._check_addr()
     if isinstance(other, str):
         if not other:
@@ -176,20 +172,20 @@ def _string_add(self: nbt, other):
 
 def _string_mul(self: nbt, other):
     self._check_addr()
-    if isinstance(other, (_score(), nbt)):
+    if isinstance(other, (score, nbt)):
         other._check_addr()
-    if isinstance(other, (int, float, _score())):
+    if isinstance(other, (int, float, score)):
         raise NotImplementedError()  # todo
     if isinstance(other, nbt):
         if not other.is_number():
             raise UnsupportedOperandError(self, "*=", other)
         raise NotImplementedError()  # todo
-    return self._try_math("__imul__", "*", other, (float, int, _score(), nbt))
+    return self._try_math("__imul__", "*=", other, (float, int, score, nbt))
 
 
 def _sequence_add(self: nbt, other):
     self._check_addr()
-    if isinstance(other, (_score(), nbt)):
+    if isinstance(other, (score, nbt)):
         other._check_addr()
     if isinstance(other, list):
         if not other:
@@ -205,20 +201,20 @@ def _sequence_add(self: nbt, other):
 
 def _sequence_mul(self: nbt, other):
     self._check_addr()
-    if isinstance(other, (_score(), nbt)):
+    if isinstance(other, (score, nbt)):
         other._check_addr()
-    if isinstance(other, (int, float, _score())):
+    if isinstance(other, (int, float, score)):
         raise NotImplementedError()  # todo
     if isinstance(other, nbt):
         if not other.is_number():
             raise UnsupportedOperandError(self, "*=", other)
         raise NotImplementedError()  # todo
-    return self._try_math("__imul__", "*", other, (float, int, _score(), nbt))
+    return self._try_math("__imul__", "*", other, (float, int, score, nbt))
 
 
 def _compound_add(self: nbt, other):
     self._check_addr()
-    if isinstance(other, (_score(), nbt)):
+    if isinstance(other, (score, nbt)):
         other._check_addr()
     if isinstance(other, dict):
         if not other:
@@ -236,6 +232,8 @@ def _compound_add(self: nbt, other):
 
 
 class nbt(ArithmeticSupported):
+    _implements_set = (int, float, str, list, dict, score)
+
     def __init__(self, value=None, *, addr: str | None = None, datatype: NBTType | None = None,
                  schema_node: dict | None = None):
         self._type = datatype
@@ -395,12 +393,12 @@ class nbt(ArithmeticSupported):
             runcommand(f"data remove {addr(temp_arr)}[0]")
 
             if has_break:
-                break_score = _score()(addr=f"!break {ctx.temp_obj}")
+                break_score = score(addr=f"!break {ctx.temp_obj}")
                 ScoreIfMatches(break_score, 1).then(lambda: runcommand("return 0"))
 
             length_score -= 1
             if _has_early_return(func_name):
-                ret_temp = _score()(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
+                ret_temp = score(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
                 runcommand(
                     f"execute store result score {addr(ret_temp)} if score {addr(length_score)} matches 1.. run function {func_name}")
                 ScoreIfMatches(ret_temp, 1).then(lambda: runcommand("return 1"))
@@ -412,11 +410,11 @@ class nbt(ArithmeticSupported):
                 ctx.files[func_name].append("return 0")
 
         if has_break:
-            break_score = _score()(addr=f"!break {ctx.temp_obj}")
+            break_score = score(addr=f"!break {ctx.temp_obj}")
             break_score[:] = 0
 
         if _has_early_return(func_name):
-            ret_temp_init = _score()(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
+            ret_temp_init = score(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
             runcommand(
                 f"execute store result score {addr(ret_temp_init)} if score {addr(length_score)} matches 1.. run function {func_name}")
             ScoreIfMatches(ret_temp_init, 1).then(lambda: runcommand("return 1"))
@@ -428,7 +426,7 @@ class nbt(ArithmeticSupported):
                 orelse_name = f"{ctx._current_namespace}:for_else_{ctx.next_func_id()}"
                 with ctx.push_context(orelse_name):
                     orelse_func()
-                break_score = _score()(addr=f"!break {ctx.temp_obj}")
+                break_score = score(addr=f"!break {ctx.temp_obj}")
                 ScoreIfMatches(break_score, 0).then(lambda: runcommand(f"function {orelse_name}"))
             else:
                 orelse_func()
@@ -663,7 +661,7 @@ class nbt(ArithmeticSupported):
     def length(self):
         if not self.is_sequence() and self._type != NBTType.String:
             raise TypeError(f"Cannot get length of {self._type.name.lower()}")
-        t = _score()(addr=f"!len{ctx.next_temp_id()} {ctx.temp_obj}")
+        t = score(addr=f"!len{ctx.next_temp_id()} {ctx.temp_obj}")
         runcommand(f"execute store result score {addr(t)} run data get {addr(self)}")
         return t
 
@@ -685,7 +683,7 @@ class nbt(ArithmeticSupported):
                 return self.__iset__(temp)
             other._eval_into(self)
             return self
-        if isinstance(other, (_score(), nbt)):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if isinstance(other, (int, float)):
             if self._type is not None and not self.is_number():
@@ -697,7 +695,7 @@ class nbt(ArithmeticSupported):
                 other = float(other)
             runcommand(f"data modify {addr(self)} set value {other}")
             return self
-        if isinstance(other, _score()):
+        if isinstance(other, score):
             if not self.is_number():
                 tname = self._type.name.lower() if self._type else "untyped nbt"
                 raise TypeError(f"Cannot set {tname} with score")
@@ -743,7 +741,7 @@ class nbt(ArithmeticSupported):
                 runcommand(f"data modify {addr(self)} set from {addr(other)}")
                 return self
         if self.is_number():
-            exp_type = (float, int, _score(), nbt)
+            exp_type = (float, int, score, nbt)
         elif self._type == NBTType.String:
             exp_type = (str, nbt)
         elif self.is_sequence():
@@ -805,17 +803,17 @@ class nbt(ArithmeticSupported):
 
     def __imax__(self, other):
         self._check_addr()
-        if isinstance(other, (_score(), nbt)):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
-        temp = _score()(addr=f"!max0 {ctx.temp_obj}")
-        temp2 = _score()(addr=f"!max1 {ctx.temp_obj}")
-        if isinstance(other, (int, float, _score())):
+        temp = score(addr=f"!max0 {ctx.temp_obj}")
+        temp2 = score(addr=f"!max1 {ctx.temp_obj}")
+        if isinstance(other, (int, float, score)):
             if not self.is_number():
                 raise TypeError(f"Cannot max {self._type.name.lower()}")
-            if self.is_floaty() and isinstance(other, _score()):
-                raise TypeError("Use nbt.maxp(_score(), multiplier) for float max")
+            if self.is_floaty() and isinstance(other, score):
+                raise TypeError("Use nbt.maxp(score, multiplier) for float max")
             if isinstance(other, float):
-                raise TypeError("Use nbt.maxp(_score(), multiplier) for float max")
+                raise TypeError("Use nbt.maxp(score, multiplier) for float max")
             runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
             temp.__imax__(other)
             runcommand(
@@ -835,17 +833,17 @@ class nbt(ArithmeticSupported):
 
     def __imin__(self, other):
         self._check_addr()
-        if isinstance(other, (_score(), nbt)):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
-        temp = _score()(addr=f"!min0 {ctx.temp_obj}")
-        temp2 = _score()(addr=f"!min1 {ctx.temp_obj}")
-        if isinstance(other, (int, float, _score())):
+        temp = score(addr=f"!min0 {ctx.temp_obj}")
+        temp2 = score(addr=f"!min1 {ctx.temp_obj}")
+        if isinstance(other, (int, float, score)):
             if not self.is_number():
                 raise TypeError(f"Cannot min {self._type.name.lower()}")
-            if self.is_floaty() and isinstance(other, _score()):
-                raise TypeError("Use nbt.minp(_score(), multiplier) for float min")
+            if self.is_floaty() and isinstance(other, score):
+                raise TypeError("Use nbt.minp(score, multiplier) for float min")
             if isinstance(other, float):
-                raise TypeError("Use nbt.minp(_score(), multiplier) for float min")
+                raise TypeError("Use nbt.minp(score, multiplier) for float min")
             runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
             temp.__imin__(other)
             runcommand(
@@ -865,26 +863,26 @@ class nbt(ArithmeticSupported):
 
     def __swap__(self, other):
         self._check_addr()
-        if isinstance(other, (_score(), nbt)):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if isinstance(other, nbt):
             runcommand(f"data modify storage flare:temp __swap_temp__ set from {addr(self)}")
             runcommand(f"data modify {addr(self)} set from {addr(other)}")
             runcommand(f"data modify {addr(other)} set from storage flare:temp __swap_temp__")
             return self
-        elif isinstance(other, _score()):
+        elif isinstance(other, score):
             return other.__swap__(self)
         raise UnsupportedOperandError(self, "swap", other)
 
     def append(self, other):
         self._check_addr()
-        if isinstance(other, (_score(), nbt)):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if self.is_sequence():
             if isinstance(other, nbt):
                 runcommand(f"data modify {addr(self)} append from {addr(other)}")
                 return self
-            if isinstance(other, _score()):
+            if isinstance(other, score):
                 type_name = "int"
                 if self._type == NBTType.ByteArray:
                     type_name = "byte"
@@ -905,13 +903,13 @@ class nbt(ArithmeticSupported):
 
     def insert(self, index: int, other):
         self._check_addr()
-        if isinstance(other, (_score(), nbt)):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if self.is_sequence():
             if isinstance(other, nbt):
                 runcommand(f"data modify {addr(self)} insert {index} from {addr(other)}")
                 return self
-            if isinstance(other, _score()):
+            if isinstance(other, score):
                 type_name = "int"
                 if self._type == NBTType.ByteArray:
                     type_name = "byte"
@@ -932,7 +930,7 @@ class nbt(ArithmeticSupported):
 
     def merge(self, other):
         self._check_addr()
-        if isinstance(other, (_score(), nbt)):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if self._type == NBTType.Compound:
             if isinstance(other, nbt):
@@ -951,12 +949,12 @@ class nbt(ArithmeticSupported):
         if not self.is_number():
             raise TypeError(f"Cannot perform arithmetic on {self._type.name.lower() if self._type else 'untyped NBT'}")
 
-        temp_self = _score()(addr=f"!mathp0 {ctx.temp_obj}", multiplier=multiplier)
+        temp_self = score(addr=f"!mathp0 {ctx.temp_obj}", multiplier=multiplier)
 
         runcommand(f"execute store result score {addr(temp_self)} run data get {addr(self)} {multiplier}")
 
         if isinstance(other, (int, float)):
-            other_score = _score()(other, multiplier=multiplier)
+            other_score = score(other, multiplier=multiplier)
             if op == "+":
                 temp_self += other_score
             elif op == "-":
@@ -971,7 +969,7 @@ class nbt(ArithmeticSupported):
                 temp_self.__imax__(other_score)
             elif op == "min":
                 temp_self.__imin__(other_score)
-        elif isinstance(other, _score()):
+        elif isinstance(other, score):
             if op == "+":
                 temp_self += other
             elif op == "-":
@@ -990,7 +988,7 @@ class nbt(ArithmeticSupported):
             other._check_addr()
             if not other.is_number():
                 raise TypeError("Cannot perform arithmetic on non-number NBT")
-            temp_other = _score()(addr=f"!mathp1 {ctx.temp_obj}", multiplier=multiplier)
+            temp_other = score(addr=f"!mathp1 {ctx.temp_obj}", multiplier=multiplier)
             runcommand(f"execute store result score {addr(temp_other)} run data get {addr(other)} {multiplier}")
             if op == "+":
                 temp_self += temp_other

@@ -4,7 +4,7 @@ import math
 from fractions import Fraction
 from math import log
 
-from .core import UnsupportedOperandError, BinaryOp, addr, ArithmeticSupported
+from .core import BinaryOp, addr, ArithmeticSupported
 from .. import context as ctx
 from ..context import runcommand, temp_obj, constant_obj, constants, vars_obj, next_temp_id
 
@@ -31,7 +31,10 @@ def getscore(x: int | float, multiplier: float = 1.0):
 
 
 class score(ArithmeticSupported):
+    _implements_set = (int, float)
+
     def __init__(self, value: int | float | None = None, *, addr: str | None = None, multiplier: float = 1.0):
+        score._implements_set = (int, float, _nbt())
         self._multiplier = float(multiplier)
         self._readonly = False
         self._value_to_set = value if value is not None else (0 if addr is None else None)
@@ -137,7 +140,7 @@ class score(ArithmeticSupported):
             runcommand(f"scoreboard players operation {addr(self)} = {addr(other)}")
             self *= other._multiplier / self._multiplier
             return self
-        raise UnsupportedOperandError(self, "=", other)
+        return self._try_math("__iset__", "=", other, (float, int, score, _nbt()))
 
     def __round__(self, ndigits=None):
         if ndigits is not None:
@@ -341,7 +344,7 @@ class score(ArithmeticSupported):
                 temp *= other._multiplier / self._multiplier
                 runcommand(f"scoreboard players operation {addr(self)} += {addr(temp)}")
             return self
-        raise UnsupportedOperandError(self, "+", other)
+        return self._try_math("__iadd__", "+=", other, (float, int, score, _nbt()))
 
     def __isub__(self, other):
         self._check_writable()
@@ -373,7 +376,7 @@ class score(ArithmeticSupported):
                 temp *= other._multiplier / self._multiplier
                 runcommand(f"scoreboard players operation {addr(self)} -= {addr(temp)}")
             return self
-        raise UnsupportedOperandError(self, "-", other)
+        return self._try_math("__isub__", "-=", other, (float, int, score, _nbt()))
 
     def __imul__(self, other):
         self._check_writable()
@@ -400,7 +403,7 @@ class score(ArithmeticSupported):
             runcommand(f"scoreboard players operation {addr(self)} *= {addr(other)}")
             self *= other._multiplier
             return self
-        raise UnsupportedOperandError(self, "*", other)
+        return self._try_math("__imul__", "*=", other, (float, int, score, _nbt()))
 
     def __idiv__(self, other):
         self._check_writable()
@@ -428,7 +431,7 @@ class score(ArithmeticSupported):
             self *= 1.0 / other._multiplier
             runcommand(f"scoreboard players operation {addr(self)} /= {addr(other)}")
             return self
-        raise UnsupportedOperandError(self, "/", other)
+        return self._try_math("__idiv__", "/=", other, (float, int, score, _nbt()))
 
     def __imod__(self, other):
         self._check_writable()
@@ -457,7 +460,7 @@ class score(ArithmeticSupported):
                 temp *= other._multiplier / self._multiplier
                 runcommand(f"scoreboard players operation {addr(self)} %= {addr(temp)}")
             return self
-        raise UnsupportedOperandError(self, "%", other)
+        return self._try_math("__imod__", "%=", other, (float, int, score, _nbt()))
 
     def __imax__(self, other):
         self._check_writable()
@@ -482,7 +485,7 @@ class score(ArithmeticSupported):
             temp *= other._multiplier / self._multiplier
             runcommand(f"scoreboard players operation {addr(self)} > {addr(temp)}")
             return self
-        raise UnsupportedOperandError(self, ">", other)
+        return self._try_math("__imax__", "max", other, (float, int, score, _nbt()))
 
     def __imin__(self, other):
         self._check_writable()
@@ -507,11 +510,13 @@ class score(ArithmeticSupported):
             temp *= other._multiplier / self._multiplier
             runcommand(f"scoreboard players operation {addr(self)} < {addr(temp)}")
             return self
-        raise UnsupportedOperandError(self, "<", other)
+        return self._try_math("__imin__", "min", other, (float, int, score, _nbt()))
 
     def __swap__(self, other):
         self._check_addr()
         temp = score(addr="!swap0")
+        if isinstance(other, (int, float)):
+            raise TypeError("Cannot swap score with a number")
         if isinstance(other, (score, _nbt())):
             other._check_addr()
         if isinstance(other, _nbt()):
@@ -534,7 +539,7 @@ class score(ArithmeticSupported):
                 self[:] = other
                 other[:] = score(addr=temp._addr, multiplier=self._multiplier)
             return self
-        raise UnsupportedOperandError(self, "><", other)
+        return self._try_math("__swap__", "swap", other, (score, _nbt()))
 
     def __call__(self, *args, **kwargs):
         self[:] = args[0]

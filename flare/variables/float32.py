@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from math import inf
 
-from .core import UnsupportedOperandError, ArithmeticSupported, addr
+from .core import ArithmeticSupported, addr
 from .score import score, getscore
 from .. import context as ctx
 from ..context import _invoke_stdlib, runcommand, temp_storage
@@ -13,6 +13,8 @@ from ..variables import bigscore
 
 
 class float32(ArithmeticSupported):
+    _implements_set = (int, float)
+
     def __init__(self, value: float | int | None = None, *, addr: str | None = None):
         self._value_to_set = value
         self._addr = None
@@ -90,14 +92,10 @@ class float32(ArithmeticSupported):
             other._eval_into(self)
             return self
 
-        raise UnsupportedOperandError(self, "=", other)
+        return self._try_math("__iset__", "=", other, (float, int, float32))
 
     def __iadd__(self, other):
         self._check_addr()
-        if isinstance(other, (int, float)):
-            t = float32(other)
-            return self.__iadd__(t)
-
         if isinstance(other, float32):
             other._check_addr()
 
@@ -181,14 +179,10 @@ class float32(ArithmeticSupported):
             _invoke_stdlib("flare_math:float32_add", {"a": self, "b": other}, {"res": self}, gen)
             return self
 
-        raise UnsupportedOperandError(self, "+", other)
+        return self._try_math("__iadd__", "+=", other)
 
     def __isub__(self, other):
         self._check_addr()
-        if isinstance(other, (int, float)):
-            t = float32(other)
-            return self.__isub__(t)
-
         if isinstance(other, float32):
             other._check_addr()
 
@@ -211,14 +205,10 @@ class float32(ArithmeticSupported):
             _invoke_stdlib("flare_math:float32_sub", {"a": self, "b": other}, {"res": self}, gen)
             return self
 
-        raise UnsupportedOperandError(self, "-", other)
+        return self._try_math("__isub__", "-=", other)
 
     def __imul__(self, other):
         self._check_addr()
-        if isinstance(other, (int, float)):
-            t = float32(other)
-            return self.__imul__(t)
-
         if isinstance(other, float32):
             other._check_addr()
 
@@ -276,14 +266,10 @@ class float32(ArithmeticSupported):
             _invoke_stdlib("flare_math:float32_mul", {"a": self, "b": other}, {"res": self}, gen)
             return self
 
-        raise UnsupportedOperandError(self, "*", other)
+        return self._try_math("__imul__", "*=", other)
 
     def __idiv__(self, other, c_pow2_addr=None):
         self._check_addr()
-        if isinstance(other, (int, float)):
-            t = float32(other)
-            return self.__idiv__(t)
-
         if isinstance(other, float32):
             other._check_addr()
 
@@ -338,7 +324,7 @@ class float32(ArithmeticSupported):
             _invoke_stdlib("flare_math:float32_div", {"a": self, "b": other}, {"res": self}, gen)
             return self
 
-        raise UnsupportedOperandError(self, "/", other)
+        return self._try_math("__idiv__", "/=", other)
 
     def __abs__(self):
         res = self.__icopy__(f"!f32_abs_{next_temp_id()}")
