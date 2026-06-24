@@ -56,7 +56,7 @@ weird_key = ref(player_data["Custom Key With Space"])
 
 # Use the built-in 'storage' variable to build paths on the fly
 # This maps to the raw NBT path: storage mypack:data Player.Inventory[0]
-fast_slot = storage["mypack:data"].Player.Inventory[0]
+fast_slot = ref(storage["mypack:data"].Player.Inventory[0])
 
 # Filter a list for the first element matching a compound, similar to Minecraft's [{}] syntax
 # Resolves to NBT path: Player.Inventory[{"Slot": 0}]
@@ -73,7 +73,7 @@ If you're dynamically traversing NBT and need to interact with a specific type, 
 
 ```python
 # 'test' is an untyped NBT path. [int] tells Flare it should be treated as an integer.
-x = storage.hello.test[int]
+x = ref(storage.hello.test[int])
 
 # Force a type change on an already-typed NBT variable by casting to None first:
 x = my_typed_nbt[None][list]

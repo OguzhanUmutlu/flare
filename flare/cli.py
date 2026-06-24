@@ -239,17 +239,17 @@ def main():
     args, unknown_args = parser.parse_known_args()
 
     cli_overrides = {}
-    if hasattr(args, "nbt_schema_missing"):
+    if hasattr(args, "nbt_schema_missing") and args.nbt_schema_missing is not None:
         cli_overrides["nbt_schema_missing"] = args.nbt_schema_missing
-    if hasattr(args, "namespace"):
+    if hasattr(args, "namespace") and args.namespace is not None:
         cli_overrides["namespace"] = args.namespace
-    if hasattr(args, "pack_format"):
+    if hasattr(args, "pack_format") and args.pack_format is not None:
         cli_overrides["pack_format"] = args.pack_format
-    if hasattr(args, "description"):
+    if hasattr(args, "description") and args.description is not None:
         cli_overrides["description"] = args.description
-    if hasattr(args, "out_dir"):
+    if hasattr(args, "out_dir") and args.out_dir is not None:
         cli_overrides["out_dir"] = args.out_dir
-    if hasattr(args, "version"):
+    if hasattr(args, "version") and args.version is not None:
         cli_overrides["version"] = args.version
     if hasattr(args, "validation") and args.validation is not None:
         cli_overrides["validation_level"] = args.validation
