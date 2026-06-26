@@ -7,13 +7,15 @@ from typing import Literal, Optional
 from beet import Context, configurable
 from beet.core.utils import FileSystemPath
 from beet.toolchain.config import load_config, locate_config
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from .cli import build_datapack, EmulatorRunner
 
 
 class FlareOptions(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
+    class Config:
+        arbitrary_types_allowed = True
+        extra = "allow"
 
     path: Optional[FileSystemPath] = None
     namespace: Optional[str] = None
@@ -63,10 +65,15 @@ def flare(ctx: Context, opts: FlareOptions) -> None:
     if opts.nbt_schema_missing is not None:
         cli_overrides["nbt_schema_missing"] = opts.nbt_schema_missing
 
-    if opts.model_extra:
-        for key, value in opts.model_extra.items():
-            if key != "run":
-                cli_overrides[key] = value
+    extra_opts = {}
+    for key, value in opts.dict(exclude_unset=True).items():
+        if key not in ("path", "namespace", "pack_format", "description", "validation", "minecraft_version",
+                       "nbt_schema_missing"):
+            extra_opts[key] = value
+
+    for key, value in extra_opts.items():
+        if key != "run":
+            cli_overrides[key] = value
 
     output_dir: Path = ctx.cache["flare"].directory / "dist"
     cli_overrides["build_dir"] = str(output_dir)
@@ -78,8 +85,8 @@ def flare(ctx: Context, opts: FlareOptions) -> None:
 
     ctx.data.load(build_dir)
 
-    if opts.model_extra and "run" in opts.model_extra:
-        run_val = opts.model_extra["run"]
+    if "run" in extra_opts:
+        run_val = extra_opts["run"]
         runner = EmulatorRunner(build_dir, run_val)
         if runner.start():
             runner.wait()

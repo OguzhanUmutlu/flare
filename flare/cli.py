@@ -10,8 +10,14 @@ import traceback
 from pathlib import Path
 
 import mcemu
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
+try:
+    from watchdog.events import FileSystemEventHandler
+    from watchdog.observers import Observer
+    HAS_WATCHDOG = True
+except ImportError:
+    FileSystemEventHandler = object
+    Observer = None
+    HAS_WATCHDOG = False
 
 from . import context
 from .preprocessor import FlareTransformer, CallGraphAnalyzer, preprocess_minecraft_commands
@@ -347,6 +353,11 @@ def main():
         runner.start()
 
     if args.watch:
+        if not HAS_WATCHDOG:
+            print("Error: The 'watchdog' module is required for the --watch flag.")
+            print("Install it with: pip install flaremc[cli]")
+            return
+        
         print(f"Watching for changes in {len(watch_files)} files...")
         handler = WatcherHandler(args, watch_files)
         observer = Observer()
