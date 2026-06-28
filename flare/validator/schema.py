@@ -25,9 +25,9 @@ def get_schema(minecraft_version: str) -> dict:
     url = f"https://raw.githubusercontent.com/misode/mcmeta/{minecraft_version}-summary/commands/data.min.json"
     print(f"Downloading command schema for Minecraft {minecraft_version}...")
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Flare/1.0'})
+        req = urllib.request.Request(url, headers={"User-Agent": "Flare/1.0"})
         with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read().decode('utf-8'))
+            data = json.loads(response.read().decode("utf-8"))
             with open(cache_path, "w", encoding="utf-8") as f:
                 json.dump(data, f)
             _memory_cache[minecraft_version] = data

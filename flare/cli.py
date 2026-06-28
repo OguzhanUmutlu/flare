@@ -10,9 +10,11 @@ import traceback
 from pathlib import Path
 
 import mcemu
+
 try:
     from watchdog.events import FileSystemEventHandler
     from watchdog.observers import Observer
+
     HAS_WATCHDOG = True
 except ImportError:
     FileSystemEventHandler = object
@@ -101,7 +103,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
         global_env = {"__name__": "__main__", "__file__": abs_path}
         exec(
-            "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_with, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin\n"
+            "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_with, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin\n"
             "from flare import context as ctx\n"
             "from flare.command_parser import interpolate_command\n"
             "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
@@ -357,7 +359,7 @@ def main():
             print("Error: The 'watchdog' module is required for the --watch flag.")
             print("Install it with: pip install flaremc[cli]")
             return
-        
+
         print(f"Watching for changes in {len(watch_files)} files...")
         handler = WatcherHandler(args, watch_files)
         observer = Observer()

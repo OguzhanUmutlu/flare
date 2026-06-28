@@ -11,6 +11,7 @@ export default defineConfig({
     title: "Flare",
     description: ogDescription,
     ignoreDeadLinks: true,
+    cleanUrls: true,
 
     head: [
         ["link", { rel: "icon", type: "image/png", href: "./assets/icon.png" }],

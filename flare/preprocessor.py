@@ -296,11 +296,13 @@ class FlareTransformer(ast.NodeTransformer):
         self.generic_visit(node)
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
             var_name = node.targets[0].id
+            is_local_val = getattr(self, "in_flare_func", False)
 
             call_expr = ast.Call(func=ast.Name(id="_flare_assign", ctx=ast.Load()),
                                  args=[ast.Constant(value=var_name), node.value,
                                        ast.Call(func=ast.Name(id="locals", ctx=ast.Load()), args=[], keywords=[]),
-                                       ast.Call(func=ast.Name(id="globals", ctx=ast.Load()), args=[], keywords=[])],
+                                       ast.Call(func=ast.Name(id="globals", ctx=ast.Load()), args=[], keywords=[]),
+                                       ast.Constant(value=is_local_val)],
                                  keywords=[])
 
             new_assign = ast.Assign(targets=[ast.Name(id=var_name, ctx=ast.Store())], value=call_expr)
@@ -358,10 +360,10 @@ class FlareTransformer(ast.NodeTransformer):
         for item in node.items:
             tmp_name = self.gen_name()
             assigns.append(ast.Assign(targets=[ast.Name(id=tmp_name, ctx=ast.Store())], value=item.context_expr))
-            
+
             if item.optional_vars:
                 assigns.append(ast.Assign(targets=[item.optional_vars], value=ast.Name(id=tmp_name, ctx=ast.Load())))
-                
+
             call_args.append(ast.Name(id=tmp_name, ctx=ast.Load()))
 
         call_args.append(ast.Name(id=name_body, ctx=ast.Load()))

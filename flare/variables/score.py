@@ -5,7 +5,7 @@ from fractions import Fraction
 from math import inf
 from math import log
 
-from .core import BinaryOp, addr, ArithmeticSupported
+from .core import addr, ArithmeticSupported
 from .. import context as ctx
 from ..context import runcommand, temp_obj, constant_obj, constants, vars_obj, next_temp_id
 from ..control_flow import ScoreIfScore, ScoreIfMatches
@@ -14,7 +14,7 @@ INT32_LIMIT = (2 ** 31) - 1
 
 
 def _nbt():
-    from .nbt import nbt  # avoid circular import
+    from .nbt import nbt
     return nbt
 
 
@@ -39,7 +39,7 @@ class score(ArithmeticSupported):
         score._implements_set = (int, float, _nbt())
         self._multiplier = float(multiplier)
         self._readonly = False
-        self._value_to_set = value if value is not None else (0 if addr is None else None)
+        self._value_to_set = value
         self._addr = addr
         if addr is not None:
             parts = addr.split(" ", 1)
@@ -87,10 +87,10 @@ class score(ArithmeticSupported):
         return f"[Score {addr(self)}]"
 
     def __branch__(self, invert=False):
-        return BinaryOp(self, 0, "ne").__branch__(invert)
+        return ScoreIfMatches(self, (-2147483648, 2147483647)).__branch__(invert)
 
     def store(self):
-        from ..execute_modifiers import store  # avoid circular import
+        from ..execute_modifiers import store
         return store(self)
 
     def _check_addr(self):

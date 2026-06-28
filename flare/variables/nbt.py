@@ -11,6 +11,168 @@ from ..nbt_schema import ENTITY_SCHEMA
 from ..types import NBTType
 from ..types import array
 
+
+def _is_runtime(val) -> bool:
+    if not isinstance(val, (bool, int, float, str, list, dict)):
+        return True
+    if isinstance(val, list):
+        return any(_is_runtime(x) for x in val)
+    if isinstance(val, dict):
+        return any(_is_runtime(v) for v in val.values())
+    return False
+
+
+def _nbt_default_snbt(nbt_type) -> str:
+    if nbt_type in (
+            NBTType.Byte,
+            NBTType.Boolean,
+            NBTType.Short,
+            NBTType.Int,
+            NBTType.Long,
+            NBTType.IntArray,
+            NBTType.ByteArray,
+            NBTType.LongArray,
+    ):
+        return "0"
+    if nbt_type in (NBTType.Float, NBTType.Double):
+        return "0.0"
+    if nbt_type == NBTType.String:
+        return '""'
+    if nbt_type == NBTType.List:
+        return "[]"
+    if nbt_type == NBTType.Compound:
+        return "{}"
+    return "0"
+
+
+def _snbt_literal(val) -> str:
+    if isinstance(val, bool):
+        return "true" if val else "false"
+    if isinstance(val, int):
+        return str(val)
+    if isinstance(val, float):
+        return str(val)
+    if isinstance(val, str):
+        return json.dumps(val)
+    if isinstance(val, list):
+        return "[" + ",".join(_snbt_literal(x) for x in val) + "]"
+    if isinstance(val, dict):
+        return "{" + ",".join(f"{k}:{_snbt_literal(v)}" for k, v in val.items()) + "}"
+    raise TypeError(f"Not a compile-time NBT value: {type(val).__name__}")
+
+
+_struct_registry: dict = {}
+
+
+def reset_struct_registry():
+    _struct_registry.clear()
+
+
+def _type_hint_to_schema(hint) -> dict:
+    from ..types import NBTType, array
+
+    origin = getattr(hint, "__origin__", None) or typing.get_origin(hint)
+    args = getattr(hint, "__args__", None) or typing.get_args(hint) or ()
+
+    if hasattr(hint, "__flare_schema__"):
+        return {"type": NBTType.Compound, "__struct_ref__": hint}
+
+    if hint is int:
+        return {"type": NBTType.Int}
+    if hint is float:
+        return {"type": NBTType.Float}
+    if hint is str:
+        return {"type": NBTType.String}
+    if hint is bool:
+        return {"type": NBTType.Byte}
+    if hint is dict:
+        return {"type": NBTType.Compound}
+
+    name = getattr(hint, "__name__", None)
+    if name == "byte" or name == "boolean":
+        return {"type": NBTType.Byte}
+    if name == "short":
+        return {"type": NBTType.Short}
+    if name == "long":
+        return {"type": NBTType.Long}
+    if name == "double":
+        return {"type": NBTType.Double}
+
+    if origin is array:
+        if args:
+            arg_name = getattr(args[0], "__name__", str(args[0]))
+            if arg_name == "long":
+                return {"type": NBTType.LongArray}
+            if arg_name == "byte":
+                return {"type": NBTType.ByteArray}
+        return {"type": NBTType.IntArray}
+
+    if origin is list:
+        if args:
+            elem_schema = _type_hint_to_schema(args[0])
+            return {"type": NBTType.List, "children": {"[]": elem_schema}}
+        return {"type": NBTType.List}
+
+    if isinstance(hint, NBTType):
+        return {"type": hint}
+
+    return {}
+
+
+def _resolve_schema_node(node: dict) -> dict:
+    if isinstance(node, dict) and "__struct_ref__" in node:
+        return node["__struct_ref__"].__flare_schema__
+    return node
+
+
+def _build_schema_from_class(cls) -> dict:
+    from ..types import byte, boolean, short, long, double, array as _array
+
+    localns: dict = {
+        "byte": byte,
+        "boolean": boolean,
+        "short": short,
+        "long": long,
+        "double": double,
+        "array": _array,
+        "int": int,
+        "str": str,
+        "float": float,
+        "bool": bool,
+        "list": list,
+        "dict": dict,
+        "tuple": tuple,
+        **_struct_registry,
+        cls.__name__: cls,
+    }
+    for base in cls.__mro__:
+        localns.setdefault(base.__name__, base)
+
+    try:
+        hints = typing.get_type_hints(cls, localns=localns)
+    except Exception:
+        hints = {}
+        for base in reversed(cls.__mro__):
+            if base is object:
+                continue
+            hints.update(getattr(base, "__annotations__", {}))
+
+    children: dict = {}
+    for field_name, type_hint in hints.items():
+        children[field_name] = _type_hint_to_schema(type_hint)
+
+    return {"type": NBTType.Compound, "children": children}
+
+
+def struct(cls):
+    cls.__flare_schema__ = {"type": NBTType.Compound, "children": {}}
+    _struct_registry[cls.__name__] = cls
+
+    schema = _build_schema_from_class(cls)
+    cls.__flare_schema__.update(schema)
+    return cls
+
+
 score: Any = None
 
 
@@ -28,17 +190,25 @@ def _number_add(self: nbt, other):
         runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
         temp += other
         runcommand(
-            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}")
+            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}"
+        )
         return self
     if isinstance(other, nbt):
         if self.is_number():
             if self.is_floaty() or other.is_floaty():
-                raise TypeError("Use nbt.addp(other_nbt, multiplier) for float addition")
-            runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}")
-            runcommand(f"execute store result score {addr(temp2)} run data get {addr(self)}")
+                raise TypeError(
+                    "Use nbt.addp(other_nbt, multiplier) for float addition"
+                )
+            runcommand(
+                f"execute store result score {addr(temp)} run data get {addr(other)}"
+            )
+            runcommand(
+                f"execute store result score {addr(temp2)} run data get {addr(self)}"
+            )
             temp2 += temp
             runcommand(
-                f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
+                f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}"
+            )
             return self
     return self._try_math("__iadd__", "+", other, (float, int, score, nbt))
 
@@ -57,16 +227,22 @@ def _number_sub(self: nbt, other):
         runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
         temp -= other
         runcommand(
-            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}")
+            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}"
+        )
         return self
     if isinstance(other, nbt):
         if self.is_floaty() or other.is_floaty():
             raise TypeError("Use nbt.subp(other_nbt, multiplier) for float subtraction")
-        runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}")
-        runcommand(f"execute store result score {addr(temp2)} run data get {addr(self)}")
+        runcommand(
+            f"execute store result score {addr(temp)} run data get {addr(other)}"
+        )
+        runcommand(
+            f"execute store result score {addr(temp2)} run data get {addr(self)}"
+        )
         temp2 -= temp
         runcommand(
-            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
+            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}"
+        )
         return self
     return self._try_math("__isub__", "-", other, (float, int, score, nbt))
 
@@ -85,16 +261,24 @@ def _number_mul(self: nbt, other):
         runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
         temp *= other
         runcommand(
-            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}")
+            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}"
+        )
         return self
     if isinstance(other, nbt):
         if self.is_floaty() or other.is_floaty():
-            raise TypeError("Use nbt.mulp(other_nbt, multiplier) for float multiplication")
-        runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}")
-        runcommand(f"execute store result score {addr(temp2)} run data get {addr(self)}")
+            raise TypeError(
+                "Use nbt.mulp(other_nbt, multiplier) for float multiplication"
+            )
+        runcommand(
+            f"execute store result score {addr(temp)} run data get {addr(other)}"
+        )
+        runcommand(
+            f"execute store result score {addr(temp2)} run data get {addr(self)}"
+        )
         temp2 *= temp
         runcommand(
-            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
+            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}"
+        )
         return self
     return self._try_math("__imul__", "*", other, (float, int, score, nbt))
 
@@ -113,16 +297,22 @@ def _number_div(self: nbt, other):
         runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
         temp /= other
         runcommand(
-            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}")
+            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}"
+        )
         return self
     if isinstance(other, nbt):
         if self.is_floaty() or other.is_floaty():
             raise TypeError("Use nbt.divp(other_nbt, multiplier) for float division")
-        runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}")
-        runcommand(f"execute store result score {addr(temp2)} run data get {addr(self)}")
+        runcommand(
+            f"execute store result score {addr(temp)} run data get {addr(other)}"
+        )
+        runcommand(
+            f"execute store result score {addr(temp2)} run data get {addr(self)}"
+        )
         temp2 /= temp
         runcommand(
-            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
+            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}"
+        )
         return self
     return self._try_math("__idiv__", "/", other, (float, int, score, nbt))
 
@@ -141,16 +331,22 @@ def _number_mod(self: nbt, other):
         runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
         temp %= other
         runcommand(
-            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}")
+            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}"
+        )
         return self
     if isinstance(other, nbt):
         if self.is_floaty() or other.is_floaty():
             raise TypeError("Use nbt.modp(other_nbt, multiplier) for float modulo")
-        runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}")
-        runcommand(f"execute store result score {addr(temp2)} run data get {addr(self)}")
+        runcommand(
+            f"execute store result score {addr(temp)} run data get {addr(other)}"
+        )
+        runcommand(
+            f"execute store result score {addr(temp2)} run data get {addr(self)}"
+        )
         temp2 %= temp
         runcommand(
-            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
+            f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}"
+        )
         return self
     return self._try_math("__imod__", "%", other, (float, int, score, nbt))
 
@@ -158,7 +354,7 @@ def _number_mod(self: nbt, other):
 def _string_add(self: nbt, other):
     self._check_addr()
     if hasattr(other, "_is_macro_param") and other._is_macro_param:
-        runcommand(f"$data modify {addr(self)} append value \"$({other.name})\"")
+        runcommand(f'$data modify {addr(self)} append value "$({other.name})"')
         return self
     if isinstance(other, (score, nbt)):
         other._check_addr()
@@ -177,6 +373,10 @@ def _string_mul(self: nbt, other):
     if isinstance(other, (score, nbt)):
         other._check_addr()
     if isinstance(other, (int, float, score)):
+        if isinstance(other, score):
+            pass
+        else:
+            pass
         raise NotImplementedError()  # todo
     if isinstance(other, nbt):
         if not other.is_number():
@@ -192,11 +392,12 @@ def _sequence_add(self: nbt, other):
     if isinstance(other, list):
         if not other:
             return self
-        runcommand(f"data modify {addr(self)} merge value [{','.join(other)}] if data {addr(self)}")
+        for x in other:
+            self.append(x)
         return self
     if isinstance(other, nbt):
         if other.is_sequence():
-            self.merge(other)
+            other.__for__(lambda e: self.append(e))
             return self
     return self._try_math("__iadd__", "+", other, (list, nbt))
 
@@ -224,7 +425,9 @@ def _compound_add(self: nbt, other):
         items = []
         for k, v in other.items():
             items.append(f"{k}:{v}")
-        runcommand(f"data modify {addr(self)} merge value {{{','.join(items)}}} if data {addr(self)}")
+        runcommand(
+            f"data modify {addr(self)} merge value {{{','.join(items)}}} if data {addr(self)}"
+        )
         return self
     if isinstance(other, nbt):
         if other._type == NBTType.Compound:
@@ -236,10 +439,17 @@ def _compound_add(self: nbt, other):
 class nbt(ArithmeticSupported):
     _implements_set = (int, float, str, list, dict, score)
 
-    def __init__(self, value=None, *, addr: str | None = None, datatype: NBTType | None = None,
-                 schema_node: dict | None = None):
+    def __init__(
+            self,
+            value=None,
+            *,
+            addr: str | None = None,
+            datatype: NBTType | None = None,
+            schema_node: dict | None = None,
+    ):
         global score
         from .score import score as _score
+
         score = _score
         self._type = datatype
         self._value_to_set = value
@@ -255,13 +465,21 @@ class nbt(ArithmeticSupported):
                 self[:] = self._value_to_set
 
     def _alloc_temp(self):
-        t = nbt(addr=f"flare:temp !t{next_temp_id()}", datatype=self._type, schema_node=self._schema_node)
+        t = nbt(
+            addr=f"flare:temp !t{next_temp_id()}",
+            datatype=self._type,
+            schema_node=self._schema_node,
+        )
         if hasattr(self, "_inner_type") and getattr(self, "_inner_type") is not None:
             t = type(self)(addr=t._addr, schema_node=t._schema_node)
         return t
 
     def _create_var(self, varid: str):
-        t = nbt(addr=f"{ctx._current_namespace}:vars {varid}", datatype=self._type, schema_node=self._schema_node)
+        t = nbt(
+            addr=f"{ctx._current_namespace}:vars {varid}",
+            datatype=self._type,
+            schema_node=self._schema_node,
+        )
         if hasattr(self, "_inner_type") and getattr(self, "_inner_type") is not None:
             t = type(self)(addr=t._addr, schema_node=t._schema_node)
         return t
@@ -270,13 +488,23 @@ class nbt(ArithmeticSupported):
         return f"[NBT {addr(self)}]"
 
     def _check_math(self, func_name: str):
-        numeric_types = {NBTType.Byte, NBTType.Short, NBTType.Int, NBTType.Long, NBTType.Float, NBTType.Double}
+        numeric_types = {
+            NBTType.Byte,
+            NBTType.Short,
+            NBTType.Int,
+            NBTType.Long,
+            NBTType.Float,
+            NBTType.Double,
+        }
 
         if self._type is not None and self._type not in numeric_types:
-            raise TypeError(f"Math function '{func_name}' requires a numeric NBT type, but got '{self._type.value}'.")
+            raise TypeError(
+                f"Math function '{func_name}' requires a numeric NBT type, but got '{self._type.value}'."
+            )
 
         raise TypeError(
-            f"Math function '{func_name}' cannot be applied directly to numeric NBT variables. Use a fixed score, fixed bigscore, float32, or float64 instead.")
+            f"Math function '{func_name}' cannot be applied directly to numeric NBT variables. Use a fixed score, fixed bigscore, float32, or float64 instead."
+        )
 
     def __sin__(self):
         self._check_math("sin")
@@ -346,10 +574,19 @@ class nbt(ArithmeticSupported):
                     self[:] = self._value_to_set
                 return self
             else:
-                dest = nbt(addr=f"{ctx._current_namespace}:vars {varid}[-1]", datatype=self._type,
-                           schema_node=self._schema_node)
-                if hasattr(self, "_inner_type") and getattr(self, "_inner_type") is not None:
-                    dest = nbt[self._inner_type](addr=dest._addr, schema_node=dest._schema_node)
+                runcommand(f"data modify {base_addr} append value {{}}")
+                dest = nbt(
+                    addr=f"{ctx._current_namespace}:vars {varid}[-1]",
+                    datatype=self._type,
+                    schema_node=self._schema_node,
+                )
+                if (
+                        hasattr(self, "_inner_type")
+                        and getattr(self, "_inner_type") is not None
+                ):
+                    dest = nbt[self._inner_type](
+                        addr=dest._addr, schema_node=dest._schema_node
+                    )
                 runcommand(f"data modify {base_addr} append from {addr(self)}")
                 return dest
 
@@ -364,7 +601,8 @@ class nbt(ArithmeticSupported):
         return dest
 
     def __for__(self, body_func, orelse_func=None, has_break=False, has_continue=False):
-        from ..control_flow import _has_early_return, _invoke_block, ScoreIfMatches  # avoid circular import
+        from ..control_flow import _has_early_return, _invoke_block, ScoreIfMatches
+
         if not self.is_sequence():
             raise TypeError("NBT is not iterable")
 
@@ -377,11 +615,15 @@ class nbt(ArithmeticSupported):
             elem_type = NBTType.Long
 
         _id = ctx.next_temp_id()
-        temp_arr = nbt(addr=f"flare:temp !for_arr_{_id}", datatype=self._type)
+        if getattr(ctx, "_in_recursive_context", False):
+            runcommand(f"data modify storage {ctx.args_storage} for_arr_{_id} append value []")
+            temp_arr = nbt(addr=f"storage {ctx.args_storage} for_arr_{_id}[-1]", datatype=self._type)
+        else:
+            temp_arr = nbt(addr=f"flare:temp !for_arr_{_id}", datatype=self._type)
+
         temp_var = nbt(addr=f"{addr(temp_arr)}[0]", datatype=elem_type)
 
         temp_arr[:] = self
-        length_score = temp_arr.length()
 
         func_name = f"{ctx._current_namespace}:for_{ctx.next_func_id()}"
 
@@ -401,17 +643,20 @@ class nbt(ArithmeticSupported):
                 break_score = score(addr=f"!break {ctx.temp_obj}")
                 ScoreIfMatches(break_score, 1).then(lambda: runcommand("return 0"))
 
-            length_score -= 1
             if _has_early_return(func_name):
                 ret_temp = score(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
                 runcommand(
-                    f"execute store result score {addr(ret_temp)} if score {addr(length_score)} matches 1.. run function {func_name}")
+                    f"execute store result score {addr(ret_temp)} if data {addr(temp_arr)}[0] run function {func_name}"
+                )
                 ScoreIfMatches(ret_temp, 1).then(lambda: runcommand("return 1"))
             else:
-                ScoreIfMatches(length_score, (1, float('inf'))).then(lambda: runcommand(f"function {func_name}"))
+                runcommand(f"execute if data {addr(temp_arr)}[0] run function {func_name}")
 
         if _has_early_return(func_name):
-            if not (ctx.files[func_name] and ctx.files[func_name][-1] in ("return 0", "return 1")):
+            if not (
+                    ctx.files[func_name]
+                    and ctx.files[func_name][-1] in ("return 0", "return 1")
+            ):
                 ctx.files[func_name].append("return 0")
 
         if has_break:
@@ -421,10 +666,14 @@ class nbt(ArithmeticSupported):
         if _has_early_return(func_name):
             ret_temp_init = score(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
             runcommand(
-                f"execute store result score {addr(ret_temp_init)} if score {addr(length_score)} matches 1.. run function {func_name}")
+                f"execute store result score {addr(ret_temp_init)} if data {addr(temp_arr)}[0] run function {func_name}"
+            )
             ScoreIfMatches(ret_temp_init, 1).then(lambda: runcommand("return 1"))
         else:
-            ScoreIfMatches(length_score, (1, float('inf'))).then(lambda: runcommand(f"function {func_name}"))
+            runcommand(f"execute if data {addr(temp_arr)}[0] run function {func_name}")
+
+        if getattr(ctx, "_in_recursive_context", False):
+            runcommand(f"data remove storage {ctx.args_storage} for_arr_{_id}[-1]")
 
         if orelse_func:
             if has_break:
@@ -432,7 +681,9 @@ class nbt(ArithmeticSupported):
                 with ctx.push_context(orelse_name):
                     orelse_func()
                 break_score = score(addr=f"!break {ctx.temp_obj}")
-                ScoreIfMatches(break_score, 0).then(lambda: runcommand(f"function {orelse_name}"))
+                ScoreIfMatches(break_score, 0).then(
+                    lambda: runcommand(f"function {orelse_name}")
+                )
             else:
                 orelse_func()
 
@@ -442,7 +693,8 @@ class nbt(ArithmeticSupported):
         return BinaryOp(self, 0, "ne").__branch__(invert)
 
     def store(self):
-        from flare import store  # avoid circular import
+        from flare import store
+
         return store(self)
 
     def __getattr__(self, name):
@@ -456,16 +708,28 @@ class nbt(ArithmeticSupported):
         new_schema_node = None
         if self._schema_node and "children" in self._schema_node:
             if name in self._schema_node["children"]:
-                new_schema_node = self._schema_node["children"][name]
+                new_schema_node = _resolve_schema_node(
+                    self._schema_node["children"][name]
+                )
                 datatype = new_schema_node.get("type", None)
             else:
                 if ctx.nbt_schema_missing == "error":
-                    raise AttributeError(f"NBT path '{name}' does not exist in schema for {self._path or 'root'}")
+                    raise AttributeError(
+                        f"NBT path '{name}' does not exist in schema for {self._path or 'root'}"
+                    )
                 elif ctx.nbt_schema_missing == "warning":
-                    print(f"Warning: NBT path '{name}' does not exist in schema for {self._path or 'root'}")
+                    print(
+                        f"Warning: NBT path '{name}' does not exist in schema for {self._path or 'root'}"
+                    )
 
-        return nbt(addr=f"{self._target_type} {self._target} {new_path}", datatype=datatype,
-                   schema_node=new_schema_node)
+        return nbt(
+            addr=f"{self._target_type} {self._target} {new_path}",
+            datatype=datatype,
+            schema_node=new_schema_node,
+        )
+
+    def _resolve_child_schema(self, raw_node: dict) -> dict:
+        return _resolve_schema_node(raw_node)
 
     def __setattr__(self, name, value):
         if name.startswith("_"):
@@ -475,17 +739,44 @@ class nbt(ArithmeticSupported):
             target[:] = value
 
     def __getitem__(self, item):
-        is_type = isinstance(item, type) or getattr(item, "__origin__",
-                                                    typing.get_origin(item)) is not None or isinstance(item, NBTType)
+        from .selector import ref as _ref
+
+        if isinstance(item, _ref):
+            item = item._target
+        if isinstance(item, nbt):
+            if self._type is not None:
+                raise TypeError(
+                    f"Cannot cast an NBT type that already has a specific datatype ({self._type.name}). Cast to None first."
+                )
+            base_addr = f"{self._target_type} {self._target} {self._path}".strip()
+            inner = getattr(type(item), "_inner_type", None)
+            if inner is not None:
+                return type(item)(addr=base_addr, schema_node=item._schema_node)
+            return nbt(
+                addr=base_addr, datatype=item._type, schema_node=item._schema_node
+            )
+
+        is_type = (
+                isinstance(item, type)
+                or getattr(item, "__origin__", typing.get_origin(item)) is not None
+                or isinstance(item, NBTType)
+                or hasattr(item, "__flare_schema__")
+        )
         if is_type or item is None:
             if self._type is not None and item is not None:
                 raise TypeError(
-                    f"Cannot cast an NBT type that already has a specific datatype ({self._type.name}). Cast to None first.")
+                    f"Cannot cast an NBT type that already has a specific datatype ({self._type.name}). Cast to None first."
+                )
 
             if item is None:
-                return nbt(addr=f"{self._target_type} {self._target} {self._path}".strip(), datatype=None)
+                return nbt(
+                    addr=f"{self._target_type} {self._target} {self._path}".strip(),
+                    datatype=None,
+                )
 
-            return nbt[item](addr=f"{self._target_type} {self._target} {self._path}".strip())
+            return nbt[item](
+                addr=f"{self._target_type} {self._target} {self._path}".strip()
+            )
 
         if self.is_number():
             raise TypeError("Cannot chain path on NBT numbers")
@@ -495,22 +786,35 @@ class nbt(ArithmeticSupported):
             new_schema_node = None
             if self._schema_node and "children" in self._schema_node:
                 if "[]" in self._schema_node["children"]:
-                    new_schema_node = self._schema_node["children"]["[]"]
+                    new_schema_node = _resolve_schema_node(
+                        self._schema_node["children"]["[]"]
+                    )
                     if new_schema_node == "RECURSIVE_PASSENGERS":
                         new_schema_node = ENTITY_SCHEMA
                     datatype = new_schema_node.get("type", None)
                 else:
                     if ctx.nbt_schema_missing == "error":
                         raise AttributeError(
-                            f"NBT array indexing is not supported in schema for {self._path or 'root'}")
+                            f"NBT array indexing is not supported in schema for {self._path or 'root'}"
+                        )
                     elif ctx.nbt_schema_missing == "warning":
-                        print(f"Warning: NBT array indexing is not supported in schema for {self._path or 'root'}")
+                        print(
+                            f"Warning: NBT array indexing is not supported in schema for {self._path or 'root'}"
+                        )
 
-            if hasattr(self, "_inner_type") and getattr(self, "_inner_type") is not None:
-                return nbt[self._inner_type](addr=f"{self._target_type} {self._target} {new_path}")
+            if (
+                    hasattr(self, "_inner_type")
+                    and getattr(self, "_inner_type") is not None
+            ):
+                return nbt[self._inner_type](
+                    addr=f"{self._target_type} {self._target} {new_path}"
+                )
 
-            return nbt(addr=f"{self._target_type} {self._target} {new_path}", datatype=datatype,
-                       schema_node=new_schema_node)
+            return nbt(
+                addr=f"{self._target_type} {self._target} {new_path}",
+                datatype=datatype,
+                schema_node=new_schema_node,
+            )
         elif isinstance(item, str):
             if " " in item or '"' in item:
                 item = item.replace('"', '\\"')
@@ -527,11 +831,18 @@ class nbt(ArithmeticSupported):
                     datatype = new_schema_node.get("type", None)
                 else:
                     if ctx.nbt_schema_missing == "error":
-                        raise AttributeError(f"NBT path '{item}' does not exist in schema for {self._path or 'root'}")
+                        raise AttributeError(
+                            f"NBT path '{item}' does not exist in schema for {self._path or 'root'}"
+                        )
                     elif ctx.nbt_schema_missing == "warning":
-                        print(f"Warning: NBT path '{item}' does not exist in schema for {self._path or 'root'}")
-            return nbt(addr=f"{self._target_type} {self._target} {new_path}", datatype=datatype,
-                       schema_node=new_schema_node)
+                        print(
+                            f"Warning: NBT path '{item}' does not exist in schema for {self._path or 'root'}"
+                        )
+            return nbt(
+                addr=f"{self._target_type} {self._target} {new_path}",
+                datatype=datatype,
+                schema_node=new_schema_node,
+            )
         elif isinstance(item, dict):
             filter_str = json.dumps(item)
             new_path = f"{self._path}[{filter_str}]"
@@ -540,27 +851,45 @@ class nbt(ArithmeticSupported):
             new_schema_node = None
             if self._schema_node and "children" in self._schema_node:
                 if "[]" in self._schema_node["children"]:
-                    new_schema_node = self._schema_node["children"]["[]"]
+                    new_schema_node = _resolve_schema_node(
+                        self._schema_node["children"]["[]"]
+                    )
                     if new_schema_node == "RECURSIVE_PASSENGERS":
                         new_schema_node = ENTITY_SCHEMA
                     datatype = new_schema_node.get("type", None)
                 else:
                     if ctx.nbt_schema_missing == "error":
                         raise AttributeError(
-                            f"NBT array indexing is not supported in schema for {self._path or 'root'}")
+                            f"NBT array indexing is not supported in schema for {self._path or 'root'}"
+                        )
                     elif ctx.nbt_schema_missing == "warning":
-                        print(f"Warning: NBT array indexing is not supported in schema for {self._path or 'root'}")
+                        print(
+                            f"Warning: NBT array indexing is not supported in schema for {self._path or 'root'}"
+                        )
 
-            if hasattr(self, "_inner_type") and getattr(self, "_inner_type") is not None:
-                return nbt[self._inner_type](addr=f"{self._target_type} {self._target} {new_path}")
+            if (
+                    hasattr(self, "_inner_type")
+                    and getattr(self, "_inner_type") is not None
+            ):
+                return nbt[self._inner_type](
+                    addr=f"{self._target_type} {self._target} {new_path}"
+                )
 
-            return nbt(addr=f"{self._target_type} {self._target} {new_path}", datatype=datatype,
-                       schema_node=new_schema_node)
+            return nbt(
+                addr=f"{self._target_type} {self._target} {new_path}",
+                datatype=datatype,
+                schema_node=new_schema_node,
+            )
         else:
             raise TypeError(f"Invalid NBT path index: {item}")
 
     def __setitem__(self, key, value):
-        if isinstance(key, slice) and key.start is None and key.stop is None and key.step is None:
+        if (
+                isinstance(key, slice)
+                and key.start is None
+                and key.stop is None
+                and key.step is None
+        ):
             self.__iset__(value)
             return
         target = self[key]
@@ -574,7 +903,11 @@ class nbt(ArithmeticSupported):
         else:
             if addr.startswith("@"):
                 self._target_type = "entity"
-            elif addr.startswith("^") or addr.startswith("~") or (addr and (addr[0].isdigit() or addr[0] == '-')):
+            elif (
+                    addr.startswith("^")
+                    or addr.startswith("~")
+                    or (addr and (addr[0].isdigit() or addr[0] == "-"))
+            ):
                 self._target_type = "block"
             else:
                 self._target_type = "storage"
@@ -603,13 +936,42 @@ class nbt(ArithmeticSupported):
 
     @classmethod
     def __class_getitem__(cls, nbt_type):
-        origin = getattr(nbt_type, "__origin__", typing.get_origin(nbt_type)) or nbt_type
+        if hasattr(nbt_type, "__flare_schema__"):
+            schema = nbt_type.__flare_schema__
+            struct_name = getattr(nbt_type, "__name__", repr(nbt_type))
+
+            class _StructNBT(cls):
+                _inner_type = None
+
+                def __init__(
+                        self,
+                        value=None,
+                        *,
+                        addr: str | None = None,
+                        schema_node: dict | None = None,
+                ):
+                    super().__init__(
+                        value,
+                        addr=addr,
+                        datatype=NBTType.Compound,
+                        schema_node=schema_node if schema_node is not None else schema,
+                    )
+
+            _StructNBT.__name__ = f"nbt[{struct_name}]"
+            _StructNBT.__qualname__ = f"nbt[{struct_name}]"
+            return _StructNBT
+
+        origin = (
+                getattr(nbt_type, "__origin__", typing.get_origin(nbt_type)) or nbt_type
+        )
         args = getattr(nbt_type, "__args__", typing.get_args(nbt_type))
 
         if origin is tuple:
             nbt_type = NBTType.IntArray
             if args:
-                arg_name = args[0].__name__ if hasattr(args[0], "__name__") else str(args[0])
+                arg_name = (
+                    args[0].__name__ if hasattr(args[0], "__name__") else str(args[0])
+                )
                 if arg_name == "int":
                     nbt_type = NBTType.IntArray
                 elif arg_name == "long":
@@ -619,7 +981,9 @@ class nbt(ArithmeticSupported):
         elif origin is array:
             nbt_type = NBTType.IntArray
             if args:
-                arg_name = args[0].__name__ if hasattr(args[0], "__name__") else str(args[0])
+                arg_name = (
+                    args[0].__name__ if hasattr(args[0], "__name__") else str(args[0])
+                )
                 if arg_name == "int":
                     nbt_type = NBTType.IntArray
                 elif arg_name == "long":
@@ -640,8 +1004,16 @@ class nbt(ArithmeticSupported):
         class _TypedNBT(cls):
             _inner_type = inner
 
-            def __init__(self, value=None, *, addr: str | None = None, schema_node: dict | None = None):
-                super().__init__(value, addr=addr, datatype=nbt_type, schema_node=schema_node)
+            def __init__(
+                    self,
+                    value=None,
+                    *,
+                    addr: str | None = None,
+                    schema_node: dict | None = None,
+            ):
+                super().__init__(
+                    value, addr=addr, datatype=nbt_type, schema_node=schema_node
+                )
 
         return _TypedNBT
 
@@ -654,14 +1026,22 @@ class nbt(ArithmeticSupported):
     @property
     def _store_type(self):
         if self._type is None:
-            raise TypeError("Cannot determine store type for untyped NBT. Specify a type (e.g. nbt[int]).")
+            raise TypeError(
+                "Cannot determine store type for untyped NBT. Specify a type (e.g. nbt[int])."
+            )
         return self._type.name.lower()
 
     def is_number(self):
         return self.is_integer() or self.is_floaty()
 
     def is_sequence(self):
-        return self._type in (None, NBTType.List, NBTType.ByteArray, NBTType.IntArray, NBTType.LongArray,)
+        return self._type in (
+            None,
+            NBTType.List,
+            NBTType.ByteArray,
+            NBTType.IntArray,
+            NBTType.LongArray,
+        )
 
     def length(self):
         if not self.is_sequence() and self._type != NBTType.String:
@@ -678,7 +1058,7 @@ class nbt(ArithmeticSupported):
                     f"Cannot set {self._type.name.lower()} from a macro placeholder. "
                     "Macro values are strings at runtime."
                 )
-            runcommand(f"$data modify {addr(self)} set value \"$({other.name})\"")
+            runcommand(f'$data modify {addr(self)} set value "$({other.name})"')
             return self
         if hasattr(type(other), "_eval_into"):
             leaf = other._best_leaf()
@@ -694,55 +1074,150 @@ class nbt(ArithmeticSupported):
             if self._type is not None and not self.is_number():
                 tname = self._type.name.lower()
                 raise TypeError(f"Cannot set {tname} to a number")
-            if self._type is not None and isinstance(other, float) and not self.is_floaty():
+            if (
+                    self._type is not None
+                    and isinstance(other, float)
+                    and not self.is_floaty()
+            ):
                 raise TypeError(f"Cannot set {self._type.name.lower()} with float")
             if self.is_floaty():
                 other = float(other)
             runcommand(f"data modify {addr(self)} set value {other}")
             return self
         if isinstance(other, score):
-            if not self.is_number():
-                tname = self._type.name.lower() if self._type else "untyped nbt"
+            if self._type is not None and not self.is_number():
+                tname = self._type.name.lower()
                 raise TypeError(f"Cannot set {tname} with score")
+            store_type = self._type.name.lower() if self._type else "int"
             runcommand(
-                f"execute store result {addr(self)} {self._type.name.lower()} {1 / other._multiplier} run scoreboard players get {addr(other)}")
+                f"execute store result {addr(self)} {store_type} {1 / other._multiplier} run scoreboard players get {addr(other)}")
             return self
         if isinstance(other, str):
             if self._type == NBTType.String:
                 runcommand(f"data modify {addr(self)} set value {json.dumps(other)}")
             elif self._type is None:
-                if (other.startswith("{") and other.endswith("}")) or (
-                        other.startswith("[") and other.endswith("]")) or other.endswith("b") or other.endswith(
-                    "d") or other.endswith("f") or other.endswith("s") or other.endswith("l"):
+                if (
+                        (other.startswith("{") and other.endswith("}"))
+                        or (other.startswith("[") and other.endswith("]"))
+                        or other.endswith("b")
+                        or other.endswith("d")
+                        or other.endswith("f")
+                        or other.endswith("s")
+                        or other.endswith("l")
+                ):
                     runcommand(f"data modify {addr(self)} set value {other}")
                 else:
-                    runcommand(f"data modify {addr(self)} set value {json.dumps(other)}")
+                    runcommand(
+                        f"data modify {addr(self)} set value {json.dumps(other)}"
+                    )
             else:
                 raise TypeError(f"Cannot set {self._type.name.lower()} with string")
             return self
         if isinstance(other, list):
             if self._type is not None and not self.is_sequence():
                 raise TypeError(f"Cannot set {self._type.name.lower()} with list")
+
             prefix = ""
             if self._type == NBTType.IntArray:
-                prefix = "I; "
+                prefix = "I;"
             elif self._type == NBTType.ByteArray:
-                prefix = "B; "
+                prefix = "B;"
             elif self._type == NBTType.LongArray:
-                prefix = "L; "
-            runcommand(f"data modify {addr(self)} set value [{prefix}{','.join(str(x) for x in other)}]")
+                prefix = "L;"
+
+            inner_nbt_type = None
+            inner_cls = getattr(type(self), "_inner_type", None)
+            if inner_cls is not None:
+                _mapping = {
+                    int: NBTType.Int,
+                    float: NBTType.Float,
+                    str: NBTType.String,
+                    bool: NBTType.Byte,
+                }
+                inner_nbt_type = _mapping.get(inner_cls)
+                if inner_nbt_type is None:
+                    _name = getattr(inner_cls, "__name__", "")
+                    _tmap = {
+                        "byte": NBTType.Byte,
+                        "boolean": NBTType.Byte,
+                        "short": NBTType.Short,
+                        "long": NBTType.Long,
+                        "double": NBTType.Double,
+                    }
+                    inner_nbt_type = _tmap.get(_name)
+            elif self._schema_node and "children" in self._schema_node:
+                child = _resolve_schema_node(
+                    self._schema_node["children"].get("[]", {})
+                )
+                inner_nbt_type = child.get("type")
+
+            has_runtime = any(_is_runtime(x) for x in other)
+
+            if not has_runtime:
+                if prefix:
+                    runcommand(
+                        f"data modify {addr(self)} set value [{prefix}{','.join(_snbt_literal(x) for x in other)}]"
+                    )
+                else:
+                    runcommand(
+                        f"data modify {addr(self)} set value [{','.join(_snbt_literal(x) for x in other)}]"
+                    )
+                return self
+
+            default = _nbt_default_snbt(inner_nbt_type) if inner_nbt_type else "0"
+            skeleton_parts = []
+            for x in other:
+                if _is_runtime(x):
+                    skeleton_parts.append(default)
+                else:
+                    skeleton_parts.append(_snbt_literal(x))
+
+            if prefix:
+                runcommand(
+                    f"data modify {addr(self)} set value [{prefix}{','.join(skeleton_parts)}]"
+                )
+            else:
+                runcommand(
+                    f"data modify {addr(self)} set value [{','.join(skeleton_parts)}]"
+                )
+
+            for i, x in enumerate(other):
+                if _is_runtime(x):
+                    self[i].__iset__(x)
             return self
+
         if isinstance(other, dict):
             if self._type is not None and self._type != NBTType.Compound:
                 raise TypeError(f"Cannot set {self._type.name.lower()} with dict")
-            items = []
-            for k, v in other.items():
-                items.append(f"{k}:{v}")
-            runcommand(f"data modify {addr(self)} set value {{{','.join(items)}}}")
+
+            has_runtime = any(_is_runtime(v) for v in other.values())
+
+            if not has_runtime:
+                items = ",".join(f"{k}:{_snbt_literal(v)}" for k, v in other.items())
+                runcommand(f"data modify {addr(self)} set value {{{items}}}")
+                return self
+
+            lit_items = {k: v for k, v in other.items() if not _is_runtime(v)}
+            runtime_items = {k: v for k, v in other.items() if _is_runtime(v)}
+
+            if lit_items:
+                items = ",".join(
+                    f"{k}:{_snbt_literal(v)}" for k, v in lit_items.items()
+                )
+                runcommand(f"data modify {addr(self)} set value {{{items}}}")
+            else:
+                runcommand(f"data modify {addr(self)} set value {{}}")
+
+            for k, v in runtime_items.items():
+                self[k].__iset__(v)
             return self
         if isinstance(other, nbt):
-            if self._type is None or other._type is None or self._type == other._type or (
-                    self.is_floaty() and other.is_integer()):
+            if (
+                    self._type is None
+                    or other._type is None
+                    or self._type == other._type
+                    or (self.is_floaty() and other.is_integer())
+            ):
                 runcommand(f"data modify {addr(self)} set from {addr(other)}")
                 return self
         if self.is_number():
@@ -758,14 +1233,17 @@ class nbt(ArithmeticSupported):
         return self._try_math("__iset__", "=", other, exp_type)
 
     def __in__(self, item):
-        from .score import score  # avoid circular import
+        from .score import score
+
         res = score(0, addr=f"!in_res{ctx.next_temp_id()} {ctx.temp_obj}")
 
         def body_func(elem):
             conds = (elem == item).__branch__()
             cond_str = " ".join(conds)
             runcommand(f"execute {cond_str} run scoreboard players set {addr(res)} 1")
-            runcommand(f"execute {cond_str} run scoreboard players set !break {ctx.temp_obj} 1")
+            runcommand(
+                f"execute {cond_str} run scoreboard players set !break {ctx.temp_obj} 1"
+            )
             runcommand(f"execute {cond_str} run return 0")
 
         self.__for__(body_func, None, True)
@@ -819,20 +1297,28 @@ class nbt(ArithmeticSupported):
                 raise TypeError("Use nbt.maxp(score, multiplier) for float max")
             if isinstance(other, float):
                 raise TypeError("Use nbt.maxp(score, multiplier) for float max")
-            runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
+            runcommand(
+                f"execute store result score {addr(temp)} run data get {addr(self)}"
+            )
             temp.__imax__(other)
             runcommand(
-                f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}")
+                f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}"
+            )
             return self
         if isinstance(other, nbt):
             if self.is_number():
                 if self.is_floaty() or other.is_floaty():
                     raise TypeError("Use nbt.maxp(other_nbt, multiplier) for float max")
-                runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}")
-                runcommand(f"execute store result score {addr(temp2)} run data get {addr(self)}")
+                runcommand(
+                    f"execute store result score {addr(temp)} run data get {addr(other)}"
+                )
+                runcommand(
+                    f"execute store result score {addr(temp2)} run data get {addr(self)}"
+                )
                 temp2.__imax__(temp)
                 runcommand(
-                    f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
+                    f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}"
+                )
                 return self
         raise UnsupportedOperandError(self, "max", other)
 
@@ -849,20 +1335,28 @@ class nbt(ArithmeticSupported):
                 raise TypeError("Use nbt.minp(score, multiplier) for float min")
             if isinstance(other, float):
                 raise TypeError("Use nbt.minp(score, multiplier) for float min")
-            runcommand(f"execute store result score {addr(temp)} run data get {addr(self)}")
+            runcommand(
+                f"execute store result score {addr(temp)} run data get {addr(self)}"
+            )
             temp.__imin__(other)
             runcommand(
-                f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}")
+                f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp)}"
+            )
             return self
         if isinstance(other, nbt):
             if self.is_number():
                 if self.is_floaty() or other.is_floaty():
                     raise TypeError("Use nbt.minp(other_nbt, multiplier) for float min")
-                runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}")
-                runcommand(f"execute store result score {addr(temp2)} run data get {addr(self)}")
+                runcommand(
+                    f"execute store result score {addr(temp)} run data get {addr(other)}"
+                )
+                runcommand(
+                    f"execute store result score {addr(temp2)} run data get {addr(self)}"
+                )
                 temp2.__imin__(temp)
                 runcommand(
-                    f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}")
+                    f"execute store result {addr(self)} {self._store_type} 1 run scoreboard players get {addr(temp2)}"
+                )
                 return self
         raise UnsupportedOperandError(self, "min", other)
 
@@ -871,92 +1365,30 @@ class nbt(ArithmeticSupported):
         if isinstance(other, (score, nbt)):
             other._check_addr()
         if isinstance(other, nbt):
-            runcommand(f"data modify storage flare:temp __swap_temp__ set from {addr(self)}")
+            runcommand(
+                f"data modify storage flare:temp __swap_temp__ set from {addr(self)}"
+            )
             runcommand(f"data modify {addr(self)} set from {addr(other)}")
-            runcommand(f"data modify {addr(other)} set from storage flare:temp __swap_temp__")
+            runcommand(
+                f"data modify {addr(other)} set from storage flare:temp __swap_temp__"
+            )
             return self
         elif isinstance(other, score):
             return other.__swap__(self)
         raise UnsupportedOperandError(self, "swap", other)
 
-    def append(self, other):
-        self._check_addr()
-        if isinstance(other, (score, nbt)):
-            other._check_addr()
-        if self.is_sequence():
-            if isinstance(other, nbt):
-                runcommand(f"data modify {addr(self)} append from {addr(other)}")
-                return self
-            if isinstance(other, score):
-                type_name = "int"
-                if self._type == NBTType.ByteArray:
-                    type_name = "byte"
-                elif self._type == NBTType.LongArray:
-                    type_name = "long"
-                runcommand(f"data modify {addr(self)} append value 0")
-                runcommand(
-                    f"execute store result {addr(self)}[-1] {type_name} {1 / other._multiplier} run scoreboard players get {addr(other)}")
-                return self
-            if isinstance(other, (int, float, str, list, dict)):
-                if isinstance(other, (list, dict, str)):
-                    val = json.dumps(other)
-                else:
-                    val = f"{other}"
-                runcommand(f"data modify {addr(self)} append value {val}")
-                return self
-        raise UnsupportedOperandError(self, "append", other)
-
-    def insert(self, index: int, other):
-        self._check_addr()
-        if isinstance(other, (score, nbt)):
-            other._check_addr()
-        if self.is_sequence():
-            if isinstance(other, nbt):
-                runcommand(f"data modify {addr(self)} insert {index} from {addr(other)}")
-                return self
-            if isinstance(other, score):
-                type_name = "int"
-                if self._type == NBTType.ByteArray:
-                    type_name = "byte"
-                elif self._type == NBTType.LongArray:
-                    type_name = "long"
-                runcommand(f"data modify {addr(self)} insert {index} value 0")
-                runcommand(
-                    f"execute store result {addr(self)}[{index}] {type_name} {1 / other._multiplier} run scoreboard players get {addr(other)}")
-                return self
-            if isinstance(other, (int, float, str, list, dict)):
-                if isinstance(other, (list, dict, str)):
-                    val = json.dumps(other)
-                else:
-                    val = f"{other}"
-                runcommand(f"data modify {addr(self)} insert {index} value {val}")
-                return self
-        raise UnsupportedOperandError(self, "insert", other)
-
-    def merge(self, other):
-        self._check_addr()
-        if isinstance(other, (score, nbt)):
-            other._check_addr()
-        if self._type == NBTType.Compound:
-            if isinstance(other, nbt):
-                runcommand(f"data modify {addr(self)} merge from {addr(other)}")
-                return self
-            if isinstance(other, dict):
-                runcommand(f"data modify {addr(self)} merge value {json.dumps(other)}")
-                return self
-        raise UnsupportedOperandError(self, "merge", other)
-
-    def prepend(self, other):
-        return self.insert(0, other)
-
     def _do_mathp(self, other, multiplier: float, op: str):
         self._check_addr()
         if not self.is_number():
-            raise TypeError(f"Cannot perform arithmetic on {self._type.name.lower() if self._type else 'untyped NBT'}")
+            raise TypeError(
+                f"Cannot perform arithmetic on {self._type.name.lower() if self._type else 'untyped NBT'}"
+            )
 
         temp_self = score(addr=f"!mathp0 {ctx.temp_obj}", multiplier=multiplier)
 
-        runcommand(f"execute store result score {addr(temp_self)} run data get {addr(self)} {multiplier}")
+        runcommand(
+            f"execute store result score {addr(temp_self)} run data get {addr(self)} {multiplier}"
+        )
 
         if isinstance(other, (int, float)):
             other_score = score(other, multiplier=multiplier)
@@ -994,7 +1426,9 @@ class nbt(ArithmeticSupported):
             if not other.is_number():
                 raise TypeError("Cannot perform arithmetic on non-number NBT")
             temp_other = score(addr=f"!mathp1 {ctx.temp_obj}", multiplier=multiplier)
-            runcommand(f"execute store result score {addr(temp_other)} run data get {addr(other)} {multiplier}")
+            runcommand(
+                f"execute store result score {addr(temp_other)} run data get {addr(other)} {multiplier}"
+            )
             if op == "+":
                 temp_self += temp_other
             elif op == "-":
@@ -1013,7 +1447,8 @@ class nbt(ArithmeticSupported):
             raise TypeError("Unsupported operand type")
 
         runcommand(
-            f"execute store result {addr(self)} {self._store_type} {1.0 / multiplier} run scoreboard players get {addr(temp_self)}")
+            f"execute store result {addr(self)} {self._store_type} {1.0 / multiplier} run scoreboard players get {addr(temp_self)}"
+        )
         return self
 
     def addp(self, other, multiplier: float):
@@ -1038,8 +1473,136 @@ class nbt(ArithmeticSupported):
         return self._do_mathp(other, multiplier, "min")
 
     def __repr__(self):
-        return f"NBT[{self._type}](addr=\"{addr(self)}\")"
+        return f'NBT[{self._type}](addr="{addr(self)}")'
 
     def __call__(self, *args, **kwargs):
         self[:] = args[0]
+        return self
+
+    def append(self, other):
+        self._check_addr()
+        if hasattr(other, "_check_addr"):
+            other._check_addr()
+        if self.is_sequence():
+            if isinstance(other, nbt):
+                runcommand(f"data modify {addr(self)} append from {addr(other)}")
+                return self
+            if not isinstance(other, (bool, int, float, str, list, dict)):
+                type_name = "int"
+                if self._type == NBTType.ByteArray:
+                    type_name = "byte"
+                elif self._type == NBTType.LongArray:
+                    type_name = "long"
+                runcommand(f"data modify {addr(self)} append value 0")
+                runcommand(
+                    f"execute store result {addr(self)}[-1] {type_name} {1 / other._multiplier} run scoreboard players get {addr(other)}"
+                )
+                return self
+            if isinstance(other, list) and _is_runtime(other):
+                inner_nbt_type = None
+                inner_cls = getattr(type(self), "_inner_type", None)
+                if inner_cls is not None:
+                    inner_nbt_type = {int: NBTType.Int, float: NBTType.Float, str: NBTType.String,
+                                      bool: NBTType.Byte}.get(inner_cls)
+                elif self._schema_node and "children" in self._schema_node:
+                    child = _resolve_schema_node(self._schema_node["children"].get("[]", {}))
+                    inner_nbt_type = child.get("type")
+                default = _nbt_default_snbt(inner_nbt_type) if inner_nbt_type else "0"
+                skeleton = [default if _is_runtime(x) else _snbt_literal(x) for x in other]
+                runcommand(f"data modify {addr(self)} append value [{','.join(skeleton)}]")
+                target = self[-1]
+                for i, x in enumerate(other):
+                    if _is_runtime(x):
+                        target[i].__iset__(x)
+                return self
+            if isinstance(other, dict) and _is_runtime(other):
+                lit = {k: v for k, v in other.items() if not _is_runtime(v)}
+                rt = {k: v for k, v in other.items() if _is_runtime(v)}
+                lit_snbt = ",".join(f"{k}:{_snbt_literal(v)}" for k, v in lit.items())
+                runcommand(f"data modify {addr(self)} append value {{{lit_snbt}}}")
+                target = self[-1]
+                for k, v in rt.items():
+                    target[k].__iset__(v)
+                return self
+            runcommand(f"data modify {addr(self)} append value {_snbt_literal(other)}")
+            return self
+        raise UnsupportedOperandError(self, "append", other)
+
+    def insert(self, index: int, other):
+        self._check_addr()
+        if hasattr(other, "_check_addr"):
+            other._check_addr()
+        if self.is_sequence():
+            if isinstance(other, nbt):
+                runcommand(f"data modify {addr(self)} insert {index} from {addr(other)}")
+                return self
+            if not isinstance(other, (bool, int, float, str, list, dict)):
+                type_name = "int"
+                if self._type == NBTType.ByteArray:
+                    type_name = "byte"
+                elif self._type == NBTType.LongArray:
+                    type_name = "long"
+                runcommand(f"data modify {addr(self)} insert {index} value 0")
+                runcommand(
+                    f"execute store result {addr(self)}[{index}] {type_name} {1 / other._multiplier} run scoreboard players get {addr(other)}"
+                )
+                return self
+            if isinstance(other, list) and _is_runtime(other):
+                inner_nbt_type = None
+                inner_cls = getattr(type(self), "_inner_type", None)
+                if inner_cls is not None:
+                    inner_nbt_type = {int: NBTType.Int, float: NBTType.Float, str: NBTType.String,
+                                      bool: NBTType.Byte}.get(inner_cls)
+                elif self._schema_node and "children" in self._schema_node:
+                    child = _resolve_schema_node(self._schema_node["children"].get("[]", {}))
+                    inner_nbt_type = child.get("type")
+                default = _nbt_default_snbt(inner_nbt_type) if inner_nbt_type else "0"
+                skeleton = [default if _is_runtime(x) else _snbt_literal(x) for x in other]
+                runcommand(f"data modify {addr(self)} insert {index} value [{','.join(skeleton)}]")
+                target = self[index]
+                for i, x in enumerate(other):
+                    if _is_runtime(x):
+                        target[i].__iset__(x)
+                return self
+            if isinstance(other, dict) and _is_runtime(other):
+                lit = {k: v for k, v in other.items() if not _is_runtime(v)}
+                rt = {k: v for k, v in other.items() if _is_runtime(v)}
+                lit_snbt = ",".join(f"{k}:{_snbt_literal(v)}" for k, v in lit.items())
+                runcommand(f"data modify {addr(self)} insert {index} value {{{lit_snbt}}}")
+                target = self[index]
+                for k, v in rt.items():
+                    target[k].__iset__(v)
+                return self
+            runcommand(f"data modify {addr(self)} insert {index} value {_snbt_literal(other)}")
+            return self
+        raise UnsupportedOperandError(self, "insert", other)
+
+    def merge(self, other):
+        self._check_addr()
+        if hasattr(other, "_check_addr"):
+            other._check_addr()
+        if self._type == NBTType.Compound:
+            if isinstance(other, nbt):
+                runcommand(f"data modify {addr(self)} merge from {addr(other)}")
+                return self
+            if isinstance(other, dict):
+                if _is_runtime(other):
+                    lit = {k: v for k, v in other.items() if not _is_runtime(v)}
+                    rt = {k: v for k, v in other.items() if _is_runtime(v)}
+                    if lit:
+                        lit_snbt = ",".join(f"{k}:{_snbt_literal(v)}" for k, v in lit.items())
+                        runcommand(f"data modify {addr(self)} merge value {{{lit_snbt}}}")
+                    for k, v in rt.items():
+                        self[k].__iset__(v)
+                else:
+                    runcommand(f"data modify {addr(self)} merge value {_snbt_literal(other)}")
+                return self
+        raise UnsupportedOperandError(self, "merge", other)
+
+    def prepend(self, other):
+        return self.insert(0, other)
+
+    def remove(self):
+        self._check_addr()
+        runcommand(f"data remove {addr(self)}")
         return self

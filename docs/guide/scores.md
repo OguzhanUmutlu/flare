@@ -14,11 +14,11 @@ z = x + y  # Generates: scoreboard players operation ...
 
 All standard Python arithmetic operators are supported:
 
-| Operator | Minecraft equivalent |
-|----------|---------------------|
-| `+`, `-`, `*`, `//` | `scoreboard players operation ... +=/-=/*=//=` |
-| `+=`, `-=`, `*=`, `//=` | In-place scoreboard operations |
-| `<`, `<=`, `>`, `>=`, `==` | `execute if score ... matches` |
+| Operator                   | Minecraft equivalent                           |
+|----------------------------|------------------------------------------------|
+| `+`, `-`, `*`, `//`        | `scoreboard players operation ... +=/-=/*=//=` |
+| `+=`, `-=`, `*=`, `//=`    | In-place scoreboard operations                 |
+| `<`, `<=`, `>`, `>=`, `==` | `execute if score ... matches`                 |
 
 ## Fixed Precision (`fixed`)
 

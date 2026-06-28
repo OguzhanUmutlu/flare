@@ -58,6 +58,8 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
                         ops.append(("static", val))
                 else:
                     ops.append(("static", val))
+            elif tok["type"] == "SELECTOR":
+                ops.append(("static", tok["value"].replace(" ", "")))
             elif tok["type"] == "IDENTIFIER":
                 ident = tok["value"]
                 is_key = False

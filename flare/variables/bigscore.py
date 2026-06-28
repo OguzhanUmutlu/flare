@@ -224,7 +224,7 @@ class bigscore(ArithmeticSupported):
             m = int(round(self._multiplier))
             if m > 1:
                 rem[:] = 0
-                for i in reversed(range(self.size)):
+                for _ in reversed(range(self.size)):
                     val[:] = rem
                     val *= self._base
                     pass

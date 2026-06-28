@@ -16,6 +16,7 @@ _current_namespace: str = "flare"
 functions = {}
 constants = {}
 return_targets = {}
+recursive_locals = {}
 
 
 class DynamicVar:
@@ -383,6 +384,11 @@ def export(func=None, *, name=None, append=False, returns=None):
                         base_addr = f"storage {args_storage} {func.__name__}_{arg_name}"
                         runcommand(f"data remove {base_addr}[-1]")
 
+                if func_name in recursive_locals:
+                    for varid in recursive_locals[func_name]:
+                        base_addr = f"storage {_current_namespace}:vars {varid}"
+                        runcommand(f"data remove {base_addr}[-1]")
+
             return self._emit_return()
 
         def with_(self, source_nbt, **call_kwargs):
@@ -450,13 +456,16 @@ def _flare_notin(item, container):
     return item not in container
 
 
-def _flare_assign(var_name, value, local_env, global_env):
-    if var_name in local_env:
-        target = local_env[var_name]
-    elif var_name in global_env:
-        target = global_env[var_name]
+def _flare_assign(var_name, value, local_env, global_env, is_local=False):
+    if is_local:
+        target = local_env.get(var_name)
     else:
-        target = None
+        if var_name in local_env:
+            target = local_env[var_name]
+        elif var_name in global_env:
+            target = global_env[var_name]
+        else:
+            target = None
 
     if target is not None and hasattr(target, "__iset__"):
         try:
@@ -467,7 +476,12 @@ def _flare_assign(var_name, value, local_env, global_env):
 
     if target is None and hasattr(value, "__icopy__"):
         if "is_recursive" in inspect.signature(value.__icopy__).parameters:
-            return value.__icopy__(varid=f"{_current_namespace}_{var_name}", is_recursive=_in_recursive_context)
+            result = value.__icopy__(varid=f"{_current_namespace}_{var_name}", is_recursive=_in_recursive_context)
+            if _in_recursive_context and _logical_func:
+                if _logical_func not in recursive_locals:
+                    recursive_locals[_logical_func] = set()
+                recursive_locals[_logical_func].add(f"{_current_namespace}_{var_name}")
+            return result
         return value.__icopy__(varid=f"{_current_namespace}_{var_name}")
 
     return value
@@ -506,7 +520,6 @@ def _flare_return(value):
     func_name = _logical_func
     if func_name is None:
         raise Exception("Return outside of exported function")
-    ret_anno = return_types.get(func_name, None)
 
     if isinstance(value, str) and value == "UNKNOWN_RETURN":
         has_returns[func_name] = True

@@ -23,16 +23,25 @@ class tagged:
         elif isinstance(other, str):
             target = other
         else:
-            raise ValueError("tagged can only be set to a string selector, selector object, or another tagged object")
+            raise ValueError(
+                "tagged can only be set to a string selector, selector object, or another tagged object"
+            )
 
         runcommand(f"tag @e remove {self.tag_name}")
         runcommand(f"tag {target} add {self.tag_name}")
 
     def __setitem__(self, key, value):
-        if isinstance(key, slice) and key.start is None and key.stop is None and key.step is None:
+        if (
+                isinstance(key, slice)
+                and key.start is None
+                and key.stop is None
+                and key.step is None
+        ):
             self.__iset__(value)
             return
-        raise TypeError(f"'{type(self).__name__}' object does not support item assignment")
+        raise TypeError(
+            f"'{type(self).__name__}' object does not support item assignment"
+        )
 
     def __str__(self):
         if self.tag_name:
@@ -56,29 +65,36 @@ class selector:
     def __with__(self, body_func):
         self._as().__with__(body_func)
 
-    def __for__(self, body_func, orelse_func=None, _has_break=False, _has_continue=False):
+    def __for__(
+            self, body_func, orelse_func=None, _has_break=False, _has_continue=False
+    ):
         self.__with__(lambda: body_func(selector("@s")))
         if orelse_func:
             orelse_func()
 
     def _as(self):
         from ..execute_modifiers import _as
+
         return _as(self)
 
     def at(self):
         from ..execute_modifiers import at
+
         return at(self)
 
     def positioned(self):
         from ..execute_modifiers import positioned
+
         return positioned(self)
 
     def facing(self, *args):
         from ..execute_modifiers import facing
+
         return facing(self, *args)
 
     def rotated(self):
         from ..execute_modifiers import rotated
+
         return rotated(self)
 
     def attacker(self):
@@ -114,7 +130,9 @@ class _SelectorAttribute(nbt):
             schema_node = ENTITY_SCHEMA["children"][name]
             datatype = schema_node.get("type", None)
 
-        super().__init__(addr=f"entity {target} {name}", datatype=datatype, schema_node=schema_node)
+        super().__init__(
+            addr=f"entity {target} {name}", datatype=datatype, schema_node=schema_node
+        )
         self._target = target
         self._name = name
 

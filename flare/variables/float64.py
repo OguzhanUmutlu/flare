@@ -3,12 +3,13 @@ from __future__ import annotations
 import math
 from math import inf, frexp
 
-from .core import ArithmeticSupported, addr
+from .core import ArithmeticSupported
+from .nbt import nbt
 from .score import score
 from .. import context as ctx
-from ..context import _invoke_stdlib, runcommand, temp_storage
+from ..context import _invoke_stdlib, temp_storage
 from ..context import temp_obj, vars_obj, next_temp_id
-from ..control_flow import ScoreIfMatches, _flare_while, ScoreIfScore
+from ..control_flow import ScoreIfMatches, ScoreIfScore
 from ..variables import bigscore
 
 
@@ -201,16 +202,16 @@ class float64(ArithmeticSupported):
                     lambda: a._sign.__iset__(1)
                 ])
 
-                _flare_while(lambda: ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, (134217728, 2147483647)),
-                             lambda: [
-                                 score(addr="!f64_add_cy2 __flare_stdlib__").__iset__(a._mant_hi),
-                                 score(addr="!f64_add_cy2 __flare_stdlib__").__imod__(2),
-                                 score(addr="!f64_add_cy2 __flare_stdlib__").__imul__(33554432),
-                                 a._mant_hi.__idiv__(2),
-                                 a._mant_lo.__idiv__(2),
-                                 a._mant_lo.__iadd__(score(addr="!f64_add_cy2 __flare_stdlib__")),
-                                 a._exp.__iadd__(1)
-                             ], namespace="flare_math")
+                ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, (134217728, 2147483647)).while_then(
+                    lambda: [
+                        score(addr="!f64_add_cy2 __flare_stdlib__").__iset__(a._mant_hi),
+                        score(addr="!f64_add_cy2 __flare_stdlib__").__imod__(2),
+                        score(addr="!f64_add_cy2 __flare_stdlib__").__imul__(33554432),
+                        a._mant_hi.__idiv__(2),
+                        a._mant_lo.__idiv__(2),
+                        a._mant_lo.__iadd__(score(addr="!f64_add_cy2 __flare_stdlib__")),
+                        a._exp.__iadd__(1)
+                    ], namespace="flare_math")
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, 0)).then([
                     lambda: a._mant_hi.__iset__(a._mant_lo),
@@ -218,16 +219,15 @@ class float64(ArithmeticSupported):
                     lambda: a._exp.__isub__(26)
                 ])
 
-                _flare_while(lambda: ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, (-2147483648, 67108863)),
-                             lambda: [
-                                 a._exp.__isub__(1),
-                                 a._mant_hi.__imul__(2),
-                                 a._mant_lo.__imul__(2),
-                                 score(addr="!f64_add_cy3 __flare_stdlib__").__iset__(a._mant_lo),
-                                 score(addr="!f64_add_cy3 __flare_stdlib__").__idiv__(67108864),
-                                 a._mant_lo.__imod__(67108864),
-                                 a._mant_hi.__iadd__(score(addr="!f64_add_cy3 __flare_stdlib__"))
-                             ], namespace="flare_math")
+                (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, (-2147483648, 67108863))).while_then(lambda: [
+                    a._exp.__isub__(1),
+                    a._mant_hi.__imul__(2),
+                    a._mant_lo.__imul__(2),
+                    score(addr="!f64_add_cy3 __flare_stdlib__").__iset__(a._mant_lo),
+                    score(addr="!f64_add_cy3 __flare_stdlib__").__idiv__(67108864),
+                    a._mant_lo.__imod__(67108864),
+                    a._mant_hi.__iadd__(score(addr="!f64_add_cy3 __flare_stdlib__"))
+                ], namespace="flare_math")
 
                 res[:] = a
 
@@ -376,27 +376,27 @@ class float64(ArithmeticSupported):
                     lambda: res._sign.__iset__(1)
                 ])
 
-                _flare_while(lambda: ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (134217728, 2147483647)),
-                             lambda: [
-                                 score(addr="!f64_mul_cy2 __flare_stdlib__").__iset__(res._mant_hi),
-                                 score(addr="!f64_mul_cy2 __flare_stdlib__").__imod__(2),
-                                 score(addr="!f64_mul_cy2 __flare_stdlib__").__imul__(33554432),
-                                 res._mant_hi.__idiv__(2),
-                                 res._mant_lo.__idiv__(2),
-                                 res._mant_lo.__iadd__(score(addr="!f64_mul_cy2 __flare_stdlib__")),
-                                 res._exp.__iadd__(1)
-                             ], namespace="flare_math")
+                (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (134217728, 2147483647))).while_then(
+                    lambda: [
+                        score(addr="!f64_mul_cy2 __flare_stdlib__").__iset__(res._mant_hi),
+                        score(addr="!f64_mul_cy2 __flare_stdlib__").__imod__(2),
+                        score(addr="!f64_mul_cy2 __flare_stdlib__").__imul__(33554432),
+                        res._mant_hi.__idiv__(2),
+                        res._mant_lo.__idiv__(2),
+                        res._mant_lo.__iadd__(score(addr="!f64_mul_cy2 __flare_stdlib__")),
+                        res._exp.__iadd__(1)
+                    ], namespace="flare_math")
 
-                _flare_while(lambda: ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (-2147483648, 67108863)),
-                             lambda: [
-                                 res._exp.__isub__(1),
-                                 res._mant_hi.__imul__(2),
-                                 res._mant_lo.__imul__(2),
-                                 score(addr="!f64_mul_cy3 __flare_stdlib__").__iset__(res._mant_lo),
-                                 score(addr="!f64_mul_cy3 __flare_stdlib__").__idiv__(67108864),
-                                 res._mant_lo.__imod__(67108864),
-                                 res._mant_hi.__iadd__(score(addr="!f64_mul_cy3 __flare_stdlib__"))
-                             ], namespace="flare_math")
+                (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (-2147483648, 67108863))).while_then(
+                    lambda: [
+                        res._exp.__isub__(1),
+                        res._mant_hi.__imul__(2),
+                        res._mant_lo.__imul__(2),
+                        score(addr="!f64_mul_cy3 __flare_stdlib__").__iset__(res._mant_lo),
+                        score(addr="!f64_mul_cy3 __flare_stdlib__").__idiv__(67108864),
+                        res._mant_lo.__imod__(67108864),
+                        res._mant_hi.__iadd__(score(addr="!f64_mul_cy3 __flare_stdlib__"))
+                    ], namespace="flare_math")
 
             _res = type(self)(addr=f"!f64_mul_{next_temp_id()}")
             _invoke_stdlib("flare_math:float64_mul", {"a": self, "b": other}, {"res": _res}, gen)
@@ -476,27 +476,27 @@ class float64(ArithmeticSupported):
                     lambda: res._sign.__iset__(1)
                 ])
 
-                _flare_while(lambda: ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (134217728, 2147483647)),
-                             lambda: [
-                                 score(addr="!f64_div_cy2 __flare_stdlib__").__iset__(res._mant_hi),
-                                 score(addr="!f64_div_cy2 __flare_stdlib__").__imod__(2),
-                                 score(addr="!f64_div_cy2 __flare_stdlib__").__imul__(33554432),
-                                 res._mant_hi.__idiv__(2),
-                                 res._mant_lo.__idiv__(2),
-                                 res._mant_lo.__iadd__(score(addr="!f64_div_cy2 __flare_stdlib__")),
-                                 res._exp.__iadd__(1)
-                             ], namespace="flare_math")
+                (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (134217728, 2147483647))).while_then(
+                    lambda: [
+                        score(addr="!f64_div_cy2 __flare_stdlib__").__iset__(res._mant_hi),
+                        score(addr="!f64_div_cy2 __flare_stdlib__").__imod__(2),
+                        score(addr="!f64_div_cy2 __flare_stdlib__").__imul__(33554432),
+                        res._mant_hi.__idiv__(2),
+                        res._mant_lo.__idiv__(2),
+                        res._mant_lo.__iadd__(score(addr="!f64_div_cy2 __flare_stdlib__")),
+                        res._exp.__iadd__(1)
+                    ], namespace="flare_math")
 
-                _flare_while(lambda: ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (-2147483648, 67108863)),
-                             lambda: [
-                                 res._exp.__isub__(1),
-                                 res._mant_hi.__imul__(2),
-                                 res._mant_lo.__imul__(2),
-                                 score(addr="!f64_div_cy3 __flare_stdlib__").__iset__(res._mant_lo),
-                                 score(addr="!f64_div_cy3 __flare_stdlib__").__idiv__(67108864),
-                                 res._mant_lo.__imod__(67108864),
-                                 res._mant_hi.__iadd__(score(addr="!f64_div_cy3 __flare_stdlib__"))
-                             ], namespace="flare_math")
+                (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (-2147483648, 67108863))).while_then(
+                    lambda: [
+                        res._exp.__isub__(1),
+                        res._mant_hi.__imul__(2),
+                        res._mant_lo.__imul__(2),
+                        score(addr="!f64_div_cy3 __flare_stdlib__").__iset__(res._mant_lo),
+                        score(addr="!f64_div_cy3 __flare_stdlib__").__idiv__(67108864),
+                        res._mant_lo.__imod__(67108864),
+                        res._mant_hi.__iadd__(score(addr="!f64_div_cy3 __flare_stdlib__"))
+                    ], namespace="flare_math")
 
             _res = type(self)(addr=f"!f64_div_{next_temp_id()}")
             _invoke_stdlib("flare_math:float64_div", {"a": self, "b": other}, {"res": _res}, gen)
@@ -1124,6 +1124,7 @@ class float64(ArithmeticSupported):
         return _res
 
     def __print__(self):
+        from ..print import _to_print_component
         self._check_addr()
         tid = next_temp_id()
 
@@ -1162,72 +1163,62 @@ class float64(ArithmeticSupported):
         exp_adj[:] = self._exp
         exp_adj -= score(52)
 
-        _flare_while(lambda: ScoreIfMatches(exp_adj, (1, 1000000)), lambda: [
+        ScoreIfMatches(exp_adj, (1, 1000000)).while_then(lambda: [
             b.__imul__(2),
             exp_adj.__isub__(1),
         ])
-        _flare_while(lambda: ScoreIfMatches(exp_adj, (-1000000, -1)), lambda: [
+        ScoreIfMatches(exp_adj, (-1000000, -1)).while_then(lambda: [
             b.__idiv__(2),
             exp_adj.__iadd__(1),
         ])
 
         comps = []
 
-        runcommand(
-            f"execute if score {addr(self._sign)} matches -1 run data modify storage {temp_storage} __f64s_{tid} set value '-'")
-        runcommand(f"execute if score {addr(self._sign)} matches 1 run data remove storage {temp_storage} __f64s_{tid}")
-        comps.append({"nbt": f"__f64s_{tid}", "storage": str(temp_storage)})
+        f64s = nbt(addr=f"{temp_storage} __f64s_{tid}")[str]
+
+        ScoreIfMatches(self._sign, -1).then(lambda: f64s.__iset__("-"))
+        ScoreIfMatches(self._sign, 1).then(lambda: f64s.remove())
+        comps.extend(_to_print_component(f64s, 0))
 
         started = score(0, addr=f"!f64prt_st_{tid} {vars_obj}")
         for i in reversed(range(4, 16)):
             limb = b.get_limb(i)
-            pp = f"__f64ip_{tid}_{i}"
-            vp = f"__f64iv_{tid}_{i}"
-            runcommand(
-                f"execute store result storage {temp_storage} {vp} int 1 run scoreboard players get {addr(limb)}")
+            f64ip = nbt(addr=f"{temp_storage} __f64ip_{tid}_{i}")[str]
+            f64iv = nbt(addr=f"{temp_storage} __f64iv_{tid}_{i}")[int]
+            f64iv[:] = limb
             if i < 15:
-                runcommand(
-                    f"execute if score {addr(started)} matches 1 if score {addr(limb)} matches 0..9   run data modify storage {temp_storage} {pp} set value \"000\"")
-                runcommand(
-                    f"execute if score {addr(started)} matches 1 if score {addr(limb)} matches 10..99  run data modify storage {temp_storage} {pp} set value \"00\"")
-                runcommand(
-                    f"execute if score {addr(started)} matches 1 if score {addr(limb)} matches 100..999 run data modify storage {temp_storage} {pp} set value \"0\"")
-                runcommand(
-                    f"execute if score {addr(started)} matches 1 if score {addr(limb)} matches 1000..  run data modify storage {temp_storage} {pp} set value \"\"")
-                runcommand(f"execute if score {addr(started)} matches 0 run data remove storage {temp_storage} {pp}")
-                runcommand(
-                    f"execute if score {addr(started)} matches 0 if score {addr(limb)} matches 0 run data remove storage {temp_storage} {vp}")
+                (ScoreIfMatches(started, 1) & ScoreIfMatches(limb, (0, 9))).then(lambda: f64ip.__iset__("000"))
+                (ScoreIfMatches(started, 1) & ScoreIfMatches(limb, (10, 99))).then(lambda: f64ip.__iset__("00"))
+                (ScoreIfMatches(started, 1) & ScoreIfMatches(limb, (100, 999))).then(lambda: f64ip.__iset__("0"))
+                (ScoreIfMatches(started, 1) & ScoreIfMatches(limb, (1000, 9999))).then(lambda: f64ip.__iset__(""))
+                ScoreIfMatches(started, 0).then(lambda: f64ip.remove())
+                (ScoreIfMatches(started, 0) & ScoreIfMatches(limb, 0)).then(lambda: f64iv.remove())
             else:
-                runcommand(
-                    f"execute if score {addr(started)} matches 0 if score {addr(limb)} matches 0 run data remove storage {temp_storage} {vp}")
-                runcommand(f"data remove storage {temp_storage} {pp}")
-            runcommand(f"execute if score {addr(limb)} matches 1.. run scoreboard players set {addr(started)} 1")
-            comps.append({"nbt": pp, "storage": str(temp_storage)})
-            comps.append({"nbt": vp, "storage": str(temp_storage)})
+                (ScoreIfMatches(started, 0) & ScoreIfMatches(limb, 0)).then(lambda: f64iv.remove())
+                f64ip.remove()
+            ScoreIfMatches(limb, (1, inf)).then(lambda: started.__iset__(1))
+            comps.extend(_to_print_component(f64ip, 0))
+            comps.extend(_to_print_component(f64iv, 0))
 
-        runcommand(
-            f"execute if score {addr(started)} matches 0 run data modify storage {temp_storage} __f64z_{tid} set value \"0\"")
-        runcommand(f"execute if score {addr(started)} matches 1 run data remove storage {temp_storage} __f64z_{tid}")
-        comps.append({"nbt": f"__f64z_{tid}", "storage": str(temp_storage)})
+        f64z = nbt(addr=f"{temp_storage} __f64z_{tid}")[str]
+        ScoreIfMatches(started, 0).then(lambda: f64z.__iset__("0"))
+        ScoreIfMatches(started, 1).then(lambda: f64z.remove())
+        comps.extend(_to_print_component(f64z, 0))
 
         comps.append({"text": "."})
 
         for i in reversed(range(0, 4)):
             limb = b.get_limb(i)
-            pp = f"__f64fp_{tid}_{i}"
-            vp = f"__f64fv_{tid}_{i}"
-            runcommand(
-                f"execute store result storage {temp_storage} {vp} int 1 run scoreboard players get {addr(limb)}")
-            runcommand(
-                f"execute if score {addr(limb)} matches 0..9   run data modify storage {temp_storage} {pp} set value \"000\"")
-            runcommand(
-                f"execute if score {addr(limb)} matches 10..99  run data modify storage {temp_storage} {pp} set value \"00\"")
-            runcommand(
-                f"execute if score {addr(limb)} matches 100..999 run data modify storage {temp_storage} {pp} set value \"0\"")
-            runcommand(
-                f"execute if score {addr(limb)} matches 1000..  run data modify storage {temp_storage} {pp} set value \"\"")
-            comps.append({"nbt": pp, "storage": str(temp_storage)})
-            comps.append({"nbt": vp, "storage": str(temp_storage)})
+            f64fp = nbt(addr=f"{temp_storage} __f64fp_{tid}_{i}")[str]
+            f64fv = nbt(addr=f"{temp_storage} __f64fv_{tid}_{i}")[int]
+            f64fv[:] = limb
+            ScoreIfMatches(limb, (1, 9)).then(lambda: f64fp.__iset__("000"))
+            ScoreIfMatches(limb, (10, 99)).then(lambda: f64fp.__iset__("00"))
+            ScoreIfMatches(limb, (100, 999)).then(lambda: f64fp.__iset__("0"))
+            ScoreIfMatches(limb, (1000, 9999)).then(lambda: f64fp.__iset__(""))
+            ScoreIfMatches(limb, 0).then(lambda: f64fp.remove())
+            comps.extend(_to_print_component(f64fp, 0))
+            comps.extend(_to_print_component(f64fv, 0))
 
         return comps
 

@@ -37,6 +37,15 @@ class ScoreIf:
         for x in s:
             runcommand(str_self + str(x))
 
+    def while_then(self, s, namespace=None):
+        if isinstance(s, list):
+            def body():
+                for f in s: f()
+        else:
+            body = s
+        from .control_flow import _flare_while
+        _flare_while(lambda: self, body, namespace=namespace)
+
     def __str__(self):
         if isinstance(self.t, list):
             conds = [str(x).removeprefix("execute ").removesuffix(" run ") for x in self.t]
@@ -190,8 +199,12 @@ def _flare_if(*args):
                         prefix = f"execute if score {addr(elif_temp)} matches 0"
                         for i in range(start_len, len(ctx.files[ctx.current_file])):
                             cmd = ctx.files[ctx.current_file][i]
-                            if cmd.startswith("execute "):
+                            if cmd.startswith("$execute "):
+                                ctx.files[ctx.current_file][i] = f"${prefix} {cmd[9:]}"
+                            elif cmd.startswith("execute "):
                                 ctx.files[ctx.current_file][i] = f"{prefix} {cmd[8:]}"
+                            elif cmd.startswith("$"):
+                                ctx.files[ctx.current_file][i] = f"${prefix} run {cmd[1:]}"
                             else:
                                 ctx.files[ctx.current_file][i] = f"{prefix} run {cmd}"
                     else:
@@ -228,8 +241,12 @@ def _flare_if(*args):
 
             for i in range(start_len, len(ctx.files[ctx.current_file])):
                 cmd = ctx.files[ctx.current_file][i]
-                if cmd.startswith("execute "):
+                if cmd.startswith("$execute "):
+                    ctx.files[ctx.current_file][i] = f"${prefix} {cmd[9:]}"
+                elif cmd.startswith("execute "):
                     ctx.files[ctx.current_file][i] = f"{prefix} {cmd[8:]}"
+                elif cmd.startswith("$"):
+                    ctx.files[ctx.current_file][i] = f"${prefix} run {cmd[1:]}"
                 else:
                     ctx.files[ctx.current_file][i] = f"{prefix} run {cmd}"
         else:
@@ -243,8 +260,12 @@ def _flare_if(*args):
                 if len(ctx.files[func_name]) == 1:
                     cmd = ctx.files[func_name][0]
                     del ctx.files[func_name]
-                    if cmd.startswith("execute "):
+                    if cmd.startswith("$execute "):
+                        runcommand(f"${prefix} {cmd[9:]}")
+                    elif cmd.startswith("execute "):
                         runcommand(f"{prefix} {cmd[8:]}")
+                    elif cmd.startswith("$"):
+                        runcommand(f"${prefix} run {cmd[1:]}")
                     else:
                         runcommand(f"{prefix} run {cmd}")
                 else:
@@ -350,3 +371,9 @@ def _flare_with(*args):
                 raise TypeError(f"Object of type {type(obj).__name__} does not support __with__")
 
     wrap(0)
+
+
+def _flare_not(val):
+    if hasattr(val, "__branch__") and hasattr(val, "__invert__"):
+        return ~val
+    return not val

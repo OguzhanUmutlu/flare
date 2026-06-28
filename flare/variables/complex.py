@@ -116,7 +116,7 @@ class complex(ArithmeticSupported):
         return complex(math.ceil(self.real), math.ceil(self.imag))
 
     def __print__(self):
-        from ..context import _to_print_component  # avoid circular import
+        from ..print import _to_print_component
         comps = []
         if hasattr(self.real, "__print__"):
             comps.extend(self.real.__print__())
@@ -131,5 +131,4 @@ class complex(ArithmeticSupported):
         return comps
 
     def __repr__(self):
-
         return f"({self.real} + {self.imag}j)"

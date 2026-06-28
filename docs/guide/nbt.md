@@ -1,117 +1,294 @@
 # NBT Variables
 
-Flare supports full, programmatic NBT data manipulation. You define the NBT type using `nbt[type]`.
+Flare provides a full, type-safe NBT manipulation system. Every NBT path is represented as an `nbt` object, and Flare tracks the datatype so it can emit the correct commands automatically.
 
-## Basic NBT
+## Declaring NBT Variables
+
+### Typed aliases with `ref()`
 
 ```python
 from flare import storage, ref
 
-# Direct assignment to storage paths
-storage.mypack.data.Level[int] = 5
-
-# To create a Python shorthand/alias for a path, you MUST use ref()
-# otherwise Flare will copy the data into a new temporary variable!
+# Create a typed alias to a storage path — no data is copied
 level = ref(storage.mypack.data.Level[int])
-level = 5
+level[:] = 5
+level += 1
 ```
 
-### The `ref()` Function (Aliases vs Copies)
+### Assignment creates a copy
 
-It is critical to understand how Python variable assignment interacts with NBT:
-
-- `x = storage.path` **copies** the data from the path into a new local NBT variable.
-- `x = ref(storage.path)` creates a zero-cost **alias** to the path.
+```python
+# This COPIES data from storage into a local NBT variable
+level = storage.mypack.data.Level[int]
+```
 
 > [!WARNING]
-> Always use `ref()` when creating local shorthands for NBT paths or entity NBT, otherwise you will accidentally copy data and waste performance!
+> Use `ref()` when you only want a shorthand for an existing path. Without `ref()`, Flare emits a `data modify ... set from ...` command, creating a new copy.
 
-## Arrays and Lists
+## NBT Type System
+
+### Scalar types
+
+| Annotation     | Shorthand   | Minecraft type              |
+|----------------|-------------|-----------------------------|
+| `nbt[byte]`    | `nbtbyte`   | `byte` (1 byte signed int)  |
+| `nbt[boolean]` | `nbtbool`   | `byte` (0 or 1)             |
+| `nbt[short]`   | `nbtshort`  | `short` (2 byte signed int) |
+| `nbt[int]`     | `nbtint`    | `int` (4 byte signed int)   |
+| `nbt[long]`    | `nbtlong`   | `long` (8 byte signed int)  |
+| `nbt[float]`   | `nbtfloat`  | `float`                     |
+| `nbt[double]`  | `nbtdouble` | `double`                    |
+| `nbt[str]`     | `nbtstr`    | `String`                    |
+
+### Compound and collection types
+
+| Annotation         | Shorthand      | Minecraft type         |
+|--------------------|----------------|------------------------|
+| `nbt[dict]`        | `nbtdict`      | Compound `{}`          |
+| `nbt[list]`        | `nbtlist`      | List `[]` (untyped)    |
+| `nbt[list[int]]`   | —              | List of ints           |
+| `nbt[array[int]]`  | `nbtintarray`  | Int array `[I;1,2,3]`  |
+| `nbt[array[byte]]` | `nbtbytearray` | Byte array `[B;1,2,3]` |
+| `nbt[array[long]]` | `nbtlongarray` | Long array `[L;1,2,3]` |
+
+> [!IMPORTANT]
+> `list[int]` and `array[int]` are **different** NBT types. `list[int]` is a regular NBT List; `array[int]` is a packed `[I;...]` Int Array. Use `array[X]` for typed arrays and `list[X]` for typed lists.
+
+### Type shorthands
+
+You can import the pre-built typed classes directly to avoid writing `nbt[int]` everywhere:
 
 ```python
-from flare import array, storage, ref
+from flare import nbtint, nbtstr, nbtlist, nbtdict, nbtbytearray
 
-# Use ref() to create an alias to an NBT int array
-my_array = ref(storage.mypack.data.MyArray[array[int]])
-my_array.append(4)
-my_array.prepend(0)
+x = nbtint(addr="storage mypack:data X")
 ```
 
-## NBT Path Chaining
+## Path Chaining
 
-Traverse NBT Compounds using Python dot notation or dictionary indexing:
+Access sub-paths using Python dot notation or subscript notation:
 
 ```python
 from flare import storage, ref
 
-# Use ref() to alias the dictionary path
-player_data = ref(storage.mypack.data.Player[dict])
+player = ref(storage.mypack.data.Player[dict])
 
-# Access sub-paths dynamically
-inventory = ref(player_data.Inventory)
-first_slot = ref(inventory[0])
+# Dot notation
+hp = ref(player.Health[float])
 
-# If your NBT key has a space, use indexing:
-weird_key = ref(player_data["Custom Key With Space"])
+# Integer index
+first_item = ref(player.Inventory[0])
 
-# Use the built-in 'storage' variable to build paths on the fly
-# This maps to the raw NBT path: storage mypack:data Player.Inventory[0]
-fast_slot = ref(storage["mypack:data"].Player.Inventory[0])
+# String key (for keys with spaces or special chars)
+custom = ref(player["Custom Key"][str])
 
-# Filter a list for the first element matching a compound, similar to Minecraft's [{}] syntax
-# Resolves to NBT path: Player.Inventory[{"Slot": 0}]
-main_hand = ref(player_data.Inventory[{"Slot": 0}])
+# Compound filter — like Minecraft's [{"Slot": 0}] NBT path syntax
+main_hand = ref(player.Inventory[{"Slot": 0}])
 ```
 
 ::: tip Lazy evaluation
-Flare generates the string path dynamically behind the scenes. **Commands are only emitted when you read or write to these endpoints**, making building a path chain free.
+Building a path chain is free — **commands are only emitted when you read or write** to the endpoint.
 :::
 
-## NBT Type Casting
+## Type Casting
 
-If you're dynamically traversing NBT and need to interact with a specific type, cast using Python type indexing:
+Force a type interpretation on any untyped path using subscript notation:
 
 ```python
-# 'test' is an untyped NBT path. [int] tells Flare it should be treated as an integer.
+# Cast an untyped path to int
 x = ref(storage.hello.test[int])
 
-# Force a type change on an already-typed NBT variable by casting to None first:
+# Cast to None to strip a type, then re-cast
 x = my_typed_nbt[None][list]
 ```
 
-### Deeply Nested Types
+### Deeply nested types
 
-Flare supports deeply nested type definitions. When you define a nested type, Flare remembers the structure so you don't need to manually typecast when accessing inner elements:
+When you declare a nested type, Flare propagates it automatically to inner elements:
 
 ```python
-# Untyped NBT requires casting at the leaf node:
+# Without a type: must cast at the leaf
 untyped = ref(storage.mypack.data.Matrix)
 untyped[0][0][int] += 5
 
-# Typed NBT remembers its inner structure!
-# No need to cast `[int]` every time:
+# With a typed declaration: inner type is remembered
 matrix = ref(storage.mypack.data.Matrix[list[list[int]]])
 matrix[0][0] += 5
 ```
 
-## Entity NBT via Selectors
+## Struct — Typed Compound Schemas
 
-Selectors act as powerful proxy objects. Any attribute access on a selector that isn't called as a method automatically evaluates as an **NBT data path** on that entity:
+Use `@struct` to define a typed NBT Compound with named, typed fields. This gives Flare full knowledge of the compound's shape so field access is type-checked and type-inferred automatically.
 
 ```python
-# Evaluates as NBT path 'Inventory' on entity '@s'
-inv = ref(@s.Inventory)
+from flare import struct, storage, ref, byte, short
 
-# Flare automatically infers that 'Count' is a Byte and 'Health' is a Float.
-# No typecasting is required because Flare's NBT Schema parser knows entity schemas!
-@s.Inventory[0].Count = 10
-@s.Health -= 2.0
+@struct
+class Lore:
+    text: str
+    color: str
 
-# For custom or unknown NBT, use inline typecasting:
-storage.my_data.test[int] = 10
+@struct
+class Item:
+    count: int
+    name: str
+    damage: short
+    lore: list[Lore]       # list of nested structs
+
+@struct
+class FileType:
+    id: int
+    name: str
+    children: list[FileType]  # self-referential — works without quotes!
+
+# Usage: cast any NBT path to the struct type
+chest_item = ref(storage.mypack.chest.item[Item])
+chest_item.count[:] = 64
+chest_item.name[:] = "diamond_sword"
+chest_item.lore[0].text[:] = "Made with Flare"
+
+# Self-referential tree
+tree = ref(storage.mypack.fs[FileType])
+tree.id[:] = 1
+tree.children[0].id[:] = 2
+tree.children[0].children[0].name[:] = "leaf"
 ```
 
-Thanks to the built-in **NBT Schema parser**, Flare automatically infers the correct datatypes for standard Minecraft entity NBT paths.
+### Struct rules
+
+- Fields **must** use `:` annotation syntax (`id: int`), not `=` assignment (`id = int`).
+- Forward references (including self-references) work without quotes: `children: list[FileType]`.
+- Struct fields support all NBT types: scalars, `list[X]`, `array[X]`, `dict`, and other `@struct` classes.
+- Structs can inherit from other structs — annotations are merged from parent classes.
+
+### Supported field types
+
+| Annotation | NBT type |
+|---|---|
+| `int` | Int |
+| `float` | Float |
+| `str` | String |
+| `bool` | Byte (0/1) |
+| `byte` | Byte |
+| `short` | Short |
+| `long` | Long |
+| `double` | Double |
+| `dict` | Compound (untyped) |
+| `list` | List (untyped) |
+| `list[str]` | List of Strings |
+| `list[MyStruct]` | List of typed Compounds |
+| `array[int]` | Int Array |
+| `array[byte]` | Byte Array |
+| `array[long]` | Long Array |
+| `MyStruct` | Nested typed Compound |
+
+## Collections: `append`, `insert`, `prepend`, `merge`
+
+```python
+from flare import storage, ref, array
+
+items = ref(storage.mypack.data.Items[list])
+
+# Append a literal or NBT value
+items.append("hello")
+items.append(some_nbt_var)
+
+# Insert at index
+items.insert(0, "first")
+
+# Prepend (alias for insert at 0)
+items.prepend("first")
+
+# Merge two compounds
+compound = ref(storage.mypack.data.Config[dict])
+compound.merge(other_compound)
+```
+
+## Length
+
+```python
+n = items.length()    # returns a score
+n = some_string.length()
+```
+
+## Iteration
+
+Iterate over an NBT list or array using a standard `for` loop. Each element is bound as an untyped NBT variable:
+
+```python
+from flare import storage, ref
+
+names = ref(storage.mypack.data.Names[list[str]])
+
+for name in names:
+    print(name)
+```
+
+> [!NOTE]
+> Flare compiles `for` loops over NBT lists into a recursive function that pops elements from a temporary copy of the list. The original list is not modified.
+
+## Entity NBT via Selectors
+
+Any attribute access on a selector resolves to an **NBT data path** on that entity. Flare's built-in schema automatically infers the correct type for standard Minecraft entity NBT paths:
+
+```python
+from flare import ref
+
+# Schema-aware: Flare knows Health is a float, Count is a byte
+@s.Health -= 2.0
+@s.Inventory[0].Count = 10
+
+# For custom entity NBT, use a ref() alias
+inv = ref(@s.Inventory)
+
+# Selectors with filters
+@a[distance=..5].Health = 20.0
+```
+
+See [Selectors](./selectors) for the full selector API.
+
+## Arithmetic
+
+Integer NBT types support arithmetic directly:
+
+```python
+x = ref(storage.mypack.data.Score[int])
+x += 5
+x -= 3
+x *= 2
+x /= 4
+x %= 10
+```
+
+For **float/double** NBT arithmetic (which requires a fixed-point intermediate), use the precision methods:
+
+```python
+# addp(other, multiplier): multiplies both sides before operating, then divides back
+hp = ref(storage.mypack.data.Health[double])
+hp.addp(1.5, 1000)    # adds 1.5 with 1000x precision
+hp.mulp(1.1, 1000)
+hp.divp(2.0, 1000)
+```
+
+## Swapping Values
+
+```python
+a = ref(storage.mypack.data.A[int])
+b = ref(storage.mypack.data.B[int])
+
+a, b = b, a   # emits 3 data modify commands via a temp
+```
+
+## The `in` Operator
+
+Check whether a value exists inside an NBT list:
+
+```python
+names = ref(storage.mypack.data.Names[list[str]])
+
+if "Alice" in names:
+    say found Alice
+```
 
 ## Inline NBT Macros
 

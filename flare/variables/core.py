@@ -168,7 +168,7 @@ class BinaryOp(ArithmeticSupported):
         return dest
 
     def __branch__(self, invert=False):
-        from ..compiler import _flatten_and, _compile_relational, _eval_to_bool_score  # avoid circular import
+        from ..compiler import _flatten_and, _compile_relational, _eval_to_bool_score
         if self.op == "and" and not invert:
             return _flatten_and(self.left, invert) + _flatten_and(self.right, invert)
         if self.op == "or" and invert:
@@ -237,7 +237,7 @@ class UnaryOp:
         return dest
 
     def __branch__(self, invert=False):
-        from ..compiler import _flatten_and, _eval_to_bool_score  # avoid circular import
+        from ..compiler import _flatten_and, _eval_to_bool_score
         if self.op == "not":
             return _flatten_and(self.operand, not invert)
         if self.op == "neg":

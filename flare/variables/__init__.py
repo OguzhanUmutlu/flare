@@ -3,7 +3,7 @@ from .complex import complex
 from .core import UnsupportedOperandError, BinaryOp, UnaryOp, macro
 from .float32 import float32
 from .float64 import float64
-from .nbt import nbt
+from .nbt import nbt, struct
 from .score import score, fixed, getscore, INT32_LIMIT
 from .selector import selector, tagged, ref
 from .storage import _Storage
