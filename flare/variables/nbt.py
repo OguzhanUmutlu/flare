@@ -87,6 +87,8 @@ def _type_hint_to_schema(hint) -> dict:
         return {"type": NBTType.Byte}
     if hint is dict:
         return {"type": NBTType.Compound}
+    if hint is Any:
+        return {"type": None}
 
     name = getattr(hint, "__name__", None)
     if name == "byte" or name == "boolean":
@@ -358,13 +360,24 @@ def _string_add(self: nbt, other):
         return self
     if isinstance(other, (score, nbt)):
         other._check_addr()
-    if isinstance(other, str):
-        if not other:
-            return self
-        return self.merge(other)
-    if isinstance(other, nbt):
-        if other._type == NBTType.String:
-            return self.merge(other)
+
+    def strcat(_, __):
+        runcommand(f"$data modify $(__strcat_address) set value \"$(__strcat_input1)$(__strcat_input2)\"")
+
+    if isinstance(other, str) and not other:
+        return self
+
+    if isinstance(other, str) or (isinstance(other, nbt) and other._type == NBTType.String):
+        with_ = nbt(addr=f"{ctx.temp_storage} __strcat")[dict[str, str]]({
+            "__strcat_address": addr(self),
+            "__strcat_input1": self,
+            "__strcat_input2": other
+        })
+
+        ctx._invoke_stdlib("__flare_stdlib__:__flare_strcat", strcat, with_=with_)
+
+        return self
+
     return self._try_math("__iadd__", "+", other, (str, nbt))
 
 

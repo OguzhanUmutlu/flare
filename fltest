@@ -5,6 +5,24 @@ if [ -z "$VIRTUAL_ENV" ]; then
     source venv/bin/activate
 fi
 
+echo "Setting up vanilla-mcdoc repository..."
+mkdir -p tests
+if [ -d "tests/vanilla-mcdoc" ]; then
+    echo "Repository exists. Pulling latest changes..."
+    cd tests/vanilla-mcdoc
+    git pull origin generated
+    cd ../..
+else
+    echo "Cloning vanilla-mcdoc generated branch..."
+    cd tests
+    git clone --single-branch --branch generated https://github.com/SpyglassMC/vanilla-mcdoc
+    cd ..
+fi
+
+echo "Running mcdoc scraper..."
+python tests/scraper.py
+echo "Scraping complete! Generated structures are located in flare/generated/"
+
 echo "Running tests..."
 
 flare cli_test/main.py --run=1 2>/dev/null > tests/actual_output.raw.txt
@@ -18,6 +36,21 @@ rm tests/actual_output.raw.txt tests/actual_output.txt
 
 if [ $DIFF_EXIT -eq 0 ]; then
     echo "Tests passed!"
+    if [ "$1" == "publish" ]; then
+        echo "Building package..."
+        rm -rf dist/
+        rm -rf build/
+        rm -rf *.egg-info/
+        
+        python -m pip install --upgrade build twine
+        python -m build
+        
+        echo "Publishing to PyPI..."
+        python -m twine upload dist/* --verbose
+        rm -rf *.egg-info
+        
+        echo "Successfully published!"
+    fi
     exit 0
 else
     echo "Tests failed! See diff above."

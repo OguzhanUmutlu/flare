@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from math import inf
 
-from .core import UnsupportedOperandError, BinaryOp, ArithmeticSupported, addr
+from .core import UnsupportedOperandError, BinaryOp, ArithmeticSupported
+from .nbt import nbt
 from .score import score
 from .. import context as ctx
 from ..context import temp_obj, ensure_objective
-from ..context import temp_storage, runcommand, next_temp_id, vars_obj
+from ..context import temp_storage, next_temp_id, vars_obj
 from ..control_flow import ScoreIfMatches
 
 BASE = 10000
@@ -455,7 +456,7 @@ class bigscore(ArithmeticSupported):
         raise UnsupportedOperandError(self, "><", other)
 
     def __print__(self):
-
+        from ..print import _to_print_component
         self._check_addr()
         tid = next_temp_id()
         started = score(0, addr=f"!print_s_{tid} {vars_obj}")
@@ -463,41 +464,33 @@ class bigscore(ArithmeticSupported):
 
         for i in reversed(range(self.size)):
             limb = self.get_limb(i)
-            pad_path = f"__bsp_{tid}_{i}"
-            val_path = f"__bsv_{tid}_{i}"
+            pad = nbt(addr=f"{temp_storage} __bsp_{tid}_{i}")[str]
+            val = nbt(addr=f"{temp_storage} __bsv_{tid}_{i}")[int]
 
-            runcommand(
-                f"execute store result storage {temp_storage} {val_path} int 1 run scoreboard players get {addr(limb)}")
+            val[:] = limb
 
             if i < self.size - 1:
-                runcommand(
-                    f"execute if score {addr(limb)} matches 0..9    run data modify storage {temp_storage} {pad_path} set value '000'")
-                runcommand(
-                    f"execute if score {addr(limb)} matches 10..99   run data modify storage {temp_storage} {pad_path} set value '00'")
-                runcommand(
-                    f"execute if score {addr(limb)} matches 100..999  run data modify storage {temp_storage} {pad_path} set value '0'")
-                runcommand(
-                    f"execute if score {addr(limb)} matches 1000..    run data modify storage {temp_storage} {pad_path} set value ''")
+                ScoreIfMatches(limb, (0, 9)).then(lambda: pad.__iset__("000"))
+                ScoreIfMatches(limb, (10, 99)).then(lambda: pad.__iset__("00"))
+                ScoreIfMatches(limb, (100, 999)).then(lambda: pad.__iset__("0"))
+                ScoreIfMatches(limb, (1000, inf)).then(lambda: pad.__iset__(""))
             else:
-                runcommand(f"data modify storage {temp_storage} {pad_path} set value ''")
-                runcommand(
-                    f"execute if score {addr(started)} matches 0 if score {addr(limb)} matches 0 run data remove storage {temp_storage} {val_path}")
+                pad[:] = ""
+                (ScoreIfMatches(started, 0) & ScoreIfMatches(limb, 0)).then(lambda: val.remove())
 
             if i < self.size - 1:
-                runcommand(
-                    f"execute if score {addr(started)} matches 0 run data modify storage {temp_storage} {pad_path} set value ''")
-                runcommand(
-                    f"execute if score {addr(started)} matches 0 if score {addr(limb)} matches 0 run data remove storage {temp_storage} {val_path}")
+                ScoreIfMatches(started, 0).then(lambda: pad.__iset__(""))
+                (ScoreIfMatches(started, 0) & ScoreIfMatches(limb, 0)).then(lambda: val.remove())
 
-            runcommand(f"execute if score {addr(limb)} matches 1.. run scoreboard players set {addr(started)} 1")
+            ScoreIfMatches(limb, (1, inf)).then(lambda: started.__iset__(1))
 
-            comps.append({"nbt": pad_path, "storage": str(temp_storage)})
-            comps.append({"nbt": val_path, "storage": str(temp_storage)})
+            comps.append(_to_print_component(pad, 0))
+            comps.append(_to_print_component(val, 0))
 
-        runcommand(
-            f"execute if score {addr(started)} matches 0 run data modify storage {temp_storage} __bs0_{tid} set value '0'")
-        runcommand(f"execute if score {addr(started)} matches 1 run data remove storage {temp_storage} __bs0_{tid}")
-        comps.append({"nbt": f"__bs0_{tid}", "storage": str(temp_storage)})
+        bs0 = nbt(addr=f"{temp_storage} __bs0_{tid}")[str]
+        ScoreIfMatches(started, 0).then(lambda: bs0.__iset__("0"))
+        ScoreIfMatches(started, 1).then(lambda: bs0.remove())
+        comps.append(_to_print_component(bs0, 0))
 
         return comps
 

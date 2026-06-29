@@ -3,7 +3,7 @@ node_modules
 .idea
 package-lock.json
 out
-.old
+.cache
 __pycache__
 venv
 dist

@@ -191,7 +191,12 @@ def dbg(*args):
     _flare_print(processed_str)
 
 
-def _invoke_stdlib(func_name, inputs, outputs, generator):
+def _invoke_stdlib(func_name, generator, inputs=None, outputs=None, with_=None):
+    if inputs is None:
+        inputs = {}
+    if outputs is None:
+        outputs = {}
+
     safe_func_name = func_name.replace(":", "_")
     std_inputs = {k: type(v)(addr=f"!{safe_func_name}_{k} __flare_stdlib__") for k, v in inputs.items()}
     std_outputs = {k: type(v)(addr=f"!{safe_func_name}_{k} __flare_stdlib__") for k, v in outputs.items()}
@@ -202,7 +207,12 @@ def _invoke_stdlib(func_name, inputs, outputs, generator):
 
     for k, v in inputs.items():
         std_inputs[k][:] = v
-    runcommand(f"function {func_name}")
+    with_cmd = ""
+    if isinstance(with_, nbt):
+        with_cmd = f" with {addr(with_)}"
+    elif isinstance(with_, str):
+        with_cmd = f" {with_}"
+    runcommand(f"function {func_name}{with_cmd}")
     for k, v in outputs.items():
         v[:] = std_outputs[k]
 

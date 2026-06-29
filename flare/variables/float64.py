@@ -211,7 +211,7 @@ class float64(ArithmeticSupported):
                         a._mant_lo.__idiv__(2),
                         a._mant_lo.__iadd__(score(addr="!f64_add_cy2 __flare_stdlib__")),
                         a._exp.__iadd__(1)
-                    ], namespace="flare_math")
+                    ], namespace="__flare_stdlib__")
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, 0)).then([
                     lambda: a._mant_hi.__iset__(a._mant_lo),
@@ -227,12 +227,12 @@ class float64(ArithmeticSupported):
                     score(addr="!f64_add_cy3 __flare_stdlib__").__idiv__(67108864),
                     a._mant_lo.__imod__(67108864),
                     a._mant_hi.__iadd__(score(addr="!f64_add_cy3 __flare_stdlib__"))
-                ], namespace="flare_math")
+                ], namespace="__flare_stdlib__")
 
                 res[:] = a
 
             _res = type(self)(addr=f"!f64_add_{next_temp_id()}")
-            _invoke_stdlib("flare_math:float64_add", {"a": self, "b": other}, {"res": _res}, gen)
+            _invoke_stdlib("__flare_stdlib__:__float64_add", gen, {"a": self, "b": other}, {"res": _res})
             self[:] = _res
             return self
 
@@ -385,7 +385,7 @@ class float64(ArithmeticSupported):
                         res._mant_lo.__idiv__(2),
                         res._mant_lo.__iadd__(score(addr="!f64_mul_cy2 __flare_stdlib__")),
                         res._exp.__iadd__(1)
-                    ], namespace="flare_math")
+                    ], namespace="__flare_stdlib__")
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (-2147483648, 67108863))).while_then(
                     lambda: [
@@ -396,10 +396,10 @@ class float64(ArithmeticSupported):
                         score(addr="!f64_mul_cy3 __flare_stdlib__").__idiv__(67108864),
                         res._mant_lo.__imod__(67108864),
                         res._mant_hi.__iadd__(score(addr="!f64_mul_cy3 __flare_stdlib__"))
-                    ], namespace="flare_math")
+                    ], namespace="__flare_stdlib__")
 
             _res = type(self)(addr=f"!f64_mul_{next_temp_id()}")
-            _invoke_stdlib("flare_math:float64_mul", {"a": self, "b": other}, {"res": _res}, gen)
+            _invoke_stdlib("__flare_stdlib__:__float64_mul", gen, {"a": self, "b": other}, {"res": _res})
             self[:] = _res
             return self
 
@@ -485,7 +485,7 @@ class float64(ArithmeticSupported):
                         res._mant_lo.__idiv__(2),
                         res._mant_lo.__iadd__(score(addr="!f64_div_cy2 __flare_stdlib__")),
                         res._exp.__iadd__(1)
-                    ], namespace="flare_math")
+                    ], namespace="__flare_stdlib__")
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (-2147483648, 67108863))).while_then(
                     lambda: [
@@ -496,10 +496,10 @@ class float64(ArithmeticSupported):
                         score(addr="!f64_div_cy3 __flare_stdlib__").__idiv__(67108864),
                         res._mant_lo.__imod__(67108864),
                         res._mant_hi.__iadd__(score(addr="!f64_div_cy3 __flare_stdlib__"))
-                    ], namespace="flare_math")
+                    ], namespace="__flare_stdlib__")
 
             _res = type(self)(addr=f"!f64_div_{next_temp_id()}")
-            _invoke_stdlib("flare_math:float64_div", {"a": self, "b": other}, {"res": _res}, gen)
+            _invoke_stdlib("__flare_stdlib__:__float64_div", gen, {"a": self, "b": other}, {"res": _res})
             self[:] = _res
             return self
 
@@ -577,7 +577,7 @@ class float64(ArithmeticSupported):
                 (cond & ScoreIfMatches(score(addr="!f64_flr_shc __flare_stdlib__"), (1 << p, 2147483647))).then(arr)
 
         _res = type(self)(addr=f"!f64_flr_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_floor", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_floor", gen, {"x": self}, {"res": _res})
         return _res
 
     def __sqrt__(self):
@@ -601,7 +601,7 @@ class float64(ArithmeticSupported):
                 res /= two
 
         _res = type(self)(addr=f"!f64_sqrt_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_sqrt", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_sqrt", gen, {"x": self}, {"res": _res})
         return _res
 
     def __sin__(self):
@@ -740,7 +740,7 @@ class float64(ArithmeticSupported):
             ScoreIfMatches(is_neg, 1).then(lambda: res.__ineg__())
 
         _res = type(self)(addr=f"!f64_sin_r_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_sin", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_sin", gen, {"x": self}, {"res": _res})
         return _res
 
     def __cos__(self):
@@ -754,7 +754,7 @@ class float64(ArithmeticSupported):
             res[:] = x.__sin__()
 
         _res = type(self)(addr=f"!f64_cos_r_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_cos", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_cos", gen, {"x": self}, {"res": _res})
         return _res
 
     def __tan__(self):
@@ -771,7 +771,7 @@ class float64(ArithmeticSupported):
             res /= c
 
         _res = type(self)(addr=f"!f64_tan_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_tan", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_tan", gen, {"x": self}, {"res": _res})
         return _res
 
     def __exp__(self):
@@ -821,7 +821,7 @@ class float64(ArithmeticSupported):
             res[:] = term
 
         _res = type(self)(addr=f"!f64_exp_r_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_exp", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_exp", gen, {"x": self}, {"res": _res})
         return _res
 
     def __log__(self):
@@ -848,7 +848,7 @@ class float64(ArithmeticSupported):
             res[:] = guess
 
         _res = type(self)(addr=f"!f64_log_r_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_log", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_log", gen, {"x": self}, {"res": _res})
         return _res
 
     def __asin__(self):
@@ -874,7 +874,7 @@ class float64(ArithmeticSupported):
             res[:] = at2
 
         _res = type(self)(addr=f"!f64_asin_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_asin", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_asin", gen, {"x": self}, {"res": _res})
         return _res
 
     def __acos__(self):
@@ -900,7 +900,7 @@ class float64(ArithmeticSupported):
             res[:] = at2
 
         _res = type(self)(addr=f"!f64_acos_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_acos", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_acos", gen, {"x": self}, {"res": _res})
         return _res
 
     def __atan__(self):
@@ -953,7 +953,7 @@ class float64(ArithmeticSupported):
             ScoreIfMatches(is_neg, 1).then(lambda: res.__ineg__())
 
         _res = type(self)(addr=f"!f64_atan_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_atan", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_atan", gen, {"x": self}, {"res": _res})
         return _res
 
     def __atan2__(self, x):
@@ -989,7 +989,7 @@ class float64(ArithmeticSupported):
                                                                                 lambda: res.__ineg__()])
 
         _res = type(self)(addr=f"!f64_atan2_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_atan2", {"y": self, "x": x}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_atan2", gen, {"y": self, "x": x}, {"res": _res})
         return _res
 
     def __sinh__(self):
@@ -1012,7 +1012,7 @@ class float64(ArithmeticSupported):
             res /= type(x)(2.0)
 
         _res = type(self)(addr=f"!f64_sinh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_sinh", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_sinh", gen, {"x": self}, {"res": _res})
         return _res
 
     def __cosh__(self):
@@ -1035,7 +1035,7 @@ class float64(ArithmeticSupported):
             res /= type(x)(2.0)
 
         _res = type(self)(addr=f"!f64_cosh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_cosh", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_cosh", gen, {"x": self}, {"res": _res})
         return _res
 
     def __tanh__(self):
@@ -1052,7 +1052,7 @@ class float64(ArithmeticSupported):
             res /= ch
 
         _res = type(self)(addr=f"!f64_tanh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_tanh", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_tanh", gen, {"x": self}, {"res": _res})
         return _res
 
     def __asinh__(self):
@@ -1072,7 +1072,7 @@ class float64(ArithmeticSupported):
             res[:] = sq.__log__()
 
         _res = type(self)(addr=f"!f64_asinh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_asinh", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_asinh", gen, {"x": self}, {"res": _res})
         return _res
 
     def __acosh__(self):
@@ -1092,7 +1092,7 @@ class float64(ArithmeticSupported):
             res[:] = sq.__log__()
 
         _res = type(self)(addr=f"!f64_acosh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_acosh", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_acosh", gen, {"x": self}, {"res": _res})
         return _res
 
     def __atanh__(self):
@@ -1120,7 +1120,7 @@ class float64(ArithmeticSupported):
             res /= type(x)(2.0)
 
         _res = type(self)(addr=f"!f64_atanh_{next_temp_id()}")
-        _invoke_stdlib("flare_math:float64_atanh", {"x": self}, {"res": _res}, gen)
+        _invoke_stdlib("__flare_stdlib__:__float64_atanh", gen, {"x": self}, {"res": _res})
         return _res
 
     def __print__(self):
