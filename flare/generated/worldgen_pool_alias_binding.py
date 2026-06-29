@@ -5,6 +5,11 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
+class DirectPoolAlias:
+    alias: str
+    target: str
+
+@struct
 class RandomGroupPoolAlias:
     groups: 'NonEmptyWeightedList'
 
@@ -12,8 +17,3 @@ class RandomGroupPoolAlias:
 class RandomPoolAlias:
     alias: str
     targets: 'NonEmptyWeightedList'
-
-@struct
-class DirectPoolAlias:
-    alias: str
-    target: str

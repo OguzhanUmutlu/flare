@@ -9,22 +9,12 @@ class AllOfMatch:
     rules: list['RuleTest']
 
 @struct
-class RandomBlockStateMatch:
-    block_state: 'BlockState'
-    probability: float
-
-@struct
 class BlockMatch:
     block: str
 
 @struct
-class RandomBlockMatch:
-    block: str
-    probability: float
-
-@struct
-class TagMatch:
-    tag: str
+class BlockStateMatch:
+    block_state: 'BlockState'
 
 @struct
 class HeightMatch:
@@ -32,14 +22,24 @@ class HeightMatch:
     max_inclusive: int
 
 @struct
-class BlockState:
-    Name: str
-    Properties: Any
+class RandomBlockMatch:
+    block: str
+    probability: float
+
+@struct
+class RandomBlockStateMatch:
+    block_state: 'BlockState'
+    probability: float
 
 @struct
 class RuleTest:
     predicate_type: str
 
 @struct
-class BlockStateMatch:
-    block_state: 'BlockState'
+class TagMatch:
+    tag: str
+
+@struct
+class BlockState:
+    Name: str
+    Properties: Any

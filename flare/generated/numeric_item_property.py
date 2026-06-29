@@ -5,8 +5,26 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
+class Compass:
+    target: str
+    wobble: bool
+
+@struct
+class Count:
+    normalize: bool
+
+@struct
 class CustomModelDataFloats:
     index: int
+
+@struct
+class Damage:
+    normalize: bool
+
+@struct
+class Time:
+    source: str
+    wobble: bool
 
 @struct
 class UseCycle:
@@ -15,21 +33,3 @@ class UseCycle:
 @struct
 class UseDuration:
     remaining: bool
-
-@struct
-class Time:
-    source: str
-    wobble: bool
-
-@struct
-class Damage:
-    normalize: bool
-
-@struct
-class Compass:
-    target: str
-    wobble: bool
-
-@struct
-class Count:
-    normalize: bool

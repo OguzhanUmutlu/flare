@@ -9,31 +9,8 @@ class BlockStateProvider:
     type: str
 
 @struct
-class PlaceOnGroundTreeDecorator:
-    tries: int
-    radius: int
-    height: int
-    block_state_provider: 'BlockStateProvider'
-
-@struct
-class CreakingHeartTreeDecorator:
-    probability: float
-
-@struct
-class CocoaTreeDecorator:
-    probability: float
-
-@struct
-class PaleMossTreeDecorator:
-    leaves_probability: float
-    trunk_probability: float
-    ground_probability: float
-
-@struct
-class AttachedToLogsTreeDecorator:
-    probability: float
-    block_provider: 'BlockStateProvider'
-    directions: list[str]
+class AlterGroundTreeDecorator:
+    provider: 'BlockStateProvider'
 
 @struct
 class AttachedToLeavesTreeDecorator:
@@ -45,16 +22,39 @@ class AttachedToLeavesTreeDecorator:
     directions: list[str]
 
 @struct
-class LeaveVineTreeDecorator:
+class AttachedToLogsTreeDecorator:
     probability: float
-
-@struct
-class AlterGroundTreeDecorator:
-    provider: 'BlockStateProvider'
+    block_provider: 'BlockStateProvider'
+    directions: list[str]
 
 @struct
 class BeehiveTreeDecorator:
     probability: float
+
+@struct
+class CocoaTreeDecorator:
+    probability: float
+
+@struct
+class CreakingHeartTreeDecorator:
+    probability: float
+
+@struct
+class LeaveVineTreeDecorator:
+    probability: float
+
+@struct
+class PaleMossTreeDecorator:
+    leaves_probability: float
+    trunk_probability: float
+    ground_probability: float
+
+@struct
+class PlaceOnGroundTreeDecorator:
+    tries: int
+    radius: int
+    height: int
+    block_state_provider: 'BlockStateProvider'
 
 @struct
 class ShelfMushroomTreeDecorator:

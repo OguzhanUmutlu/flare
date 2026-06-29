@@ -5,9 +5,9 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class PoplarTrunkPlacer:
-    trunk_height_above_branches: 'IntProvider'
-    branch_amount: 'IntProvider'
+class BendingTrunkPlacer:
+    bend_length: 'IntProvider'
+    min_height_for_leaves: int
 
 @struct
 class CherryTrunkPlacer:
@@ -17,9 +17,9 @@ class CherryTrunkPlacer:
     branch_end_offset_from_top: 'IntProvider'
 
 @struct
-class BendingTrunkPlacer:
-    bend_length: 'IntProvider'
-    min_height_for_leaves: int
+class PoplarTrunkPlacer:
+    trunk_height_above_branches: 'IntProvider'
+    branch_amount: 'IntProvider'
 
 @struct
 class UpwardsBranchingTrunkPlacer:

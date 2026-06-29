@@ -85,7 +85,6 @@ class ExecuteChain:
         return self.fragments
 
     def __with__(self, body_func):
-        from .variables.score import score
         prefix = " ".join(self.fragments)
         func_name = f"{ctx._current_namespace}:with_{ctx.next_func_id()}"
 
@@ -102,7 +101,7 @@ class ExecuteChain:
                     ctx._runcmd(f"{prefix} run {cmd}")
             else:
                 ctx.files[func_name].append("return 0")
-                ret_temp = score(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
+                ret_temp = ctx.next_temp_score("ret")
                 if prefix.startswith("execute "):
                     ctx._runcmd(f"execute store result score {addr(ret_temp)} {prefix[8:]} run function {func_name}")
                 else:

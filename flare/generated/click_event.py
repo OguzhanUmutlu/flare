@@ -5,6 +5,19 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
+class Dialog:
+    type: str
+
+@struct
+class ChangePage:
+    value: str
+    page: int
+
+@struct
+class CopyToClipboard:
+    value: str
+
+@struct
 class CustomAction:
     id: str
     payload: Any
@@ -15,13 +28,9 @@ class OpenUrl:
     url: str
 
 @struct
-class ChangePage:
-    value: str
-    page: int
-
-@struct
-class Dialog:
-    type: str
+class RunCommand:
+    value: Union[str, str]
+    command: str
 
 @struct
 class ShowDialog:
@@ -31,12 +40,3 @@ class ShowDialog:
 class SuggestCommand:
     value: str
     command: str
-
-@struct
-class RunCommand:
-    value: Union[str, str]
-    command: str
-
-@struct
-class CopyToClipboard:
-    value: str

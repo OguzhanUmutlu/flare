@@ -3,33 +3,47 @@ from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
 from typing import Any, Union
+HeightProvider = Union[{'type': str}, 'VerticalAnchor']
+VerticalAnchor = Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}]
 
 @struct
-class RandomOffsetModifier:
-    xz_spread: 'IntProvider'
-    y_spread: 'IntProvider'
+class BlockPredicate:
+    type: str
+
+@struct
+class BlockPredicateFilter:
+    predicate: 'BlockPredicate'
+
+@struct
+class CarvingMaskModifier:
+    step: str
 
 @struct
 class CountModifier:
     count: Union['IntProvider', 'IntProvider']
 
 @struct
+class CountOnEveryLayerModifier:
+    count: 'IntProvider'
+
+@struct
+class EnvironmentScanModifier:
+    direction_of_search: str
+    max_steps: int
+    target_condition: 'BlockPredicate'
+    allowed_search_condition: 'BlockPredicate'
+
+@struct
+class FixedPlacementModifier:
+    positions: list[list[int]]
+
+@struct
 class HeightRangeModifier:
     height: 'HeightProvider'
 
 @struct
-class SurfaceWaterDepthFilter:
-    max_water_depth: int
-VerticalAnchor = Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}]
-
-@struct
-class BlockPredicate:
-    type: str
-HeightProvider = Union[{'type': str}, 'VerticalAnchor']
-
-@struct
-class RarityFilter:
-    chance: int
+class HeightmapModifier:
+    heightmap: str
 
 @struct
 class NoiseBasedCountModifier:
@@ -44,27 +58,13 @@ class NoiseThresholdCountModifier:
     above_noise: int
 
 @struct
-class EnvironmentScanModifier:
-    direction_of_search: str
-    max_steps: int
-    target_condition: 'BlockPredicate'
-    allowed_search_condition: 'BlockPredicate'
+class RandomOffsetModifier:
+    xz_spread: 'IntProvider'
+    y_spread: 'IntProvider'
 
 @struct
-class CarvingMaskModifier:
-    step: str
-
-@struct
-class CountOnEveryLayerModifier:
-    count: 'IntProvider'
-
-@struct
-class FixedPlacementModifier:
-    positions: list[list[int]]
-
-@struct
-class HeightmapModifier:
-    heightmap: str
+class RarityFilter:
+    chance: int
 
 @struct
 class SurfaceRelativeThresholdFilter:
@@ -73,5 +73,5 @@ class SurfaceRelativeThresholdFilter:
     max_inclusive: int
 
 @struct
-class BlockPredicateFilter:
-    predicate: 'BlockPredicate'
+class SurfaceWaterDepthFilter:
+    max_water_depth: int

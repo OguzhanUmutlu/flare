@@ -9,10 +9,6 @@ class BlockStateProvider:
     type: str
 
 @struct
-class MangroveRootPlacer:
-    mangrove_root_placement: 'MangroveRootPlacement'
-
-@struct
 class MangroveRootPlacement:
     max_root_width: int
     max_root_length: int
@@ -20,3 +16,7 @@ class MangroveRootPlacement:
     can_grow_through: Union[list[str], str]
     muddy_roots_in: Union[list[str], str]
     muddy_roots_provider: 'BlockStateProvider'
+
+@struct
+class MangroveRootPlacer:
+    mangrove_root_placement: 'MangroveRootPlacement'

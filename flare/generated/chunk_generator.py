@@ -3,60 +3,9 @@ from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
 from typing import Any, Union
-MaterialRuleRef = Union[str, 'MaterialRule']
-
-@struct
-class NoiseSettings:
-    min_y: int
-    height: Union[int, int]
-    size_horizontal: int
-    size_vertical: int
-    density_factor: double
-    density_offset: double
-    sampling: 'NoiseSamplingSettings'
-    top_slide: 'NoiseSlideSettings'
-    bottom_slide: 'NoiseSlideSettings'
-    terrain_shaper: 'TerrainShaper'
-    simplex_surface_noise: bool
-    random_density_offset: bool
-    island_noise_override: bool
-    amplified: bool
-    large_biomes: bool
-
-@struct
-class BiomeSource:
-    type: str
-
-@struct
-class NoiseSamplingSettings:
-    xz_scale: double
-    y_scale: double
-    xz_factor: double
-    y_factor: double
-
-@struct
-class NoiseSlideSettings:
-    target: float
-    size: int
-    offset: int
-
-@struct
-class Flat:
-    settings: 'FlatGeneratorSettings'
-
-@struct
-class ConcentricRingsPlacement:
-    distance: int
-    spread: int
-    count: int
-    preferred_biomes: Union[list[str], str]
-ClimateParameter = Union[float, list[float]]
-
-@struct
-class BlockState:
-    Name: str
-    Properties: Any
-NoiseGeneratorSettingsRef = Union[str, {'name': str}]
+CubicSpline = Union[float, {'coordinate': Union[str, 'DensityFunctionRef'], 'points': list['SplinePoint']}]
+DensityFunction = Union['NoiseRange', {'type': str}]
+DensityFunctionRef = Union[str, 'DensityFunction']
 
 @struct
 class SplinePoint:
@@ -65,19 +14,49 @@ class SplinePoint:
     value: 'CubicSpline'
 
 @struct
-class RandomSpreadPlacement:
-    spacing: int
-    separation: int
-    salt: int
-    spread_type: str
-    locate_offset: list[int]
+class BiomeSource:
+    type: str
+ClimateParameter = Union[float, list[float]]
+
+@struct
+class ClimateParameters:
+    temperature: 'ClimateParameter'
+    humidity: 'ClimateParameter'
+    altitude: float
+    continentalness: 'ClimateParameter'
+    erosion: 'ClimateParameter'
+    weirdness: 'ClimateParameter'
+    depth: 'ClimateParameter'
+    offset: float
+
+@struct
+class Flat:
+    settings: 'FlatGeneratorSettings'
+
+@struct
+class FlatGeneratorLayer:
+    height: int
+    block: str
+
+@struct
+class FlatGeneratorSettings:
+    biome: str
+    lakes: bool
+    features: bool
+    layers: list['FlatGeneratorLayer']
+    structures: 'StructureSettings'
+    structure_overrides: Union[list[str], str]
 
 @struct
 class Noise:
     seed: long
     settings: 'NoiseGeneratorSettingsRef'
     biome_source: 'BiomeSource'
-DensityFunction = Union['NoiseRange', {'type': str}]
+
+@struct
+class MaterialRule:
+    type: Union[str, str]
+MaterialRuleRef = Union[str, 'MaterialRule']
 
 @struct
 class NoiseGeneratorSettings:
@@ -95,12 +74,7 @@ class NoiseGeneratorSettings:
     surface_rule: 'MaterialRuleRef'
     material_rule: 'MaterialRuleRef'
     structures: 'StructureSettings'
-DensityFunctionRef = Union[str, 'DensityFunction']
-
-@struct
-class FlatGeneratorLayer:
-    height: int
-    block: str
+NoiseGeneratorSettingsRef = Union[str, {'name': str}]
 
 @struct
 class NoiseRouter:
@@ -122,37 +96,63 @@ class NoiseRouter:
     final_density: 'DensityFunctionRef'
 
 @struct
+class NoiseSamplingSettings:
+    xz_scale: double
+    y_scale: double
+    xz_factor: double
+    y_factor: double
+
+@struct
+class NoiseSettings:
+    min_y: int
+    height: Union[int, int]
+    size_horizontal: int
+    size_vertical: int
+    density_factor: double
+    density_offset: double
+    sampling: 'NoiseSamplingSettings'
+    top_slide: 'NoiseSlideSettings'
+    bottom_slide: 'NoiseSlideSettings'
+    terrain_shaper: 'TerrainShaper'
+    simplex_surface_noise: bool
+    random_density_offset: bool
+    island_noise_override: bool
+    amplified: bool
+    large_biomes: bool
+
+@struct
+class NoiseSlideSettings:
+    target: float
+    size: int
+    offset: int
+
+@struct
 class StructureSettings:
     stronghold: 'ConcentricRingsPlacement'
     structures: dict
-
-@struct
-class ClimateParameters:
-    temperature: 'ClimateParameter'
-    humidity: 'ClimateParameter'
-    altitude: float
-    continentalness: 'ClimateParameter'
-    erosion: 'ClimateParameter'
-    weirdness: 'ClimateParameter'
-    depth: 'ClimateParameter'
-    offset: float
-CubicSpline = Union[float, {'coordinate': Union[str, 'DensityFunctionRef'], 'points': list['SplinePoint']}]
-
-@struct
-class FlatGeneratorSettings:
-    biome: str
-    lakes: bool
-    features: bool
-    layers: list['FlatGeneratorLayer']
-    structures: 'StructureSettings'
-    structure_overrides: Union[list[str], str]
-
-@struct
-class MaterialRule:
-    type: Union[str, str]
 
 @struct
 class TerrainShaper:
     offset: 'CubicSpline'
     factor: 'CubicSpline'
     jaggedness: 'CubicSpline'
+
+@struct
+class ConcentricRingsPlacement:
+    distance: int
+    spread: int
+    count: int
+    preferred_biomes: Union[list[str], str]
+
+@struct
+class RandomSpreadPlacement:
+    spacing: int
+    separation: int
+    salt: int
+    spread_type: str
+    locate_offset: list[int]
+
+@struct
+class BlockState:
+    Name: str
+    Properties: Any

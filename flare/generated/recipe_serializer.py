@@ -5,13 +5,24 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class NotificationInfo:
-    show_notification: bool
+class CookingBookInfo:
+    group: str
+    category: str
 
 @struct
 class CraftingBookInfo:
     group: str
     category: str
+
+@struct
+class NotificationInfo:
+    show_notification: bool
+
+@struct
+class CraftingDye(NotificationInfo, CraftingBookInfo):
+    target: 'Ingredient'
+    dye: 'Ingredient'
+    result: 'ItemStackTemplate'
 
 @struct
 class CraftingImbue(NotificationInfo, CraftingBookInfo):
@@ -20,15 +31,30 @@ class CraftingImbue(NotificationInfo, CraftingBookInfo):
     result: 'ItemStackTemplate'
 
 @struct
-class Smithing:
-    base: 'IngredientValue'
-    addition: 'IngredientValue'
-    result: 'ItemResult'
+class CraftingShaped(NotificationInfo, CraftingBookInfo):
+    pattern: list[str]
+    key: dict
+    result: Union['ItemResult', 'ItemStackTemplate']
 
 @struct
-class CookingBookInfo:
-    group: str
-    category: str
+class CraftingShapeless(NotificationInfo, CraftingBookInfo):
+    ingredients: list['Ingredient']
+    result: Union['ItemResult', 'ItemStackTemplate']
+
+@struct
+class CraftingTransmute(NotificationInfo, CraftingBookInfo):
+    input: 'Ingredient'
+    material: 'Ingredient'
+    material_count: 'MinMaxBounds'
+    add_material_count_to_result: bool
+    result: Union[str, 'ItemStack', str]
+Ingredient = Union['IngredientValue', list['IngredientValue'], list[str], str]
+IngredientValue = Union[{'item': str}, {'tag': str}]
+
+@struct
+class ItemResult:
+    item: str
+    count: int
 
 @struct
 class Smelting(NotificationInfo, CookingBookInfo):
@@ -38,32 +64,10 @@ class Smelting(NotificationInfo, CookingBookInfo):
     cookingtime: int
 
 @struct
-class ItemResult:
-    item: str
-    count: int
-
-@struct
-class CraftingTransmute(NotificationInfo, CraftingBookInfo):
-    input: 'Ingredient'
-    material: 'Ingredient'
-    material_count: 'MinMaxBounds'
-    add_material_count_to_result: bool
-    result: Union[str, 'ItemStack', str]
-
-@struct
-class CraftingShaped(NotificationInfo, CraftingBookInfo):
-    pattern: list[str]
-    key: dict
-    result: Union['ItemResult', 'ItemStackTemplate']
-Ingredient = Union['IngredientValue', list['IngredientValue'], list[str], str]
-ItemStackTemplate = Union['ItemStack', str]
-IngredientValue = Union[{'item': str}, {'tag': str}]
-
-@struct
-class CraftingDye(NotificationInfo, CraftingBookInfo):
-    target: 'Ingredient'
-    dye: 'Ingredient'
-    result: 'ItemStackTemplate'
+class Smithing:
+    base: 'IngredientValue'
+    addition: 'IngredientValue'
+    result: 'ItemResult'
 
 @struct
 class SmithingTransform(NotificationInfo):
@@ -85,8 +89,4 @@ class Stonecutting(NotificationInfo):
     ingredient: 'Ingredient'
     result: Union[str, 'ItemStackTemplate']
     count: int
-
-@struct
-class CraftingShapeless(NotificationInfo, CraftingBookInfo):
-    ingredients: list['Ingredient']
-    result: Union['ItemResult', 'ItemStackTemplate']
+ItemStackTemplate = Union['ItemStack', str]

@@ -13,21 +13,16 @@ class CherryFoliagePlacer:
     hanging_leaves_extension_chance: float
 
 @struct
-class SprucePineFoliagePlacer:
-    trunk_height: Union['UniformInt', 'IntProvider']
-
-@struct
 class HeightFoliagePlacer:
     height: int
 
 @struct
-class RandomSpreadFoliagePlacer:
-    foliage_height: 'IntProvider'
-    leaf_placement_attempts: int
-
-@struct
 class MegaPineFoliagePlacer:
     crown_height: Union['UniformInt', 'IntProvider']
+
+@struct
+class PineFoliagePlacer:
+    height: Union['UniformInt', 'IntProvider']
 
 @struct
 class PoplarFoliagePlacer:
@@ -35,5 +30,10 @@ class PoplarFoliagePlacer:
     side_hole_chance: float
 
 @struct
-class PineFoliagePlacer:
-    height: Union['UniformInt', 'IntProvider']
+class RandomSpreadFoliagePlacer:
+    foliage_height: 'IntProvider'
+    leaf_placement_attempts: int
+
+@struct
+class SprucePineFoliagePlacer:
+    trunk_height: Union['UniformInt', 'IntProvider']

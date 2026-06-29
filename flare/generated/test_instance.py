@@ -19,13 +19,13 @@ class TestData:
     padding: int
 
 @struct
+class BlockBasedTestInstance(TestData):
+    pass
+
+@struct
 class FunctionTestInstance(TestData):
     function: str
 
 @struct
 class TestEnvironment:
     type: str
-
-@struct
-class BlockBasedTestInstance(TestData):
-    pass

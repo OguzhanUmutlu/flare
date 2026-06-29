@@ -182,7 +182,7 @@ def generate_module(registry_name, output_file, symbols, valid_classes, undefine
             collect_dependencies(ref.get("path"), mcdoc, visited_paths)
 
     graph = {}
-    for path in visited_paths:
+    for path in sorted(visited_paths):
         node = mcdoc.get(path)
         bases = []
         if node and node.get("kind") == "struct":
@@ -207,7 +207,7 @@ def generate_module(registry_name, output_file, symbols, valid_classes, undefine
         visited_sort.add(n)
         sorted_paths.append(n)
 
-    for p in graph:
+    for p in sorted(graph):
         visit(p)
 
     module_body = []
@@ -280,7 +280,7 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
 
     valid_classes = set()
-    for path, node in mcdoc.items():
+    for path, node in sorted(mcdoc.items()):
         if node.get("kind") in ("struct", "union", "type_alias"):
             valid_classes.add(get_class_name_from_path(path))
 

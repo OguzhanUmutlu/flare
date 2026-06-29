@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from math import inf
 
-from .core import ArithmeticSupported
+from .core import is_lazy, FlareValue
 from .nbt import nbt
 from .score import score, getscore
 from .. import context as ctx
@@ -13,7 +13,7 @@ from ..control_flow import ScoreIfMatches, ScoreIfScore
 from ..variables import bigscore
 
 
-class float32(ArithmeticSupported):
+class float32(FlareValue):
     _implements_set = (int, float)
 
     def __init__(self, value: float | int | None = None, *, addr: str | None = None):
@@ -46,6 +46,9 @@ class float32(ArithmeticSupported):
 
     def _create_var(self, varid: str):
         return float32(addr=f"{varid} {vars_obj}")
+
+    def _alloc_temp(self):
+        return type(self)(addr=f"!f32_{next_temp_id()}")
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
         if is_recursive:
@@ -89,7 +92,7 @@ class float32(ArithmeticSupported):
             self._mant[:] = other._mant
             return self
 
-        if hasattr(type(other), "_eval_into"):
+        if is_lazy(other):
             other._eval_into(self)
             return self
 

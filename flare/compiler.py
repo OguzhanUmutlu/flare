@@ -3,7 +3,7 @@ import json
 from . import context as ctx
 from .context import _runcmd, temp_obj
 from .variables import score, BinaryOp, UnaryOp, getscore
-from .variables.core import addr
+from .variables.core import is_lazy, addr
 
 
 def _compile_relational(node, invert=False):
@@ -104,7 +104,7 @@ def _eval_to_bool_score(node):
         _runcmd(f"execute unless score {addr(t)} matches 0 run scoreboard players set {addr(dest)} 1")
         return dest
 
-    if hasattr(type(node), "_eval_into") or hasattr(node, "_addr"):
+    if is_lazy(node) or hasattr(node, "_addr"):
         _runcmd(f"execute unless score {addr(node)} matches 0 run scoreboard players set {addr(dest)} 1")
         return dest
 

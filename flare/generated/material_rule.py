@@ -5,14 +5,13 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class BlockRule:
-    result_state: 'BlockState'
-MaterialRuleRef = Union[str, 'MaterialRule']
+class MaterialCondition:
+    type: Union[str, str]
 MaterialConditionRef = Union[str, 'MaterialCondition']
 
 @struct
-class SequenceRule:
-    sequence: list['MaterialRuleRef']
+class BlockRule:
+    result_state: 'BlockState'
 
 @struct
 class ConditionRule:
@@ -22,12 +21,13 @@ class ConditionRule:
 @struct
 class MaterialRule:
     type: Union[str, str]
+MaterialRuleRef = Union[str, 'MaterialRule']
+
+@struct
+class SequenceRule:
+    sequence: list['MaterialRuleRef']
 
 @struct
 class BlockState:
     Name: str
     Properties: Any
-
-@struct
-class MaterialCondition:
-    type: Union[str, str]

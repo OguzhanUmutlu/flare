@@ -5,8 +5,26 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
+class BlockAge:
+    mossiness: float
+
+@struct
 class BlockEntityModifier:
     type: str
+
+@struct
+class BlockIgnore:
+    blocks: list['BlockState']
+
+@struct
+class BlockRot:
+    integrity: float
+    rottable_blocks: Union[list[str], str]
+
+@struct
+class Capped:
+    delegate: 'Processor'
+    limit: 'IntProvider'
 
 @struct
 class Gravity:
@@ -14,24 +32,12 @@ class Gravity:
     offset: int
 
 @struct
-class ProtectedBlocks:
-    value: Union[str, str, str, list[str]]
-
-@struct
 class PosRuleTest:
     predicate_type: str
 
 @struct
-class BlockAge:
-    mossiness: float
-
-@struct
-class BlockIgnore:
-    blocks: list['BlockState']
-
-@struct
-class Rule:
-    rules: list['ProcessorRule']
+class Processor:
+    processor_type: str
 
 @struct
 class ProcessorRule:
@@ -43,24 +49,18 @@ class ProcessorRule:
     block_entity_modifier: 'BlockEntityModifier'
 
 @struct
-class Capped:
-    delegate: 'Processor'
-    limit: 'IntProvider'
+class ProtectedBlocks:
+    value: Union[str, str, str, list[str]]
 
 @struct
-class BlockRot:
-    integrity: float
-    rottable_blocks: Union[list[str], str]
+class Rule:
+    rules: list['ProcessorRule']
+
+@struct
+class RuleTest:
+    predicate_type: str
 
 @struct
 class BlockState:
     Name: str
     Properties: Any
-
-@struct
-class Processor:
-    processor_type: str
-
-@struct
-class RuleTest:
-    predicate_type: str

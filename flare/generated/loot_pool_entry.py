@@ -11,7 +11,6 @@ class LootPoolEntryBase:
 @struct
 class CompositePoolEntry(LootPoolEntryBase):
     children: list['LootPoolEntry']
-NumberProvider = Union[float, {'type': str}]
 
 @struct
 class SingletonPoolEntry(LootPoolEntryBase):
@@ -20,8 +19,12 @@ class SingletonPoolEntry(LootPoolEntryBase):
     functions: list['LootFunction']
 
 @struct
-class SlotsPoolEntry(SingletonPoolEntry):
-    slot_source: 'SlotSource'
+class DynamicPoolEntry(SingletonPoolEntry):
+    name: str
+
+@struct
+class ItemPoolEntry(SingletonPoolEntry):
+    name: Union[str, str]
 
 @struct
 class LootPool:
@@ -32,9 +35,8 @@ class LootPool:
     conditions: list['LootCondition']
 
 @struct
-class TagPoolEntry(SingletonPoolEntry):
-    name: str
-    expand: bool
+class LootPoolEntry:
+    type: Union[str, str]
 
 @struct
 class LootTable:
@@ -47,16 +49,14 @@ class LootTable:
 class LootTablePoolEntry(SingletonPoolEntry):
     name: str
     value: Union[str, 'LootTable']
-RandomIntGenerator = Union[int, {'type': str}]
 
 @struct
-class ItemPoolEntry(SingletonPoolEntry):
-    name: Union[str, str]
+class SlotsPoolEntry(SingletonPoolEntry):
+    slot_source: 'SlotSource'
 
 @struct
-class LootPoolEntry:
-    type: Union[str, str]
-
-@struct
-class DynamicPoolEntry(SingletonPoolEntry):
+class TagPoolEntry(SingletonPoolEntry):
     name: str
+    expand: bool
+NumberProvider = Union[float, {'type': str}]
+RandomIntGenerator = Union[int, {'type': str}]

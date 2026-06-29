@@ -12,19 +12,17 @@ class BitmapProvider:
     chars: list[str]
 
 @struct
-class UnihexProvider:
-    hex_file: str
+class LegacyUnicodeProvider:
+    sizes: str
+    template: str
+
+@struct
+class ReferenceProvider:
+    id: str
 
 @struct
 class SpaceProvider:
     advances: dict
-
-@struct
-class UnihexOverrideRange:
-    from_: str
-    to: str
-    left: int
-    right: int
 
 @struct
 class TtfProvider:
@@ -35,10 +33,12 @@ class TtfProvider:
     skip: Union[str, list[str]]
 
 @struct
-class LegacyUnicodeProvider:
-    sizes: str
-    template: str
+class UnihexOverrideRange:
+    from_: str
+    to: str
+    left: int
+    right: int
 
 @struct
-class ReferenceProvider:
-    id: str
+class UnihexProvider:
+    hex_file: str

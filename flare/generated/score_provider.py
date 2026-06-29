@@ -5,9 +5,9 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class FixedScoreProvider:
-    name: str
-
-@struct
 class ContextScoreProvider:
     target: str
+
+@struct
+class FixedScoreProvider:
+    name: str

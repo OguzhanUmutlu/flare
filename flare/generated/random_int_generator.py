@@ -5,11 +5,6 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class UniformIntGenerator:
-    min: int
-    max: int
-
-@struct
 class BinomialIntGenerator:
     n: int
     p: float
@@ -17,3 +12,8 @@ class BinomialIntGenerator:
 @struct
 class ConstantIntGenerator:
     value: int
+
+@struct
+class UniformIntGenerator:
+    min: int
+    max: int

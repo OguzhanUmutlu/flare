@@ -73,6 +73,11 @@ def next_temp_id():
     return got
 
 
+def next_temp_score(prefix: str = "t", **kwargs):
+    from .variables.score import score
+    return score(addr=f"!{prefix}_{next_temp_id()} {temp_obj}", **kwargs)
+
+
 def next_func_id():
     global _func_id
     got = _func_id
@@ -224,7 +229,7 @@ def _invoke_stdlib(func_name, generator, inputs=None, outputs=None, with_=None):
 
 from .variables.score import score
 from .variables.nbt import nbt
-from .variables.core import addr, macro
+from .variables.core import is_lazy, addr, macro
 from .print import style, hover_event, click_event, Color
 
 
@@ -325,7 +330,7 @@ def export(func=None, *, name=None, append=False, returns=None):
                         _runcmd(f"data modify {base_addr} append value 0")
                         _runcmd(
                             f"execute store result {base_addr}[-1] int {1 / arg_val._multiplier} run scoreboard players get {addr(arg_val)}")
-                    elif hasattr(type(arg_val), "_eval_into"):
+                    elif is_lazy(arg_val):
                         global _temp_id
                         temp = nbt(addr=f"storage {temp_storage} !t{_temp_id}", datatype=target._type)
                         _temp_id += 1

@@ -4,7 +4,7 @@ import json
 import typing
 from typing import Any
 
-from .core import UnsupportedOperandError, BinaryOp, addr, ArithmeticSupported
+from .core import UnsupportedOperandError, BinaryOp, addr, FlareValue, is_lazy
 from .. import context as ctx
 from ..context import _runcmd, next_temp_id
 from ..nbt_schema import ENTITY_SCHEMA
@@ -452,7 +452,7 @@ def _compound_add(self: nbt, other):
     return self._try_math("__iadd__", "+", other, (dict, nbt))
 
 
-class nbt(ArithmeticSupported):
+class nbt(FlareValue):
     _implements_set = (int, float, str, list, dict, score)
 
     def __init__(
@@ -677,7 +677,7 @@ class nbt(ArithmeticSupported):
                 ScoreIfMatches(break_score, 1).then(lambda: _runcmd("return 0"))
 
             if _has_early_return(func_name):
-                ret_temp = score(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
+                ret_temp = ctx.next_temp_score("ret")
                 if is_str:
                     _runcmd(
                         f"execute store result score {addr(ret_temp)} if score {addr(temp_len)} matches 1.. run function {func_name}")
@@ -703,7 +703,7 @@ class nbt(ArithmeticSupported):
             break_score[:] = 0
 
         if _has_early_return(func_name):
-            ret_temp_init = score(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
+            ret_temp_init = ctx.next_temp_score("ret")
             if is_str:
                 _runcmd(
                     f"execute store result score {addr(ret_temp_init)} if score {addr(temp_len)} matches 1.. run function {func_name}")
@@ -1138,6 +1138,12 @@ class nbt(ArithmeticSupported):
         from .core import NBTLengthOp
         return NBTLengthOp(self)
 
+    def split(self, delim=","):
+        if self._type != NBTType.String:
+            raise TypeError(f"Cannot split {self._type.name.lower()}, must be string")
+        from .core import NBTSplitOp
+        return NBTSplitOp(self, delim)
+
     def __iset__(self, other):
         self._check_addr()
         if hasattr(other, "_is_macro_param") and other._is_macro_param:
@@ -1148,7 +1154,7 @@ class nbt(ArithmeticSupported):
                 )
             _runcmd(f'$data modify {addr(self)} set value "$({other.name})"')
             return self
-        if hasattr(type(other), "_eval_into"):
+        if is_lazy(other):
             leaf = other._best_leaf()
             if leaf is not None and type(leaf).__name__ != "nbt":
                 temp = leaf._alloc_temp()
@@ -1321,9 +1327,7 @@ class nbt(ArithmeticSupported):
         return self._try_math("__iset__", "=", other, exp_type)
 
     def __in__(self, item):
-        from .score import score
-
-        res = score(0, addr=f"!in_res{ctx.next_temp_id()} {ctx.temp_obj}")
+        res = ctx.next_temp_score("in_res", value=0)
 
         def body_func(elem):
             conds = (elem == item).__branch__()

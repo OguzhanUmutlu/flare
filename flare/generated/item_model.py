@@ -17,6 +17,20 @@ class Condition:
     transformation: 'Transformation'
 
 @struct
+class ItemModel:
+    type: str
+
+@struct
+class Model:
+    model: 'ModelRef'
+    tints: list['ModelTint']
+    transformation: 'Transformation'
+
+@struct
+class ModelTint:
+    type: str
+
+@struct
 class RangeDispatch:
     property: str
     scale: float
@@ -25,34 +39,20 @@ class RangeDispatch:
     transformation: 'Transformation'
 
 @struct
-class AxisAngle:
-    axis: list[float]
-    angle: float
-
-@struct
 class Select:
     property: str
     fallback: 'ItemModel'
     transformation: 'Transformation'
 
 @struct
-class ModelTint:
-    type: str
-
-@struct
-class ItemModel:
-    type: str
-
-@struct
 class Special:
     model: {'type': str}
     base: 'ModelRef'
     transformation: 'Transformation'
-Transformation = Union[{'translation': list[float], 'left_rotation': 'Rotation', 'right_rotation': 'Rotation', 'scale': list[float]}, Union[list[float]]]
 
 @struct
-class Model:
-    model: 'ModelRef'
-    tints: list['ModelTint']
-    transformation: 'Transformation'
+class AxisAngle:
+    axis: list[float]
+    angle: float
 Rotation = Union[list[float], 'AxisAngle']
+Transformation = Union[{'translation': list[float], 'left_rotation': 'Rotation', 'right_rotation': 'Rotation', 'scale': list[float]}, Union[list[float]]]

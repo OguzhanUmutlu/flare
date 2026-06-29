@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-class ArithmeticSupported:
+class FlareValue:
     def __iset__(self, other):
         raise NotImplementedError()
 
@@ -10,6 +10,18 @@ class ArithmeticSupported:
             self.__iset__(value)
             return
         raise TypeError(f"'{type(self).__name__}' object does not support item assignment")
+
+    def _alloc_temp(self):
+        raise NotImplementedError(f"'{type(self).__name__}' does not implement _alloc_temp()")
+
+    def _eval_into(self, dest):
+        raise NotImplementedError()
+
+    def _best_leaf(self):
+        return self._alloc_temp()
+
+    def __branch__(self, invert=False):
+        raise NotImplementedError()
 
     def __add__(self, other):
         return BinaryOp(self, other, "add")
@@ -34,6 +46,24 @@ class ArithmeticSupported:
 
     def __itruediv__(self, other):
         return self.__idiv__(other)
+
+    def __iadd__(self, other):
+        raise NotImplementedError()
+
+    def __isub__(self, other):
+        raise NotImplementedError()
+
+    def __imul__(self, other):
+        raise NotImplementedError()
+
+    def __imod__(self, other):
+        raise NotImplementedError()
+
+    def __ineg__(self):
+        raise NotImplementedError()
+
+    def __inot__(self):
+        raise NotImplementedError()
 
     def __neg__(self):
         return UnaryOp(self, "neg")
@@ -98,7 +128,7 @@ class ArithmeticSupported:
         raise UnsupportedOperandError(self, op, other)
 
 
-class BinaryOp(ArithmeticSupported):
+class BinaryOp(FlareValue):
     _implements_set = tuple()
 
     def __init__(self, left, right, op: str):
@@ -185,7 +215,7 @@ class BinaryOp(ArithmeticSupported):
             "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
 
 
-class UnaryOp:
+class UnaryOp(FlareValue):
     def __init__(self, operand, op: str):
         self.operand = operand
         self.op = op
@@ -257,7 +287,7 @@ class UnaryOp:
             "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
 
 
-class NBTSliceOp(ArithmeticSupported):
+class NBTSliceOp(FlareValue):
     def __init__(self, operand, start, stop):
         from ..types import NBTType
         self.operand = operand
@@ -284,7 +314,7 @@ class NBTSliceOp(ArithmeticSupported):
         return self.operand._alloc_temp()
 
 
-class NBTLengthOp(ArithmeticSupported):
+class NBTLengthOp(FlareValue):
     def __init__(self, operand):
         self.operand = operand
         self._is_macro_param = False
@@ -300,10 +330,214 @@ class NBTLengthOp(ArithmeticSupported):
         if isinstance(dest, score):
             _runcmd(f"execute store result score {addr(dest)} run data get {addr(self.operand)}")
         else:
-            temp = score(addr=f"!len{ctx.next_temp_id()} {ctx.temp_obj}")
+            temp = ctx.next_temp_score("len")
             self._eval_into(temp)
             dest[:] = temp
         return dest
+
+    def __branch__(self, invert=False):
+        return BinaryOp(self, 0, "ne").__branch__(invert)
+
+
+class NBTSplitOp(FlareValue):
+    def __init__(self, operand, delim=","):
+        from ..types import NBTType
+        self.operand = operand
+        self.delim = delim
+        self._type = NBTType.List
+        self._schema_node = {"type": NBTType.List}
+        self._is_nbt_op = True
+
+    def _best_leaf(self):
+        return self._alloc_temp()
+
+    def _alloc_temp(self):
+        from .nbt import nbt
+        from ..types import NBTType
+        from .. import context as ctx
+        return nbt(addr=f"!split{ctx.next_temp_id()} {ctx.temp_obj}", datatype=NBTType.List)
+
+    def _eval_into(self, dest):
+        from .. import context as ctx
+        from ..context import _runcmd
+        from .nbt import nbt
+        from .score import score
+        from ..types import NBTType
+        import json
+
+        dest[:] = []
+        _id = ctx.next_temp_id()
+
+        if isinstance(self.delim, str) and len(self.delim) == 0:
+            temp_str = nbt(addr=f"flare:temp !split_str_{_id}", datatype=NBTType.String)
+            temp_str[:] = self.operand
+            temp_len = score(addr=f"!split_len_{_id} {ctx.temp_obj}")
+            temp_len[:] = temp_str.length()
+
+            func_name = f"{ctx._current_namespace}:split_char_{ctx.next_func_id()}"
+
+            def char_loop():
+                _runcmd(f"data modify {addr(dest)} append string {addr(temp_str)} 0 1")
+                _runcmd(f"data modify {addr(temp_str)} set string {addr(temp_str)} 1")
+                temp_len[:] = temp_str.length()
+                _runcmd(f"execute if score {addr(temp_len)} matches 1.. run function {func_name}")
+
+            with ctx.push_context(func_name):
+                char_loop()
+
+            _runcmd(f"execute if score {addr(temp_len)} matches 1.. run function {func_name}")
+            return dest
+
+        temp_str = nbt(addr=f"flare:temp !split_str_{_id}", datatype=NBTType.String)
+        temp_str[:] = self.operand
+        current_word = nbt(addr=f"flare:temp !split_word_{_id}", datatype=NBTType.String)
+        current_word[:] = ""
+        temp_len = score(addr=f"!split_len_{_id} {ctx.temp_obj}")
+        temp_len[:] = temp_str.length()
+
+        split_slice = nbt(addr=f"flare:temp !split_slice_{_id}", datatype=NBTType.String)
+        is_match = score(addr=f"!split_match_{_id} {ctx.temp_obj}")
+
+        if isinstance(self.delim, str):
+            delim_len = len(self.delim)
+            func_name = f"{ctx._current_namespace}:split_{ctx.next_func_id()}"
+
+            def strcat_macro(_, __):
+                _runcmd(
+                    f"$execute if score $(__is_match) matches 0 run data modify $(__addr) set value \"$(__input1)$(__input2)\"")
+
+            def split_loop():
+                _runcmd(f"data modify {addr(split_slice)} set string {addr(temp_str)} 0 {delim_len}")
+
+                _runcmd(f"data modify storage flare:temp !split_eq_{_id} set from {addr(split_slice)}")
+                _runcmd(
+                    f"execute store success score {addr(is_match)} run data modify storage flare:temp !split_eq_{_id} set value {json.dumps(self.delim)}")
+                _runcmd(f"execute if score {addr(is_match)} matches 0 run scoreboard players set {addr(is_match)} 2")
+                _runcmd(f"execute if score {addr(is_match)} matches 1 run scoreboard players set {addr(is_match)} 0")
+                _runcmd(f"execute if score {addr(is_match)} matches 2 run scoreboard players set {addr(is_match)} 1")
+
+                _runcmd(
+                    f"execute if score {addr(is_match)} matches 1 run data modify {addr(dest)} append from {addr(current_word)}")
+                _runcmd(
+                    f"execute if score {addr(is_match)} matches 1 run data modify {addr(current_word)} set value \"\"")
+                _runcmd(
+                    f"execute if score {addr(is_match)} matches 1 run data modify {addr(temp_str)} set string {addr(temp_str)} {delim_len}")
+
+                char_temp = nbt(addr=f"flare:temp !split_char_{_id}", datatype=NBTType.String)
+                _runcmd(
+                    f"execute if score {addr(is_match)} matches 0 run data modify {addr(char_temp)} set string {addr(temp_str)} 0 1")
+
+                with_ = nbt(addr=f"{ctx.temp_storage} __strcat_{_id}")[dict[str, str]]({
+                    "__addr": addr(current_word),
+                    "__input1": current_word,
+                    "__input2": char_temp,
+                    "__is_match": addr(is_match)
+                })
+                ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_strcat_{_id}", strcat_macro, with_=with_)
+
+                _runcmd(
+                    f"execute if score {addr(is_match)} matches 0 run data modify {addr(temp_str)} set string {addr(temp_str)} 1")
+
+                temp_len[:] = temp_str.length()
+                _runcmd(f"execute if score {addr(temp_len)} matches {delim_len}.. run function {func_name}")
+
+            with ctx.push_context(func_name):
+                split_loop()
+
+            _runcmd(f"execute if score {addr(temp_len)} matches {delim_len}.. run function {func_name}")
+
+            def strcat_macro_rem(_, __):
+                _runcmd(f"$data modify $(__addr) set value \"$(__input1)$(__input2)\"")
+
+            with_rem = nbt(addr=f"{ctx.temp_storage} __strcat_rem_{_id}")[dict[str, str]]({
+                "__addr": addr(current_word),
+                "__input1": current_word,
+                "__input2": temp_str
+            })
+            ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_strcat_rem_{_id}", strcat_macro_rem, with_=with_rem)
+
+            _runcmd(f"data modify {addr(dest)} append from {addr(current_word)}")
+            return dest
+
+        else:
+            delim_len = score(addr=f"!split_dlen_{_id} {ctx.temp_obj}")
+            delim_len[:] = self.delim.length()
+
+            func_name = f"{ctx._current_namespace}:split_{ctx.next_func_id()}"
+
+            def check_match_macro(_, __):
+                _runcmd(f"$data modify $(__split_slice_addr) set string $(__temp_str_addr) 0 $(__delim_len)")
+
+            def strcat_macro(_, __):
+                _runcmd(
+                    f"$execute if score $(__is_match) matches 0 run data modify $(__addr) set value \"$(__input1)$(__input2)\"")
+
+            def split_loop():
+                with_check = nbt(addr=f"{ctx.temp_storage} __split_check_{_id}")[dict[str, str]]({
+                    "__split_slice_addr": addr(split_slice),
+                    "__temp_str_addr": addr(temp_str),
+                    "__delim_len": delim_len
+                })
+                ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_check_{_id}", check_match_macro, with_=with_check)
+
+                _runcmd(f"data modify storage flare:temp !split_eq_{_id} set from {addr(split_slice)}")
+                _runcmd(
+                    f"execute store success score {addr(is_match)} run data modify storage flare:temp !split_eq_{_id} set from {addr(self.delim)}")
+                _runcmd(f"execute if score {addr(is_match)} matches 0 run scoreboard players set {addr(is_match)} 2")
+                _runcmd(f"execute if score {addr(is_match)} matches 1 run scoreboard players set {addr(is_match)} 0")
+                _runcmd(f"execute if score {addr(is_match)} matches 2 run scoreboard players set {addr(is_match)} 1")
+
+                _runcmd(
+                    f"execute if score {addr(is_match)} matches 1 run data modify {addr(dest)} append from {addr(current_word)}")
+                _runcmd(
+                    f"execute if score {addr(is_match)} matches 1 run data modify {addr(current_word)} set value \"\"")
+
+                def advance_macro(_, __):
+                    _runcmd(
+                        f"$execute if score $(__is_match) matches 1 run data modify $(__temp_str_addr) set string $(__temp_str_addr) $(__delim_len)")
+
+                with_adv = nbt(addr=f"{ctx.temp_storage} __split_adv_{_id}")[dict[str, str]]({
+                    "__temp_str_addr": addr(temp_str),
+                    "__delim_len": delim_len,
+                    "__is_match": addr(is_match)
+                })
+                ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_adv_{_id}", advance_macro, with_=with_adv)
+
+                char_temp = nbt(addr=f"flare:temp !split_char_{_id}", datatype=NBTType.String)
+                _runcmd(
+                    f"execute if score {addr(is_match)} matches 0 run data modify {addr(char_temp)} set string {addr(temp_str)} 0 1")
+
+                with_ = nbt(addr=f"{ctx.temp_storage} __strcat_{_id}")[dict[str, str]]({
+                    "__addr": addr(current_word),
+                    "__input1": current_word,
+                    "__input2": char_temp,
+                    "__is_match": addr(is_match)
+                })
+                ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_strcat_{_id}", strcat_macro, with_=with_)
+
+                _runcmd(
+                    f"execute if score {addr(is_match)} matches 0 run data modify {addr(temp_str)} set string {addr(temp_str)} 1")
+
+                temp_len[:] = temp_str.length()
+                _runcmd(f"execute if score {addr(temp_len)} >= {addr(delim_len)} run function {func_name}")
+
+            with ctx.push_context(func_name):
+                split_loop()
+
+            _runcmd(f"execute if score {addr(temp_len)} >= {addr(delim_len)} run function {func_name}")
+
+            def strcat_macro_rem(_, __):
+                _runcmd(f"$data modify $(__addr) set value \"$(__input1)$(__input2)\"")
+
+            with_rem = nbt(addr=f"{ctx.temp_storage} __strcat_rem_{_id}")[dict[str, str]]({
+                "__addr": addr(current_word),
+                "__input1": current_word,
+                "__input2": temp_str
+            })
+            ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_strcat_rem_{_id}", strcat_macro_rem, with_=with_rem)
+
+            _runcmd(f"data modify {addr(dest)} append from {addr(current_word)}")
+            return dest
 
     def __branch__(self, invert=False):
         return BinaryOp(self, 0, "ne").__branch__(invert)
@@ -340,3 +574,7 @@ class macro:
         )
 
     __add__ = __radd__ = __sub__ = __rsub__ = __mul__ = __rmul__ = _bad_op
+
+
+def is_lazy(obj):
+    return hasattr(type(obj), "_eval_into") and getattr(type(obj), "_eval_into") is not FlareValue._eval_into

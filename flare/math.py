@@ -3,6 +3,7 @@ import math
 from math import *
 
 from flare.context import next_temp_id
+from flare.variables.core import is_lazy
 from . import context as ctx
 from .context import push_context, _runcmd, vars_obj
 
@@ -14,7 +15,7 @@ _orig = {"floor": math.floor, "ceil": math.ceil, "round": builtins.round, "sqrt"
 
 def _dispatch(name, *args, memoize=True):
     x = args[0]
-    if hasattr(x, "_eval_into"):
+    if is_lazy(x):
         leaf = x._best_leaf()
         temp = leaf._alloc_temp()
         x._eval_into(temp)

@@ -5,6 +5,29 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
+class AllOffTestEnvironment:
+    definitions: list['TestEnvironment']
+
+@struct
+class BoolGameRule:
+    rule: str
+    value: bool
+
+@struct
+class ClockTimeTestEnvironment:
+    clock: str
+    time: int
+
+@struct
+class DifficultyTestEnvironment:
+    difficulty: str
+
+@struct
+class FunctionTestEnvironment:
+    setup: str
+    teardown: str
+
+@struct
 class GameRulesTestEnvironment:
     bool_rules: list['BoolGameRule']
     int_rules: list['IntGameRule']
@@ -16,40 +39,17 @@ class IntGameRule:
     value: int
 
 @struct
-class FunctionTestEnvironment:
-    setup: str
-    teardown: str
-
-@struct
 class TestEnvironment:
     type: str
-
-@struct
-class TimelineAttributesTestEnvironment:
-    timelines: list[str]
-
-@struct
-class ClockTimeTestEnvironment:
-    clock: str
-    time: int
-
-@struct
-class AllOffTestEnvironment:
-    definitions: list['TestEnvironment']
 
 @struct
 class TimeOfDayTestEnvironment:
     time: int
 
 @struct
-class BoolGameRule:
-    rule: str
-    value: bool
+class TimelineAttributesTestEnvironment:
+    timelines: list[str]
 
 @struct
 class WeatherTestEnvironment:
     weather: str
-
-@struct
-class DifficultyTestEnvironment:
-    difficulty: str

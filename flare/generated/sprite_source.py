@@ -10,27 +10,26 @@ class Directory:
     prefix: str
 
 @struct
-class UnstitchRegion:
-    sprite: str
-    x: double
-    y: double
-    width: double
-    height: double
+class Filter:
+    pattern: 'FilterPattern'
 
 @struct
 class FilterPattern:
     namespace: str
     path: str
+PaletteTexture = Union[str, 'PaletteRef']
+
+@struct
+class PalettedPermutations:
+    textures: list[str]
+    palette_key: 'PaletteTexture'
+    permutations: dict
+    separator: str
 
 @struct
 class Single:
     resource: str
     sprite: str
-
-@struct
-class Filter:
-    pattern: 'FilterPattern'
-PaletteTexture = Union[str, 'PaletteRef']
 
 @struct
 class Unstitch:
@@ -40,8 +39,9 @@ class Unstitch:
     regions: list['UnstitchRegion']
 
 @struct
-class PalettedPermutations:
-    textures: list[str]
-    palette_key: 'PaletteTexture'
-    permutations: dict
-    separator: str
+class UnstitchRegion:
+    sprite: str
+    x: double
+    y: double
+    width: double
+    height: double

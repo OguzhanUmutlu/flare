@@ -8,19 +8,19 @@ from typing import Any, Union
 class UniformHeightProvider:
     min_inclusive: 'VerticalAnchor'
     max_inclusive: 'VerticalAnchor'
-VerticalAnchor = Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}]
 
 @struct
-class TrapezoidHeightProvider(UniformHeightProvider):
-    plateau: int
+class BottomBiasHeightProvider(UniformHeightProvider):
+    inner: int
 
 @struct
 class ConstantHeightProvider:
     value: 'VerticalAnchor'
 
 @struct
-class BottomBiasHeightProvider(UniformHeightProvider):
-    inner: int
+class TrapezoidHeightProvider(UniformHeightProvider):
+    plateau: int
+VerticalAnchor = Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}]
 
 @struct
 class WeightListHeightProvider:

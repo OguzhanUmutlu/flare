@@ -5,6 +5,18 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
+class BlockState:
+    block_state_property: Any
+
+@struct
+class ChargeType:
+    pass
+
+@struct
+class ComponentStrings:
+    component: str
+
+@struct
 class ContextDimension:
     pass
 
@@ -17,7 +29,7 @@ class CustomModelDataStrings:
     index: int
 
 @struct
-class TrimMaterial:
+class DisplayContext:
     pass
 
 @struct
@@ -31,17 +43,5 @@ class MainHand:
     pass
 
 @struct
-class BlockState:
-    block_state_property: Any
-
-@struct
-class ChargeType:
-    pass
-
-@struct
-class ComponentStrings:
-    component: str
-
-@struct
-class DisplayContext:
+class TrimMaterial:
     pass

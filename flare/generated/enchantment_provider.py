@@ -5,18 +5,18 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class SingleProvider:
-    enchantment: str
-    level: 'IntProvider'
-
-@struct
 class ByCostEnchantmentProvider:
     enchantments: 'EnchantmentsType'
     cost: 'IntProvider'
-EnchantmentsType = Union[str, list[str]]
 
 @struct
 class ByCostWithDifficultyEnchantmentProvider:
     enchantments: 'EnchantmentsType'
     min_cost: int
     max_cost_span: int
+EnchantmentsType = Union[str, list[str]]
+
+@struct
+class SingleProvider:
+    enchantment: str
+    level: 'IntProvider'

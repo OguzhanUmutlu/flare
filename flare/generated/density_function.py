@@ -5,8 +5,24 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
+class Clamp:
+    input: 'DensityFunction'
+    min: 'NoiseRange'
+    max: 'NoiseRange'
+
+@struct
 class Constant:
     argument: 'NoiseRange'
+CubicSpline = Union[float, {'coordinate': Union[str, 'DensityFunctionRef'], 'points': list['SplinePoint']}]
+DensityFunction = Union['NoiseRange', {'type': str}]
+DensityFunctionRef = Union[str, 'DensityFunction']
+
+@struct
+class FindTopSurface:
+    density: 'DensityFunctionRef'
+    upper_bound: 'DensityFunctionRef'
+    lower_bound: int
+    cell_height: int
 
 @struct
 class InvervalSelect:
@@ -15,11 +31,10 @@ class InvervalSelect:
     functions: list['DensityFunctionRef']
 
 @struct
-class FindTopSurface:
-    density: 'DensityFunctionRef'
-    upper_bound: 'DensityFunctionRef'
-    lower_bound: int
-    cell_height: int
+class Noise:
+    noise: str
+    xz_scale: float
+    y_scale: float
 
 @struct
 class OldBlendedNoise:
@@ -30,35 +45,26 @@ class OldBlendedNoise:
     smear_scale_multiplier: float
 
 @struct
-class YClampedGradient:
-    from_y: int
-    to_y: int
-    from_value: 'NoiseRange'
-    to_value: 'NoiseRange'
+class OneArgument:
+    argument: 'DensityFunctionRef'
 
 @struct
-class WeirdScaledSampler:
-    rarity_value_mapper: str
-    noise: str
+class RangeChoice:
     input: 'DensityFunctionRef'
-
-@struct
-class SplinePoint:
-    location: float
-    derivative: float
-    value: 'CubicSpline'
-
-@struct
-class Noise:
-    noise: str
-    xz_scale: float
-    y_scale: float
-DensityFunction = Union['NoiseRange', {'type': str}]
+    min_inclusive: 'NoiseRange'
+    max_exclusive: 'NoiseRange'
+    when_in_range: 'DensityFunctionRef'
+    when_out_of_range: 'DensityFunctionRef'
 
 @struct
 class Shift:
     argument: str
-DensityFunctionRef = Union[str, 'DensityFunction']
+
+@struct
+class ShiftedNoise(Noise):
+    shift_x: 'DensityFunctionRef'
+    shift_y: 'DensityFunctionRef'
+    shift_z: 'DensityFunctionRef'
 
 @struct
 class Spline:
@@ -67,14 +73,10 @@ class Spline:
     max_value: 'NoiseRange'
 
 @struct
-class Clamp:
-    input: 'DensityFunction'
-    min: 'NoiseRange'
-    max: 'NoiseRange'
-
-@struct
-class OneArgument:
-    argument: 'DensityFunctionRef'
+class SplinePoint:
+    location: float
+    derivative: float
+    value: 'CubicSpline'
 
 @struct
 class TerrainShaperSpline:
@@ -91,16 +93,14 @@ class TwoArguments:
     argument2: 'DensityFunctionRef'
 
 @struct
-class RangeChoice:
+class WeirdScaledSampler:
+    rarity_value_mapper: str
+    noise: str
     input: 'DensityFunctionRef'
-    min_inclusive: 'NoiseRange'
-    max_exclusive: 'NoiseRange'
-    when_in_range: 'DensityFunctionRef'
-    when_out_of_range: 'DensityFunctionRef'
-CubicSpline = Union[float, {'coordinate': Union[str, 'DensityFunctionRef'], 'points': list['SplinePoint']}]
 
 @struct
-class ShiftedNoise(Noise):
-    shift_x: 'DensityFunctionRef'
-    shift_y: 'DensityFunctionRef'
-    shift_z: 'DensityFunctionRef'
+class YClampedGradient:
+    from_y: int
+    to_y: int
+    from_value: 'NoiseRange'
+    to_value: 'NoiseRange'

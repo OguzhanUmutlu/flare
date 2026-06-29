@@ -5,8 +5,8 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class NotPredicate:
-    predicate: 'BlockPredicate'
+class BlockPredicate:
+    type: str
 
 @struct
 class CombiningPredicate:
@@ -21,20 +21,12 @@ class HasSturdyFacePredicate(PredicateOffset):
     direction: str
 
 @struct
-class BlockPredicate:
-    type: str
+class InsideWorldBoundsPredicate(PredicateOffset):
+    pass
 
 @struct
 class MatchingBiomesPredicate:
     biomes: Union[str, list[str]]
-
-@struct
-class WouldSurvivePredicate(PredicateOffset):
-    state: 'BlockState'
-
-@struct
-class UnobstructedPredicate:
-    offset: list[int]
 
 @struct
 class MatchingBlockTagPredicate(PredicateOffset):
@@ -45,14 +37,22 @@ class MatchingBlocksPredicate(PredicateOffset):
     blocks: Union[list[str], str]
 
 @struct
+class MatchingFluidsPredicate(PredicateOffset):
+    fluids: Union[list[str], str]
+
+@struct
+class NotPredicate:
+    predicate: 'BlockPredicate'
+
+@struct
+class UnobstructedPredicate:
+    offset: list[int]
+
+@struct
+class WouldSurvivePredicate(PredicateOffset):
+    state: 'BlockState'
+
+@struct
 class BlockState:
     Name: str
     Properties: Any
-
-@struct
-class InsideWorldBoundsPredicate(PredicateOffset):
-    pass
-
-@struct
-class MatchingFluidsPredicate(PredicateOffset):
-    fluids: Union[list[str], str]

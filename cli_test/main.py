@@ -107,6 +107,20 @@ print(style(sub, color="aqua", bold=True))
 for char in sub:
     print(char)
 
+print("--- NBT Split ---")
+my_csv = nbt[str]("apple,banana,cherry,,date")
+csv_list = my_csv.split(",")
+print(csv_list)
+
+my_empty = nbt[str]("abc")
+empty_list = my_empty.split("")
+print(empty_list)
+
+my_dyn = nbt[str]("one|two|three")
+dyn_delim = nbt[str]("|")
+dyn_list = my_dyn.split(dyn_delim)
+print(dyn_list)
+
 print("--- Structs ---")
 @struct
 class Point:

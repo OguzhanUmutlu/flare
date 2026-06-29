@@ -5,13 +5,13 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class CustomModelDataFlags:
-    index: int
-
-@struct
 class ComponentFlags:
     predicate: Union[str, str]
     value: Any
+
+@struct
+class CustomModelDataFlags:
+    index: int
 
 @struct
 class HasComponent:
@@ -19,9 +19,9 @@ class HasComponent:
     ignore_default: bool
 
 @struct
-class ViewEntity:
-    pass
-
-@struct
 class KeybindDown:
     keybind: str
+
+@struct
+class ViewEntity:
+    pass

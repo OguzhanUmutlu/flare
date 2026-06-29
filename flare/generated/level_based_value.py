@@ -11,19 +11,19 @@ class ClampedLevelValue:
     max: float
 
 @struct
-class FractionLevelValue:
-    numerator: 'LevelBasedValue'
-    denominator: 'LevelBasedValue'
-
-@struct
-class LookupLevelValue:
-    values: list['LevelBasedValue']
-    fallback: 'LevelBasedValue'
-
-@struct
 class ExponentLevelValue:
     base: 'LevelBasedValue'
     power: 'LevelBasedValue'
+
+@struct
+class FractionLevelValue:
+    numerator: 'LevelBasedValue'
+    denominator: 'LevelBasedValue'
+LevelBasedValue = Union[float, 'LevelBasedValueMap']
+
+@struct
+class LevelBasedValueMap:
+    type: str
 
 @struct
 class LinearLevelValue:
@@ -31,10 +31,10 @@ class LinearLevelValue:
     per_level_above_first: float
 
 @struct
-class SquaredLevelValue:
-    added: float
-LevelBasedValue = Union[float, 'LevelBasedValueMap']
+class LookupLevelValue:
+    values: list['LevelBasedValue']
+    fallback: 'LevelBasedValue'
 
 @struct
-class LevelBasedValueMap:
-    type: str
+class SquaredLevelValue:
+    added: float

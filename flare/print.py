@@ -1,3 +1,4 @@
+from flare.variables.core import is_lazy
 import copy
 
 from flare.context import addr
@@ -134,7 +135,7 @@ def _to_print_component(arg, i):
         p = copy.deepcopy(memo["res_comps"])
         return p if isinstance(p, list) else [p]
 
-    if not isinstance(arg, (score, nbt)) and (getattr(arg, "_is_nbt_op", False) or hasattr(type(arg), "_eval_into")):
+    if not isinstance(arg, (score, nbt)) and (getattr(arg, "_is_nbt_op", False) or is_lazy(arg)):
         if hasattr(arg, "_alloc_temp"):
             temp = arg._alloc_temp()
         elif getattr(arg, "operand", None) and hasattr(arg.operand, "_alloc_temp"):

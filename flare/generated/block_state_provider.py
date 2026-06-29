@@ -5,8 +5,17 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class WeightedBlockStateProvider:
-    entries: 'NonEmptyWeightedList'
+class NoiseParameters:
+    firstOctave: int
+    amplitudes: list[double]
+
+@struct
+class RuleBasedBlockStateProvider:
+    rules: list[{'if_true': 'BlockPredicate', 'then': 'BlockStateProvider'}]
+
+@struct
+class BlockPredicate:
+    type: str
 
 @struct
 class BaseNoiseProvider:
@@ -15,23 +24,7 @@ class BaseNoiseProvider:
     scale: float
 
 @struct
-class NoiseThresholdProvider(BaseNoiseProvider):
-    threshold: float
-    high_chance: float
-    default_state: 'BlockState'
-    low_states: list['BlockState']
-    high_states: list['BlockState']
-
-@struct
 class BlockStateProvider:
-    type: str
-
-@struct
-class NoiseProvider(BaseNoiseProvider):
-    states: list['BlockState']
-
-@struct
-class BlockPredicate:
     type: str
 
 @struct
@@ -42,9 +35,16 @@ class DualNoiseProvider(BaseNoiseProvider):
     states: list['BlockState']
 
 @struct
-class NoiseParameters:
-    firstOctave: int
-    amplitudes: list[double]
+class NoiseProvider(BaseNoiseProvider):
+    states: list['BlockState']
+
+@struct
+class NoiseThresholdProvider(BaseNoiseProvider):
+    threshold: float
+    high_chance: float
+    default_state: 'BlockState'
+    low_states: list['BlockState']
+    high_states: list['BlockState']
 
 @struct
 class RandomizedIntStateProvider:
@@ -53,14 +53,14 @@ class RandomizedIntStateProvider:
     source: 'BlockStateProvider'
 
 @struct
-class BlockState:
-    Name: str
-    Properties: Any
-
-@struct
 class SimpleStateProvider:
     state: 'BlockState'
 
 @struct
-class RuleBasedBlockStateProvider:
-    rules: list[{'if_true': 'BlockPredicate', 'then': 'BlockStateProvider'}]
+class WeightedBlockStateProvider:
+    entries: 'NonEmptyWeightedList'
+
+@struct
+class BlockState:
+    Name: str
+    Properties: Any

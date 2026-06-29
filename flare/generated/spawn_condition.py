@@ -5,12 +5,12 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class MoonBrightnessCheck:
-    range: 'MinMaxBounds'
-
-@struct
 class BiomeCheck:
     biomes: Union[str, list[str]]
+
+@struct
+class MoonBrightnessCheck:
+    range: 'MinMaxBounds'
 
 @struct
 class StructureCheck:

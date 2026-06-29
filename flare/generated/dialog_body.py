@@ -3,6 +3,44 @@ from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
 from typing import Any, Union
+
+@struct
+class ItemBody:
+    item: 'ItemStackTemplate'
+    description: Union['PlainMessage', 'Text']
+    show_decorations: bool
+    show_tooltip: bool
+    width: int
+    height: int
+
+@struct
+class PlainMessage:
+    contents: 'Text'
+    width: int
+Profile = Union[{'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], 'ProfilePropertyMap']}, {'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], list['ProfileProperty'], 'ProfilePropertyMap'], 'texture': str, 'cape': str, 'elytra': str, 'model': str}, str]
+
+@struct
+class ProfileProperty:
+    name: Union[str, str]
+    value: Union[str, str]
+    signature: Union[str, str]
+
+@struct
+class ProfilePropertyMap:
+    pass
+RGBA = Union[int, list[float]]
+
+@struct
+class ClickEvent:
+    action: str
+
+@struct
+class HoverEvent:
+    action: str
+
+@struct
+class ObjectTextConfig:
+    fallback: 'Text'
 Text = Union[str, 'TextObject', list['Text']]
 
 @struct
@@ -24,49 +62,11 @@ class TextStyle:
 @struct
 class TextBase(TextStyle):
     extra: list['Text']
-Profile = Union[{'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], 'ProfilePropertyMap']}, {'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], list['ProfileProperty'], 'ProfilePropertyMap'], 'texture': str, 'cape': str, 'elytra': str, 'model': str}, str]
-
-@struct
-class HoverEvent:
-    action: str
-
-@struct
-class ProfileProperty:
-    name: Union[str, str]
-    value: Union[str, str]
-    signature: Union[str, str]
-RGBA = Union[int, list[float]]
 
 @struct
 class TextNbtBase(TextBase):
     interpret: bool
     plain: bool
     separator: 'Text'
-ItemStackTemplate = Union['ItemStack', str]
-
-@struct
-class ProfilePropertyMap:
-    pass
-
-@struct
-class PlainMessage:
-    contents: 'Text'
-    width: int
-
-@struct
-class ObjectTextConfig:
-    fallback: 'Text'
 TextObject = Union[{'text': str, 'type': Any}, {'translate': str, 'fallback': str, 'with': list['Text'], 'type': Any}, {'score': {'objective': str, 'name': str}, 'type': Any}, {'selector': str, 'separator': 'Text', 'type': Any}, {'keybind': str, 'type': Any}, {'block': str, 'nbt': str, 'source': Any, 'type': Any}, {'entity': str, 'nbt': str, 'source': Any, 'type': Any}, {'storage': str, 'nbt': str, 'source': Any, 'type': Any}, {'atlas': str, 'sprite': str, 'object': Any, 'type': Any}, {'player': 'Profile', 'hat': bool, 'object': Any, 'type': Any}]
-
-@struct
-class ClickEvent:
-    action: str
-
-@struct
-class ItemBody:
-    item: 'ItemStackTemplate'
-    description: Union['PlainMessage', 'Text']
-    show_decorations: bool
-    show_tooltip: bool
-    width: int
-    height: int
+ItemStackTemplate = Union['ItemStack', str]

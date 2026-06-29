@@ -5,16 +5,16 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
+class ConcentricRingsPlacement:
+    distance: int
+    spread: int
+    count: int
+    preferred_biomes: Union[list[str], str]
+
+@struct
 class RandomSpreadPlacement:
     spacing: int
     separation: int
     salt: int
     spread_type: str
     locate_offset: list[int]
-
-@struct
-class ConcentricRingsPlacement:
-    distance: int
-    spread: int
-    count: int
-    preferred_biomes: Union[list[str], str]

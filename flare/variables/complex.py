@@ -3,11 +3,11 @@ from __future__ import annotations
 import builtins
 import math
 
-from .core import ArithmeticSupported
+from .core import is_lazy, FlareValue
 from ..context import temp_obj, next_temp_id
 
 
-class complex(ArithmeticSupported):
+class complex(FlareValue):
     def __init__(self, real, imag):
         self.real = real
         self.imag = imag
@@ -37,12 +37,12 @@ class complex(ArithmeticSupported):
     def _eval_into(self, dest):
         if not isinstance(dest, complex):
             raise TypeError("Cannot evaluate complex into non-complex destination")
-        if hasattr(self.real, "_eval_into"):
+        if is_lazy(self.real):
             self.real._eval_into(dest.real)
         else:
             dest.real[:] = self.real
 
-        if hasattr(self.imag, "_eval_into"):
+        if is_lazy(self.imag):
             self.imag._eval_into(dest.imag)
         else:
             dest.imag[:] = self.imag

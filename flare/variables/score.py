@@ -5,9 +5,9 @@ from fractions import Fraction
 from math import inf
 from math import log
 
-from .core import addr, ArithmeticSupported
+from .core import is_lazy, addr, FlareValue
 from .. import context as ctx
-from ..context import _runcmd, temp_obj, constant_obj, constants, vars_obj, next_temp_id
+from ..context import _runcmd, temp_obj, constant_obj, constants, vars_obj, next_temp_score
 from ..control_flow import ScoreIfScore, ScoreIfMatches
 
 INT32_LIMIT = (2 ** 31) - 1
@@ -32,7 +32,7 @@ def getscore(x: int | float, multiplier: float = 1.0):
     return constants[(x, multiplier)]
 
 
-class score(ArithmeticSupported):
+class score(FlareValue):
     _implements_set = (int, float)
 
     def __init__(self, value: int | float | None = None, *, addr: str | None = None, multiplier: float = 1.0):
@@ -61,7 +61,7 @@ class score(ArithmeticSupported):
         return -self._multiplier
 
     def _alloc_temp(self):
-        t = score(addr=f"!t{next_temp_id()}", multiplier=self._multiplier)
+        t = next_temp_score("t", multiplier=self._multiplier)
         return t
 
     def _create_var(self, varid: str):
@@ -123,7 +123,7 @@ class score(ArithmeticSupported):
 
     def __iset__(self, other):
         self._check_writable()
-        if hasattr(type(other), "_eval_into"):
+        if is_lazy(other):
             other._eval_into(self)
             return self
         if isinstance(other, (score, _nbt())):

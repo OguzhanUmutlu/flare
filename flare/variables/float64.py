@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from math import inf, frexp
 
-from .core import ArithmeticSupported
+from .core import is_lazy, FlareValue
 from .nbt import nbt
 from .score import score
 from .. import context as ctx
@@ -13,7 +13,7 @@ from ..control_flow import ScoreIfMatches, ScoreIfScore
 from ..variables import bigscore
 
 
-class float64(ArithmeticSupported):
+class float64(FlareValue):
     _implements_set = (int, float)
 
     def __init__(self, value: float | int | None = None, *, addr: str | None = None):
@@ -108,7 +108,7 @@ class float64(ArithmeticSupported):
             self._mant_lo[:] = other._mant_lo
             return self
 
-        if hasattr(type(other), "_eval_into"):
+        if is_lazy(other):
             other._eval_into(self)
             return self
 

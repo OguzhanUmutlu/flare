@@ -5,16 +5,31 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class TranslucentColorAttributeModifier:
-    modifier: str
-    argument: Any
+class AttributeTrackBase:
+    ease: 'EasingType'
+
+@struct
+class CubicBezierEase:
+    cubic_bezier: Any
+EasingType = Union[str, 'CubicBezierEase']
 
 @struct
 class ARGBColorAttribute:
     value: 'StringARGB'
     modifier: 'TranslucentColorAttributeModifier'
     attribute_track: {'modifier': str, 'keyframes': list[{'ticks': int, 'value': Any}]}
-StringARGB = Union[int, list[float], str]
+
+@struct
+class BooleanAttribute:
+    value: bool
+    modifier: 'BooleanAttributeModifier'
+    attribute_track: {'modifier': str, 'keyframes': list[{'ticks': int, 'value': bool}]}
+
+@struct
+class RGBColorAttribute:
+    value: 'StringRGB'
+    modifier: 'ColorAttributeModifier'
+    attribute_track: {'modifier': str, 'keyframes': list[{'ticks': int, 'value': Any}]}
 
 @struct
 class BooleanAttributeModifier:
@@ -27,23 +42,8 @@ class ColorAttributeModifier:
     argument: Any
 
 @struct
-class AttributeTrackBase:
-    ease: 'EasingType'
-EasingType = Union[str, 'CubicBezierEase']
-
-@struct
-class RGBColorAttribute:
-    value: 'StringRGB'
-    modifier: 'ColorAttributeModifier'
-    attribute_track: {'modifier': str, 'keyframes': list[{'ticks': int, 'value': Any}]}
-
-@struct
-class CubicBezierEase:
-    cubic_bezier: Any
+class TranslucentColorAttributeModifier:
+    modifier: str
+    argument: Any
+StringARGB = Union[int, list[float], str]
 StringRGB = Union[int, list[float], str]
-
-@struct
-class BooleanAttribute:
-    value: bool
-    modifier: 'BooleanAttributeModifier'
-    attribute_track: {'modifier': str, 'keyframes': list[{'ticks': int, 'value': bool}]}

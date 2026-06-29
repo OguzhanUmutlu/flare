@@ -6,9 +6,15 @@ from typing import Any, Union
 ClimateParameter = Union[float, list[float]]
 
 @struct
-class NoiseParameters:
-    firstOctave: int
-    amplitudes: list[double]
+class ClimateParameters:
+    temperature: 'ClimateParameter'
+    humidity: 'ClimateParameter'
+    altitude: float
+    continentalness: 'ClimateParameter'
+    erosion: 'ClimateParameter'
+    weirdness: 'ClimateParameter'
+    depth: 'ClimateParameter'
+    offset: float
 
 @struct
 class DirectMultiNoise:
@@ -19,12 +25,6 @@ class DirectMultiNoise:
     biomes: list[{'biome': str, 'parameters': 'ClimateParameters'}]
 
 @struct
-class ClimateParameters:
-    temperature: 'ClimateParameter'
-    humidity: 'ClimateParameter'
-    altitude: float
-    continentalness: 'ClimateParameter'
-    erosion: 'ClimateParameter'
-    weirdness: 'ClimateParameter'
-    depth: 'ClimateParameter'
-    offset: float
+class NoiseParameters:
+    firstOctave: int
+    amplitudes: list[double]

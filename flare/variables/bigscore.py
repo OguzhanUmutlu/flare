@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from math import inf
 
-from .core import UnsupportedOperandError, BinaryOp, ArithmeticSupported
+from .core import UnsupportedOperandError, BinaryOp, FlareValue
 from .nbt import nbt
 from .score import score
 from .. import context as ctx
@@ -23,7 +23,7 @@ def _get_temps():
     )
 
 
-class bigscore(ArithmeticSupported):
+class bigscore(FlareValue):
     _size = 2
     _multiplier = 1.0
     _base = BASE
@@ -58,6 +58,9 @@ class bigscore(ArithmeticSupported):
 
     def _create_var(self, varid: str):
         return type(self)(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
+
+    def _alloc_temp(self):
+        return type(self)(addr=f"!t{next_temp_id()} {ctx.temp_obj}", size=self.size, multiplier=self._multiplier)
 
     @classmethod
     def __class_getitem__(cls, item):
@@ -495,7 +498,6 @@ class bigscore(ArithmeticSupported):
         return comps
 
     def __repr__(self):
-
         return f"bigscore(size={self.size}, base={self._base})"
 
 
@@ -520,5 +522,4 @@ class bigfixed(bigscore):
         return super().__print__()
 
     def __repr__(self):
-
         return f"bigfixed(size={self.size}, multiplier={self._multiplier})"

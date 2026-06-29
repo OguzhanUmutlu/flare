@@ -5,27 +5,8 @@ from flare.basesymbols import *
 from typing import Any, Union
 
 @struct
-class HorsePredicate:
+class AxolotlPredicate:
     variant: str
-
-@struct
-class PaintingPredicate:
-    variant: Union[str, str, list[str]]
-
-@struct
-class EntityEffectsPredicate:
-    pass
-
-@struct
-class SalmonPredicate:
-    variant: str
-
-@struct
-class MobEffectPredicate:
-    amplifier: 'MinMaxBounds'
-    duration: 'MinMaxBounds'
-    ambient: bool
-    visible: bool
 
 @struct
 class BlockPredicate:
@@ -38,12 +19,135 @@ class BlockPredicate:
     predicates: 'DataComponentPredicate'
 
 @struct
+class BoatPredicate:
+    variant: str
+
+@struct
+class CatPredicate:
+    variant: Union[str, str, list[str]]
+
+@struct
+class DistancePredicate:
+    x: 'MinMaxBounds'
+    y: 'MinMaxBounds'
+    z: 'MinMaxBounds'
+    absolute: 'MinMaxBounds'
+    horizontal: 'MinMaxBounds'
+
+@struct
+class EnchantmentPredicate:
+    enchantment: str
+    enchantments: Union[str, list[str]]
+    levels: 'MinMaxBounds'
+
+@struct
+class EntityEffectsPredicate:
+    pass
+
+@struct
+class EntityEquipmentPredicate:
+    pass
+
+@struct
+class EntityFlagsPredicate:
+    is_on_fire: bool
+    is_sneaking: bool
+    is_sprinting: bool
+    is_swimming: bool
+    is_baby: bool
+    is_on_ground: bool
+    is_flying: bool
+    is_in_water: bool
+    is_fall_flying: bool
+EntityPredicate = Union['OldEntityPredicate', 'EntitySubPredicateMap']
+
+@struct
+class EntitySlotsPredicate:
+    pass
+
+@struct
+class EntitySubPredicate:
+    type: Union[str, str]
+
+@struct
 class EntitySubPredicateMap:
     pass
 
 @struct
+class EntityTagPredicate:
+    any_of: list[str]
+    all_of: list[str]
+    none_of: list[str]
+EntityTypePredicate = Union[str, list[str]]
+
+@struct
+class FishingHookPredicate:
+    in_open_water: bool
+
+@struct
+class FluidPredicate:
+    fluid: str
+    tag: str
+    fluids: Union[str, list[str]]
+    state: dict
+
+@struct
+class FoxPredicate:
+    variant: str
+
+@struct
+class FrogPredicate:
+    variant: Union[str, str, list[str]]
+
+@struct
+class HorsePredicate:
+    variant: str
+ItemPredicate = Union[{'item': str, 'items': list[str], 'tag': str, 'durability': 'MinMaxBounds', 'potion': str, 'enchantments': list['EnchantmentPredicate'], 'stored_enchantments': list['EnchantmentPredicate'], 'nbt': str}, {'items': Union[str, list[str]], 'count': 'MinMaxBounds', 'components': 'DataComponentExactPredicate', 'predicates': 'DataComponentPredicate'}]
+
+@struct
+class LightningBoltPredicate:
+    blocks_set_on_fire: 'MinMaxBounds'
+    entity_struck: 'EntityPredicate'
+
+@struct
+class LlamaPredicate:
+    variant: str
+
+@struct
+class LocationPredicate:
+    position: {'x': 'MinMaxBounds', 'y': 'MinMaxBounds', 'z': 'MinMaxBounds'}
+    biome: Union[str, str]
+    biomes: Union[str, list[str]]
+    feature: Union[str, str]
+    structure: str
+    structures: Union[str, list[str]]
+    dimension: str
+    light: {'light': 'MinMaxBounds'}
+    block: 'BlockPredicate'
+    fluid: 'FluidPredicate'
+    smokey: bool
+    can_see_sky: bool
+
+@struct
+class MobEffectPredicate:
+    amplifier: 'MinMaxBounds'
+    duration: 'MinMaxBounds'
+    ambient: bool
+    visible: bool
+
+@struct
 class MooshroomPredicate:
     variant: str
+
+@struct
+class MovementPredicate:
+    x: 'MinMaxBounds'
+    y: 'MinMaxBounds'
+    z: 'MinMaxBounds'
+    speed: 'MinMaxBounds'
+    horizontal_speed: 'MinMaxBounds'
+    vertical_speed: 'MinMaxBounds'
+    fall_distance: 'MinMaxBounds'
 
 @struct
 class OldEntityPredicate:
@@ -70,129 +174,13 @@ class OldEntityPredicate:
     movement_affected_by: 'LocationPredicate'
     components: 'DataComponentExactPredicate'
     predicates: 'DataComponentPredicate'
-EntityPredicate = Union['OldEntityPredicate', 'EntitySubPredicateMap']
 
 @struct
-class DistancePredicate:
-    x: 'MinMaxBounds'
-    y: 'MinMaxBounds'
-    z: 'MinMaxBounds'
-    absolute: 'MinMaxBounds'
-    horizontal: 'MinMaxBounds'
-
-@struct
-class MovementPredicate:
-    x: 'MinMaxBounds'
-    y: 'MinMaxBounds'
-    z: 'MinMaxBounds'
-    speed: 'MinMaxBounds'
-    horizontal_speed: 'MinMaxBounds'
-    vertical_speed: 'MinMaxBounds'
-    fall_distance: 'MinMaxBounds'
-
-@struct
-class FrogPredicate:
+class PaintingPredicate:
     variant: Union[str, str, list[str]]
-
-@struct
-class BoatPredicate:
-    variant: str
-ItemPredicate = Union[{'item': str, 'items': list[str], 'tag': str, 'durability': 'MinMaxBounds', 'potion': str, 'enchantments': list['EnchantmentPredicate'], 'stored_enchantments': list['EnchantmentPredicate'], 'nbt': str}, {'items': Union[str, list[str]], 'count': 'MinMaxBounds', 'components': 'DataComponentExactPredicate', 'predicates': 'DataComponentPredicate'}]
-
-@struct
-class DataComponentExactPredicate:
-    pass
-
-@struct
-class SlimePredicate:
-    size: 'MinMaxBounds'
-
-@struct
-class EntitySubPredicate:
-    type: Union[str, str]
-
-@struct
-class EntityFlagsPredicate:
-    is_on_fire: bool
-    is_sneaking: bool
-    is_sprinting: bool
-    is_swimming: bool
-    is_baby: bool
-    is_on_ground: bool
-    is_flying: bool
-    is_in_water: bool
-    is_fall_flying: bool
-
-@struct
-class LightningBoltPredicate:
-    blocks_set_on_fire: 'MinMaxBounds'
-    entity_struck: 'EntityPredicate'
-
-@struct
-class SheepPredicate:
-    sheared: bool
-    color: 'DyeColor'
-
-@struct
-class VillagerPredicate:
-    variant: str
-EntityTypePredicate = Union[str, list[str]]
-
-@struct
-class LlamaPredicate:
-    variant: str
-
-@struct
-class AxolotlPredicate:
-    variant: str
-
-@struct
-class CatPredicate:
-    variant: Union[str, str, list[str]]
-
-@struct
-class LocationPredicate:
-    position: {'x': 'MinMaxBounds', 'y': 'MinMaxBounds', 'z': 'MinMaxBounds'}
-    biome: Union[str, str]
-    biomes: Union[str, list[str]]
-    feature: Union[str, str]
-    structure: str
-    structures: Union[str, list[str]]
-    dimension: str
-    light: {'light': 'MinMaxBounds'}
-    block: 'BlockPredicate'
-    fluid: 'FluidPredicate'
-    smokey: bool
-    can_see_sky: bool
 
 @struct
 class ParrotPredicate:
-    variant: str
-
-@struct
-class WolfPredicate:
-    variant: Union[str, list[str]]
-
-@struct
-class StatisticPredicate:
-    type: str
-    stat: Any
-    value: 'MinMaxBounds'
-
-@struct
-class RaiderPredicate:
-    has_raid: bool
-    is_captain: bool
-
-@struct
-class FluidPredicate:
-    fluid: str
-    tag: str
-    fluids: Union[str, list[str]]
-    state: dict
-
-@struct
-class RabbitPredicate:
     variant: str
 
 @struct
@@ -207,37 +195,49 @@ class PlayerPredicate:
     food: {'level': 'MinMaxBounds', 'saturation': 'MinMaxBounds'}
 
 @struct
-class EnchantmentPredicate:
-    enchantment: str
-    enchantments: Union[str, list[str]]
-    levels: 'MinMaxBounds'
-
-@struct
-class FoxPredicate:
+class RabbitPredicate:
     variant: str
 
 @struct
-class FishingHookPredicate:
-    in_open_water: bool
+class RaiderPredicate:
+    has_raid: bool
+    is_captain: bool
 
 @struct
-class DataComponentPredicate:
-    pass
+class SalmonPredicate:
+    variant: str
 
 @struct
-class EntityEquipmentPredicate:
-    pass
+class SheepPredicate:
+    sheared: bool
+    color: 'DyeColor'
+
+@struct
+class SlimePredicate:
+    size: 'MinMaxBounds'
+
+@struct
+class StatisticPredicate:
+    type: str
+    stat: Any
+    value: 'MinMaxBounds'
 
 @struct
 class TropicalFishPredicate:
     variant: str
 
 @struct
-class EntityTagPredicate:
-    any_of: list[str]
-    all_of: list[str]
-    none_of: list[str]
+class VillagerPredicate:
+    variant: str
 
 @struct
-class EntitySlotsPredicate:
+class WolfPredicate:
+    variant: Union[str, list[str]]
+
+@struct
+class DataComponentExactPredicate:
+    pass
+
+@struct
+class DataComponentPredicate:
     pass
