@@ -109,7 +109,7 @@ class PlusOneOp(FlareValue):
         return BinaryOp(self, 0, "ne").__branch__(invert)
 ```
 
-> **Note on `_best_leaf`**: The base `FlareValue._best_leaf()` calls `self._alloc_temp()` by default. When operations are chained (e.g., `x + y + z`), the compiler uses `_best_leaf()` to determine what type of temporary variable to allocate for the final result. For your own lazy ops, you only need to override `_alloc_temp()` — `_best_leaf()` automatically delegates there. `BinaryOp` and `UnaryOp` handle tree traversal themselves via their own `_best_leaf` overrides.
+> **Note on `_best_leaf`**: The base `FlareValue._best_leaf()` calls `self._alloc_temp()` by default. When operations are chained (e.g., `x + y + z`), the compiler uses `_best_leaf()` to determine what type of temporary variable to allocate for the final result. For your own lazy ops, you only need to override `_alloc_temp()` and `_best_leaf()` will automatically delegate there. `BinaryOp` and `UnaryOp` handle tree traversal themselves via their own `_best_leaf` overrides.
 
 Now, `x = my_score.plus_one()` won't emit any commands until `x` is assigned to a score or evaluated!
 
@@ -134,4 +134,4 @@ class MyAngle(FlareValue):
         raise NotImplementedError()
 ```
 
-This lets `score_var += my_angle` work naturally — Flare will auto-cast `MyAngle` into a `score` via `__irset__` without you having to manually convert it at every call site. Think of it as Python's `__int__` or `__float__`, but for Flare's runtime command generation.
+This lets `score_var += my_angle` work naturally. Flare will auto-cast `MyAngle` into a `score` via `__irset__` without you having to manually convert it at every call site. Think of it as Python's `__int__` or `__float__`, but for Flare's runtime command generation.

@@ -9,7 +9,7 @@ Flare provides a full, type-safe NBT manipulation system. Every NBT path is repr
 ```python
 from flare import storage, ref
 
-# Create a typed alias to a storage path — no data is copied
+# Create a typed alias to a storage path (no data is copied)
 level = ref(storage.mypack.data.Level[int])
 level = 5
 level += 1
@@ -143,6 +143,37 @@ for char in a:
     print(char)
 ```
 
+### `.split()`
+Split a string by a delimiter into an NBT list of strings. The default delimiter is `","`. The result is a lazy operation that resolves into a list when assigned.
+
+```python
+csv = nbtstr("apple,banana,cherry,,date")
+
+# Split on the default "," delimiter
+parts = csv.split()
+# parts → ['apple', 'banana', 'cherry', '', 'date']
+# Empty segments (from consecutive delimiters) are preserved.
+
+# Split on a custom compile-time string
+words = nbtstr("one|two|three")
+word_list = words.split("|")
+
+# Split on a runtime NBT string delimiter
+sep = nbtstr(",")
+dynamic_parts = csv.split(sep)
+```
+
+**Special case with an empty delimiter:** Passing `""` splits every individual character into its own list entry:
+
+```python
+chars = nbtstr("abc")
+char_list = chars.split("")
+# char_list → ['a', 'b', 'c']
+```
+
+> [!NOTE]
+> Empty segments between consecutive delimiters (e.g. `"a,,b"` split on `","`) produce `""` entries in the list, exactly matching Python's `str.split()` with an explicit separator.
+
 ---
 
 ## NBT Sequences
@@ -206,7 +237,7 @@ if "Alice" in names:
     print("found Alice")
 ```
 
-### Struct — Typed Compound Schemas
+### Struct: Typed Compound Schemas
 
 Use `@struct` to define a typed NBT Compound with named, typed fields. This gives Flare full knowledge of the compound's shape so field access is type-checked and type-inferred automatically.
 
@@ -229,7 +260,7 @@ class Item:
 class FileType:
     id: int
     name: str
-    children: list[FileType]  # self-referential — works without quotes!
+    children: list[FileType]  # self-referential, works without quotes!
 
 # Usage: cast any NBT path to the struct type
 chest_item = ref(storage.mypack.chest.item[Item])
@@ -249,7 +280,7 @@ tree.children[0].children[0].name = "leaf"
 - Fields **must** use `:` annotation syntax (`id: int`), not `=` assignment (`id = int`).
 - Forward references (including self-references) work without quotes: `children: list[FileType]`.
 - Struct fields support all NBT types: scalars, `list[X]`, `array[X]`, `dict`, and other `@struct` classes.
-- Structs can inherit from other structs — annotations are merged from parent classes.
+- Structs can inherit from other structs; annotations are merged from parent classes.
 
 ---
 
@@ -298,7 +329,7 @@ main_hand = ref(player.Inventory[{"Slot": 0}])
 ```
 
 > [!TIP] Lazy evaluation
-> Building a path chain is free — **commands are only emitted when you read or write** to the endpoint.
+> Building a path chain is free. **Commands are only emitted when you read or write** to the endpoint.
 
 ---
 

@@ -58,7 +58,8 @@ export default defineConfig({
                     text: "Introduction",
                     items: [
                         { text: "Getting Started", link: "/guide/" },
-                        { text: "CLI Reference", link: "/guide/cli" }
+                        { text: "CLI Reference", link: "/guide/cli" },
+                        { text: "Configuration", link: "/guide/config" }
                     ]
                 },
                 {

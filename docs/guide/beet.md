@@ -14,7 +14,7 @@ pip install flaremc[beet]
 
 ## Project Layout
 
-A typical Flare + Beet project looks like this — identical to standard Beet projects:
+A typical Flare + Beet project looks like this, identical to standard Beet projects:
 
 ```text
 my_project/
@@ -82,7 +82,7 @@ captured and forwarded as CLI overrides.
 Options are resolved in this order, with later entries winning out:
 
 1. **Built-in Defaults:** (e.g., namespace derived from `beet.json`).
-2. **`flare.json`:** If present in the project root — the same file used by the standalone `flare` CLI.
+2. **`flare.json`:** If present in the project root, this is the same file used by the standalone `flare` CLI.
 3. **`meta.flare`:** Settings in `beet.json` always take precedence over `flare.json`.
 
 This hierarchy allows you to maintain a `flare.json` for solo CLI use, while layering `meta.flare` overrides strictly
@@ -149,5 +149,5 @@ example, to run Flare and immediately process the output with Lectern:
 
 ::: tip Validation speed tip
 Set `"validation": "none"` in your `meta.flare` block to skip Minecraft command schema validation. This significantly
-speeds up compile times for large projects — mimicking the `--validation=none` flag on the CLI.
+speeds up compile times for large projects, mimicking the `--validation=none` flag on the CLI.
 :::
