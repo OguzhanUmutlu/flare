@@ -6,7 +6,7 @@ titleTemplate: Programmatic Minecraft Datapacks in Python
 
 hero:
   name: Flare 🔥
-  text: Programmatic Datapacks in Python
+  text: When nothing else works. Fire a Flare.
   tagline: "Write Minecraft logic using full Python power: scores, NBT, execute chains, recursion, and more. Compile to optimized datapacks instantly."
   image:
     src: ./assets/icon_transparent.png

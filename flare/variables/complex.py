@@ -21,14 +21,14 @@ class complex(FlareValue):
     def _create_var(self, varid: str):
         return self.__icopy__(varid)
 
-    def __icopy__(self, varid: str, is_recursive: bool = False):
+    def __icopy__(self, varid: str):
         if hasattr(self.real, "__icopy__"):
-            dest_real = self.real.__icopy__(f"{varid}_r", is_recursive=is_recursive)
+            dest_real = self.real.__icopy__(f"{varid}_r")
         else:
             dest_real = self.real
 
         if hasattr(self.imag, "__icopy__"):
-            dest_imag = self.imag.__icopy__(f"{varid}_i", is_recursive=is_recursive)
+            dest_imag = self.imag.__icopy__(f"{varid}_i")
         else:
             dest_imag = self.imag
 

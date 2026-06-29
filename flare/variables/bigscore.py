@@ -406,8 +406,6 @@ class bigscore(FlareValue):
         return self.__imod__(other)
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
-        if is_recursive:
-            raise TypeError("Local variable needs a stack in recursive context, but it's a bigscore")
         if self._addr is None:
             self._objective = vars_obj
             self._name = f"{varid}"

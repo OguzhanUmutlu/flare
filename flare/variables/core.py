@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 
 class FlareValue:
     def __iset__(self, other):
@@ -363,7 +365,6 @@ class NBTSplitOp(FlareValue):
         from .nbt import nbt
         from .score import score
         from ..types import NBTType
-        import json
 
         dest[:] = []
         _id = ctx.next_temp_id()

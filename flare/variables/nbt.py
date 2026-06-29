@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import types
 import typing
 from typing import Any
 
@@ -746,6 +747,7 @@ class nbt(FlareValue):
         return store(self)
 
     def __getattr__(self, name):
+        self._check_addr()
         if name.startswith("_"):
             raise AttributeError(f"'{'NBTType'}' object has no attribute '{name}'")
         if self.is_number():
@@ -787,6 +789,7 @@ class nbt(FlareValue):
             target[:] = value
 
     def __getitem__(self, item):
+        self._check_addr()
         from .selector import ref as _ref
 
         if isinstance(item, _ref):
@@ -1035,7 +1038,6 @@ class nbt(FlareValue):
         )
         args = getattr(nbt_type, "__args__", typing.get_args(nbt_type))
 
-        import types
         is_union = origin is typing.Union or (getattr(types, "UnionType", None) and origin is types.UnionType)
         if is_union:
             class _UnionNBT(cls):

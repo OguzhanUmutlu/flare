@@ -1,6 +1,7 @@
 import builtins
 import inspect
 import json
+import sys
 
 from . import command_parser as _cp
 from .command_parser import interpolate_command
@@ -477,16 +478,20 @@ def _flare_notin(item, container):
 
 
 def _flare_assign(var_name, value, local_env, global_env, is_local=False):
+    target = None
     if is_local:
         target = local_env.get(var_name)
     else:
-        if var_name in local_env:
-            target = local_env[var_name]
-        elif var_name in global_env:
-            target = global_env[var_name]
-        else:
-            target = None
+        frame = sys._getframe(1)
+        while frame:
+            if var_name in frame.f_locals:
+                target = frame.f_locals[var_name]
+                break
+            frame = frame.f_back
 
+        if target is None:
+            if var_name in global_env:
+                target = global_env[var_name]
     if target is not None and hasattr(target, "__iset__"):
         try:
             target.__iset__(value)
@@ -498,9 +503,11 @@ def _flare_assign(var_name, value, local_env, global_env, is_local=False):
         if "is_recursive" in inspect.signature(value.__icopy__).parameters:
             result = value.__icopy__(varid=f"{_current_namespace}_{var_name}", is_recursive=_in_recursive_context)
             if _in_recursive_context and _logical_func:
-                if _logical_func not in recursive_locals:
-                    recursive_locals[_logical_func] = set()
-                recursive_locals[_logical_func].add(f"{_current_namespace}_{var_name}")
+                from .variables.nbt import nbt
+                if isinstance(result, nbt):
+                    if _logical_func not in recursive_locals:
+                        recursive_locals[_logical_func] = set()
+                    recursive_locals[_logical_func].add(f"{_current_namespace}_{var_name}")
             return result
         return value.__icopy__(varid=f"{_current_namespace}_{var_name}")
 
@@ -508,12 +515,19 @@ def _flare_assign(var_name, value, local_env, global_env, is_local=False):
 
 
 def _flare_aug_assign(var_name, op_name, value, _locals, _globals):
-    if var_name in _locals:
-        var = _locals[var_name]
-    elif var_name in _globals:
-        var = _globals[var_name]
-    else:
-        raise NameError(f"name '{var_name}' is not defined")
+    var = None
+    frame = sys._getframe(1)
+    while frame:
+        if var_name in frame.f_locals:
+            var = frame.f_locals[var_name]
+            break
+        frame = frame.f_back
+
+    if var is None:
+        if var_name in _globals:
+            var = _globals[var_name]
+        else:
+            raise NameError(f"name '{var_name}' is not defined")
 
     op_map = {"Add": "__iadd__", "Sub": "__isub__", "Mult": "__imul__", "Div": "__itruediv__", "Mod": "__imod__"}
     method_name = op_map.get(op_name)

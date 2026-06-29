@@ -61,8 +61,6 @@ class float64(FlareValue):
                 self[:] = self._value_to_set
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
-        if is_recursive:
-            raise TypeError("Local variable needs a stack in recursive context, but it's a float64")
         if self._addr is None:
             self._parse_addr(f"{varid} {vars_obj}")
             ctx.ensure_objective(vars_obj)

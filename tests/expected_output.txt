@@ -26,8 +26,8 @@ No entity was found for selector s
 4.0769999999999999
 --- Math Functions ---
 0
-0.8402000000000001
-0.5399
+0.8416
+0.5404
 10
 --- NBT Strings ---
 flare

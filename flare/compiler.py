@@ -37,10 +37,12 @@ def _compile_relational(node, invert=False):
                 start_str = str(source.start) if source.start is not None else "0"
                 stop_str = f" {source.stop}" if source.stop is not None else ""
                 return f"data modify {target} set string {addr(source.operand)} {start_str}{stop_str}"
-            elif isinstance(source, nbt):
+            if isinstance(source, nbt):
                 return f"data modify {target} set from {addr(source)}"
             elif isinstance(source, (dict, list, str, int, float, bool)):
                 return f"data modify {target} set value {json.dumps(source)}"
+            elif hasattr(source, "_addr"):
+                return f"execute store result {target} int 1 run scoreboard players get {addr(source)}"
             else:
                 raise TypeError(f"Cannot compare NBT with {type(source)}")
 

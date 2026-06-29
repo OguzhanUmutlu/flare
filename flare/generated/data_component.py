@@ -9,10 +9,14 @@ class BlockPredicate:
     block: str
     blocks: Union[str, list[str]]
     tag: str
-    state: dict
+    state: 'BlockPredicateState'
     nbt: Union[str, Any]
     components: 'DataComponentExactPredicate'
     predicates: 'DataComponentPredicate'
+
+@struct
+class BlockPredicateState:
+    pass
 
 @struct
 class TrimMaterial:

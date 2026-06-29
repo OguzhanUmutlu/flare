@@ -13,7 +13,9 @@ from .control_flow import _flare_if, _flare_while, _flare_for, _flare_not, _flar
     expand, schedule
 from .execute_modifiers import _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, \
     store, ExecuteChain, StoreExecuteChain
-from .math import round_, floor, ceil
+from .math import round_, floor, ceil, sin, cos, tan, asin, acos, atan, atan2, exp, log, ln, pow_, csc, sec, cot, acsc, \
+    asec, acot, sinh, cosh, tanh, asinh, acosh, atanh, csch, sech, coth, acsch, asech, acoth, sqrt, fastsin, fastsqrt, \
+    rsqrt, min_, max_
 from .types import NBTType, byte, boolean, short, long, double, array
 from .variables import score, nbt, fixed, tagged, ref, getscore, storage, nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, \
     nbtfloat, nbtdouble, nbtstr, nbtlist, nbtdict, nbtbytearray, nbtintarray, nbtlongarray, selector, bigscore, \
@@ -25,7 +27,9 @@ __all__ = ["round_", "floor", "ceil", "namespace", "export", "tick", "score", "n
            "selector", "_as", "at", "positioned", "aligned", "facing", "anchored", "rotated", "dimension", "applyon",
            "on", "summon", "store", "ExecuteChain", "StoreExecuteChain", "array", "bigscore", "bigfixed", "float32",
            "float64", "complex", "byte", "boolean", "short", "long", "double", "expand", "macro", "schedule", "print",
-           "style", "struct"]
+           "style", "struct", "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "exp", "log", "ln", "pow_", "csc",
+           "sec", "cot", "acsc", "asec", "acot", "sinh", "cosh", "tanh", "asinh", "acosh", "atanh", "csch", "sech",
+           "coth", "acsch", "asech", "acoth", "sqrt", "fastsin", "fastsqrt", "rsqrt", "min_", "max_"]
 
 try:
     from .beet import beet_default as beet_default  # noqa: F401

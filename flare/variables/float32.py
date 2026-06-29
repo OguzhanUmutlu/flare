@@ -51,8 +51,6 @@ class float32(FlareValue):
         return type(self)(addr=f"!f32_{next_temp_id()}")
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
-        if is_recursive:
-            raise TypeError("Local variable needs a stack in recursive context, but it's a float32")
         if self._addr is None:
             self._parse_addr(f"{varid} {vars_obj}")
             ctx.ensure_objective(vars_obj)
