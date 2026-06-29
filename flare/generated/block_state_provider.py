@@ -2,7 +2,11 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
+
+@struct
+class WeightedBlockStateProvider:
+    entries: 'NonEmptyWeightedList'
 
 @struct
 class BaseNoiseProvider:
@@ -11,42 +15,31 @@ class BaseNoiseProvider:
     scale: float
 
 @struct
-class NoiseProvider(BaseNoiseProvider):
-    states: list['BlockState']
-
-@struct
-class RuleBasedBlockStateProvider:
-    rules: list[dict]
-
-@struct
-class DualNoiseProvider(BaseNoiseProvider):
-    variety: 'Any'
-    slow_noise: 'NoiseParameters'
-    slow_scale: float
-    states: list['BlockState']
-
-@struct
-class BlockState:
-    Name: str
-    Properties: Any
+class NoiseThresholdProvider(BaseNoiseProvider):
+    threshold: float
+    high_chance: float
+    default_state: 'BlockState'
+    low_states: list['BlockState']
+    high_states: list['BlockState']
 
 @struct
 class BlockStateProvider:
     type: str
 
 @struct
-class RandomizedIntStateProvider:
-    property: str
-    values: 'Any'
-    source: 'BlockStateProvider'
+class NoiseProvider(BaseNoiseProvider):
+    states: list['BlockState']
 
 @struct
-class WeightedBlockStateProvider:
-    entries: 'Any'
+class BlockPredicate:
+    type: str
 
 @struct
-class SimpleStateProvider:
-    state: 'BlockState'
+class DualNoiseProvider(BaseNoiseProvider):
+    variety: 'InclusiveRange'
+    slow_noise: 'NoiseParameters'
+    slow_scale: float
+    states: list['BlockState']
 
 @struct
 class NoiseParameters:
@@ -54,9 +47,20 @@ class NoiseParameters:
     amplitudes: list[double]
 
 @struct
-class NoiseThresholdProvider(BaseNoiseProvider):
-    threshold: float
-    high_chance: float
-    default_state: 'BlockState'
-    low_states: list['BlockState']
-    high_states: list['BlockState']
+class RandomizedIntStateProvider:
+    property: str
+    values: 'IntProvider'
+    source: 'BlockStateProvider'
+
+@struct
+class BlockState:
+    Name: str
+    Properties: Any
+
+@struct
+class SimpleStateProvider:
+    state: 'BlockState'
+
+@struct
+class RuleBasedBlockStateProvider:
+    rules: list[{'if_true': 'BlockPredicate', 'then': 'BlockStateProvider'}]

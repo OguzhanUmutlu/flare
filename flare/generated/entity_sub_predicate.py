@@ -2,97 +2,114 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
-
-@struct
-class ParrotPredicate:
-    variant: 'Any'
+from typing import Any, Union
 
 @struct
 class HorsePredicate:
-    variant: 'Any'
-
-@struct
-class VillagerPredicate:
     variant: str
 
 @struct
-class LlamaPredicate:
-    variant: 'Any'
+class PaintingPredicate:
+    variant: Union[str, str, list[str]]
 
 @struct
-class EntityTagPredicate:
-    any_of: list[str]
-    all_of: list[str]
-    none_of: list[str]
+class EntityEffectsPredicate:
+    pass
 
 @struct
-class FishingHookPredicate:
-    in_open_water: bool
+class SalmonPredicate:
+    variant: str
 
 @struct
-class PlayerPredicate:
-    advancements: dict
-    gamemode: Any
-    level: 'Any'
-    recipes: dict
-    stats: list['StatisticPredicate']
-    looking_at: 'Any'
-    input: dict
-    food: dict
+class MobEffectPredicate:
+    amplifier: 'MinMaxBounds'
+    duration: 'MinMaxBounds'
+    ambient: bool
+    visible: bool
 
 @struct
-class FoxPredicate:
-    variant: 'Any'
+class BlockPredicate:
+    block: str
+    blocks: Union[str, list[str]]
+    tag: str
+    state: dict
+    nbt: Union[str, Any]
+    components: 'DataComponentExactPredicate'
+    predicates: 'DataComponentPredicate'
+
+@struct
+class EntitySubPredicateMap:
+    pass
+
+@struct
+class MooshroomPredicate:
+    variant: str
+
+@struct
+class OldEntityPredicate:
+    type: 'EntityTypePredicate'
+    type_specific: 'EntitySubPredicate'
+    team: str
+    nbt: Union[str, Any]
+    location: 'LocationPredicate'
+    distance: 'DistancePredicate'
+    flags: 'EntityFlagsPredicate'
+    equipment: 'EntityEquipmentPredicate'
+    player: 'PlayerPredicate'
+    vehicle: 'EntityPredicate'
+    passenger: 'EntityPredicate'
+    stepping_on: 'LocationPredicate'
+    targeted_entity: 'EntityPredicate'
+    fishing_hook: 'FishingHookPredicate'
+    lightning_bolt: 'LightningBoltPredicate'
+    catType: str
+    effects: 'EntityEffectsPredicate'
+    slots: 'EntitySlotsPredicate'
+    movement: 'MovementPredicate'
+    periodic_tick: int
+    movement_affected_by: 'LocationPredicate'
+    components: 'DataComponentExactPredicate'
+    predicates: 'DataComponentPredicate'
+EntityPredicate = Union['OldEntityPredicate', 'EntitySubPredicateMap']
+
+@struct
+class DistancePredicate:
+    x: 'MinMaxBounds'
+    y: 'MinMaxBounds'
+    z: 'MinMaxBounds'
+    absolute: 'MinMaxBounds'
+    horizontal: 'MinMaxBounds'
+
+@struct
+class MovementPredicate:
+    x: 'MinMaxBounds'
+    y: 'MinMaxBounds'
+    z: 'MinMaxBounds'
+    speed: 'MinMaxBounds'
+    horizontal_speed: 'MinMaxBounds'
+    vertical_speed: 'MinMaxBounds'
+    fall_distance: 'MinMaxBounds'
 
 @struct
 class FrogPredicate:
-    variant: Any
+    variant: Union[str, str, list[str]]
+
+@struct
+class BoatPredicate:
+    variant: str
+ItemPredicate = Union[{'item': str, 'items': list[str], 'tag': str, 'durability': 'MinMaxBounds', 'potion': str, 'enchantments': list['EnchantmentPredicate'], 'stored_enchantments': list['EnchantmentPredicate'], 'nbt': str}, {'items': Union[str, list[str]], 'count': 'MinMaxBounds', 'components': 'DataComponentExactPredicate', 'predicates': 'DataComponentPredicate'}]
 
 @struct
 class DataComponentExactPredicate:
     pass
 
 @struct
-class SheepPredicate:
-    sheared: bool
-    color: 'Any'
-
-@struct
-class BoatPredicate:
-    variant: 'Any'
-
-@struct
 class SlimePredicate:
-    size: 'Any'
+    size: 'MinMaxBounds'
 
 @struct
-class RaiderPredicate:
-    has_raid: bool
-    is_captain: bool
-
-@struct
-class TropicalFishPredicate:
-    variant: 'Any'
-
-@struct
-class LocationPredicate:
-    position: dict
-    biome: Any
-    biomes: Any
-    feature: Any
-    structure: str
-    structures: Any
-    dimension: str
-    light: dict
-    block: 'BlockPredicate'
-    fluid: 'FluidPredicate'
-    smokey: bool
-    can_see_sky: bool
-
-@struct
-class CatPredicate:
-    variant: Any
+class EntitySubPredicate:
+    type: Union[str, str]
 
 @struct
 class EntityFlagsPredicate:
@@ -107,94 +124,120 @@ class EntityFlagsPredicate:
     is_fall_flying: bool
 
 @struct
-class PaintingPredicate:
-    variant: Any
+class LightningBoltPredicate:
+    blocks_set_on_fire: 'MinMaxBounds'
+    entity_struck: 'EntityPredicate'
+
+@struct
+class SheepPredicate:
+    sheared: bool
+    color: 'DyeColor'
+
+@struct
+class VillagerPredicate:
+    variant: str
+EntityTypePredicate = Union[str, list[str]]
+
+@struct
+class LlamaPredicate:
+    variant: str
+
+@struct
+class AxolotlPredicate:
+    variant: str
+
+@struct
+class CatPredicate:
+    variant: Union[str, str, list[str]]
+
+@struct
+class LocationPredicate:
+    position: {'x': 'MinMaxBounds', 'y': 'MinMaxBounds', 'z': 'MinMaxBounds'}
+    biome: Union[str, str]
+    biomes: Union[str, list[str]]
+    feature: Union[str, str]
+    structure: str
+    structures: Union[str, list[str]]
+    dimension: str
+    light: {'light': 'MinMaxBounds'}
+    block: 'BlockPredicate'
+    fluid: 'FluidPredicate'
+    smokey: bool
+    can_see_sky: bool
+
+@struct
+class ParrotPredicate:
+    variant: str
+
+@struct
+class WolfPredicate:
+    variant: Union[str, list[str]]
+
+@struct
+class StatisticPredicate:
+    type: str
+    stat: Any
+    value: 'MinMaxBounds'
+
+@struct
+class RaiderPredicate:
+    has_raid: bool
+    is_captain: bool
+
+@struct
+class FluidPredicate:
+    fluid: str
+    tag: str
+    fluids: Union[str, list[str]]
+    state: dict
+
+@struct
+class RabbitPredicate:
+    variant: str
+
+@struct
+class PlayerPredicate:
+    advancements: dict
+    gamemode: Union[str, list[str]]
+    level: 'MinMaxBounds'
+    recipes: dict
+    stats: list['StatisticPredicate']
+    looking_at: 'EntityPredicate'
+    input: {'forward': bool, 'backward': bool, 'left': bool, 'right': bool, 'jump': bool, 'sneak': bool, 'sprint': bool}
+    food: {'level': 'MinMaxBounds', 'saturation': 'MinMaxBounds'}
+
+@struct
+class EnchantmentPredicate:
+    enchantment: str
+    enchantments: Union[str, list[str]]
+    levels: 'MinMaxBounds'
+
+@struct
+class FoxPredicate:
+    variant: str
+
+@struct
+class FishingHookPredicate:
+    in_open_water: bool
 
 @struct
 class DataComponentPredicate:
     pass
 
 @struct
-class FluidPredicate:
-    fluid: str
-    tag: str
-    fluids: Any
-    state: dict
-
-@struct
-class DistancePredicate:
-    x: 'Any'
-    y: 'Any'
-    z: 'Any'
-    absolute: 'Any'
-    horizontal: 'Any'
-
-@struct
-class SalmonPredicate:
-    variant: 'Any'
-
-@struct
-class LightningBoltPredicate:
-    blocks_set_on_fire: 'Any'
-    entity_struck: 'Any'
-
-@struct
-class RabbitPredicate:
-    variant: 'Any'
-
-@struct
-class EntitySlotsPredicate:
-    pass
-
-@struct
-class AxolotlPredicate:
-    variant: 'Any'
-
-@struct
-class WolfPredicate:
-    variant: Any
-
-@struct
 class EntityEquipmentPredicate:
     pass
 
 @struct
-class BlockPredicate:
-    block: str
-    blocks: Any
-    tag: str
-    state: dict
-    nbt: Any
-    components: 'DataComponentExactPredicate'
-    predicates: 'DataComponentPredicate'
+class TropicalFishPredicate:
+    variant: str
 
 @struct
-class EntityEffectsPredicate:
+class EntityTagPredicate:
+    any_of: list[str]
+    all_of: list[str]
+    none_of: list[str]
+
+@struct
+class EntitySlotsPredicate:
     pass
-
-@struct
-class MooshroomPredicate:
-    variant: 'Any'
-
-@struct
-class StatisticPredicate:
-    type: str
-    stat: Any
-    value: 'Any'
-
-@struct
-class MobEffectPredicate:
-    amplifier: 'Any'
-    duration: 'Any'
-    ambient: bool
-    visible: bool
-
-@struct
-class MovementPredicate:
-    x: 'Any'
-    y: 'Any'
-    z: 'Any'
-    speed: 'Any'
-    horizontal_speed: 'Any'
-    vertical_speed: 'Any'
-    fall_distance: 'Any'

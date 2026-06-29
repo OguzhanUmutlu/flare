@@ -2,11 +2,12 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
+NbtContextTarget = Union[str, str, 'BlockEntityTarget']
 
 @struct
 class ContextNbtProvider:
-    target: 'Any'
+    target: 'NbtContextTarget'
 
 @struct
 class StorageNbtProvider:

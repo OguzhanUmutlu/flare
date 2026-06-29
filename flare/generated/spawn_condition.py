@@ -2,16 +2,16 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
-
-@struct
-class BiomeCheck:
-    biomes: Any
-
-@struct
-class StructureCheck:
-    structures: Any
+from typing import Any, Union
 
 @struct
 class MoonBrightnessCheck:
-    range: 'Any'
+    range: 'MinMaxBounds'
+
+@struct
+class BiomeCheck:
+    biomes: Union[str, list[str]]
+
+@struct
+class StructureCheck:
+    structures: Union[str, list[str]]

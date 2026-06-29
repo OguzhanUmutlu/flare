@@ -2,34 +2,37 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
-
-@struct
-class EnchantmentLevelProvider:
-    amount: 'Any'
-
-@struct
-class ConstantNumberProvider:
-    value: float
-
-@struct
-class EnvironmentAttributeNumberProvider:
-    attribute: 'Any'
-
-@struct
-class SumNumberProvider:
-    summands: list['Any']
-
-@struct
-class UniformNumberProvider:
-    min: 'Any'
-    max: 'Any'
+from typing import Any, Union
 
 @struct
 class ScoreNumberProvider:
-    target: 'Any'
+    target: 'ScoreProvider'
     score: str
     scale: float
+
+@struct
+class SumNumberProvider:
+    summands: list['NumberProvider']
+
+@struct
+class EnvironmentAttributeNumberProvider:
+    attribute: str
+
+@struct
+class EnchantmentLevelProvider:
+    amount: 'LevelBasedValue'
+ScoreProvider = Union[str, {'type': str}]
+
+@struct
+class UniformNumberProvider:
+    min: 'NumberProvider'
+    max: 'NumberProvider'
+LevelBasedValue = Union[float, 'LevelBasedValueMap']
+NumberProvider = Union[float, {'type': str}]
+
+@struct
+class LevelBasedValueMap:
+    type: str
 
 @struct
 class StorageNumberProvider:
@@ -37,6 +40,10 @@ class StorageNumberProvider:
     path: str
 
 @struct
+class ConstantNumberProvider:
+    value: float
+
+@struct
 class BinomialNumberProvider:
-    n: 'Any'
-    p: 'Any'
+    n: 'NumberProvider'
+    p: 'NumberProvider'

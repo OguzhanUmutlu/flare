@@ -2,11 +2,21 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
 
 @struct
-class PotionTint:
-    default: 'Any'
+class MapColorTint:
+    default: 'RGB'
+
+@struct
+class ConstantTint:
+    value: 'RGB'
+
+@struct
+class TeamTint:
+    default: 'RGB'
+RGB = Union[int, list[float]]
+ActuallyTranslucentRGB = Union[int, list[float]]
 
 @struct
 class GrassTint:
@@ -15,25 +25,17 @@ class GrassTint:
 
 @struct
 class FireworkTint:
-    default: 'Any'
+    default: 'ActuallyTranslucentRGB'
 
 @struct
-class MapColorTint:
-    default: 'Any'
-
-@struct
-class ConstantTint:
-    value: 'Any'
+class DyeTint:
+    default: 'ActuallyTranslucentRGB'
 
 @struct
 class CustomModelDataTint:
     index: int
-    default: 'Any'
+    default: 'RGB'
 
 @struct
-class DyeTint:
-    default: 'Any'
-
-@struct
-class TeamTint:
-    default: 'Any'
+class PotionTint:
+    default: 'RGB'

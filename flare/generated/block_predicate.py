@@ -2,27 +2,7 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
-
-@struct
-class PredicateOffset:
-    offset: list[int]
-
-@struct
-class MatchingBlocksPredicate(PredicateOffset):
-    blocks: Any
-
-@struct
-class MatchingFluidsPredicate(PredicateOffset):
-    fluids: Any
-
-@struct
-class WouldSurvivePredicate(PredicateOffset):
-    state: 'BlockState'
-
-@struct
-class BlockPredicate:
-    type: str
+from typing import Any, Union
 
 @struct
 class NotPredicate:
@@ -33,8 +13,36 @@ class CombiningPredicate:
     predicates: list['BlockPredicate']
 
 @struct
+class PredicateOffset:
+    offset: list[int]
+
+@struct
 class HasSturdyFacePredicate(PredicateOffset):
-    direction: 'Any'
+    direction: str
+
+@struct
+class BlockPredicate:
+    type: str
+
+@struct
+class MatchingBiomesPredicate:
+    biomes: Union[str, list[str]]
+
+@struct
+class WouldSurvivePredicate(PredicateOffset):
+    state: 'BlockState'
+
+@struct
+class UnobstructedPredicate:
+    offset: list[int]
+
+@struct
+class MatchingBlockTagPredicate(PredicateOffset):
+    tag: str
+
+@struct
+class MatchingBlocksPredicate(PredicateOffset):
+    blocks: Union[list[str], str]
 
 @struct
 class BlockState:
@@ -46,13 +54,5 @@ class InsideWorldBoundsPredicate(PredicateOffset):
     pass
 
 @struct
-class UnobstructedPredicate:
-    offset: list[int]
-
-@struct
-class MatchingBlockTagPredicate(PredicateOffset):
-    tag: str
-
-@struct
-class MatchingBiomesPredicate:
-    biomes: Any
+class MatchingFluidsPredicate(PredicateOffset):
+    fluids: Union[list[str], str]

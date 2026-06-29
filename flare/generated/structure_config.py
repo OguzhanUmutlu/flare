@@ -2,21 +2,46 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
 
 @struct
 class OceanRuin:
-    biome_temp: 'Any'
+    biome_temp: str
     large_probability: float
     cluster_probability: float
 
 @struct
+class BuriedTreasure:
+    probability: float
+VerticalAnchor = Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}]
+
+@struct
 class NetherFossil:
-    height: 'Any'
+    height: 'HeightProvider'
+
+@struct
+class RuinedPortal:
+    portal_type: str
+    setups: list['RuinedPortalSetup']
+
+@struct
+class Shipwreck:
+    is_beached: bool
+HeightProvider = Union[{'type': str}, 'VerticalAnchor']
+
+@struct
+class PoolAlias:
+    type: str
+
+@struct
+class Mineshaft:
+    type: str
+    mineshaft_type: str
+    probability: float
 
 @struct
 class RuinedPortalSetup:
-    placement: 'Any'
+    placement: str
     air_pocket_probability: float
     mossiness: float
     overgrown: bool
@@ -26,30 +51,7 @@ class RuinedPortalSetup:
     weight: float
 
 @struct
-class BuriedTreasure:
-    probability: float
-
-@struct
-class Shipwreck:
-    is_beached: bool
-
-@struct
 class Jigsaw:
     start_pool: str
-    size: Any
+    size: Union[int, int]
     pool_aliases: list['PoolAlias']
-
-@struct
-class RuinedPortal:
-    portal_type: 'Any'
-    setups: list['RuinedPortalSetup']
-
-@struct
-class Mineshaft:
-    type: 'Any'
-    mineshaft_type: 'Any'
-    probability: float
-
-@struct
-class PoolAlias:
-    type: str

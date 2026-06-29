@@ -2,32 +2,13 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
 
 @struct
-class TestEnvironment:
-    type: str
-
-@struct
-class WeatherTestEnvironment:
-    weather: 'Any'
-
-@struct
-class TimeOfDayTestEnvironment:
-    time: int
-
-@struct
-class AllOffTestEnvironment:
-    definitions: list['TestEnvironment']
-
-@struct
-class BoolGameRule:
-    rule: str
-    value: bool
-
-@struct
-class TimelineAttributesTestEnvironment:
-    timelines: list[str]
+class GameRulesTestEnvironment:
+    bool_rules: list['BoolGameRule']
+    int_rules: list['IntGameRule']
+    rules: dict
 
 @struct
 class IntGameRule:
@@ -35,13 +16,17 @@ class IntGameRule:
     value: int
 
 @struct
-class DifficultyTestEnvironment:
-    difficulty: 'Any'
-
-@struct
 class FunctionTestEnvironment:
     setup: str
     teardown: str
+
+@struct
+class TestEnvironment:
+    type: str
+
+@struct
+class TimelineAttributesTestEnvironment:
+    timelines: list[str]
 
 @struct
 class ClockTimeTestEnvironment:
@@ -49,7 +34,22 @@ class ClockTimeTestEnvironment:
     time: int
 
 @struct
-class GameRulesTestEnvironment:
-    bool_rules: list['BoolGameRule']
-    int_rules: list['IntGameRule']
-    rules: dict
+class AllOffTestEnvironment:
+    definitions: list['TestEnvironment']
+
+@struct
+class TimeOfDayTestEnvironment:
+    time: int
+
+@struct
+class BoolGameRule:
+    rule: str
+    value: bool
+
+@struct
+class WeatherTestEnvironment:
+    weather: str
+
+@struct
+class DifficultyTestEnvironment:
+    difficulty: str

@@ -2,20 +2,21 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
 
 @struct
 class SingleProvider:
     enchantment: str
-    level: 'Any'
+    level: 'IntProvider'
 
 @struct
 class ByCostEnchantmentProvider:
-    enchantments: 'Any'
-    cost: 'Any'
+    enchantments: 'EnchantmentsType'
+    cost: 'IntProvider'
+EnchantmentsType = Union[str, list[str]]
 
 @struct
 class ByCostWithDifficultyEnchantmentProvider:
-    enchantments: 'Any'
+    enchantments: 'EnchantmentsType'
     min_cost: int
     max_cost_span: int

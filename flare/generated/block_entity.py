@@ -2,7 +2,7 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
 
 @struct
 class BlockEntity:
@@ -14,122 +14,14 @@ class BlockEntity:
     components: 'DataComponentPatch'
 
 @struct
-class PotentSulfur(BlockEntity):
-    countdown: int
-
-@struct
-class Nameable:
-    CustomName: Any
-
-@struct
-class Lockable:
-    Lock: str
-    lock: 'Any'
-
-@struct
-class ContainerBase(BlockEntity, Nameable, Lockable):
+class DecoratedPot(BlockEntity):
     LootTable: str
     LootTableSeed: long
+    item: 'ItemStack'
 
 @struct
-class Shelf(ContainerBase):
-    Items: list['Any']
-    align_items_to_bottom: bool
-
-@struct
-class CustomSpawnRules:
-    block_light_limit: 'Any'
-    sky_light_limit: 'Any'
-
-@struct
-class ReceivingEvent:
-    game_event: str
-    distance: float
-    pos: list[float]
-    source: list[int]
-    projectile_owner: list[int]
-
-@struct
-class TestInstanceBlock(BlockEntity):
-    data: dict
-    errors: list[dict]
-
-@struct
-class Jukebox(BlockEntity):
-    RecordItem: 'ItemStack'
-    ticks_since_song_started: long
-
-@struct
-class SculkCatalyst(BlockEntity):
-    cursors: list['ChargeCursor']
-
-@struct
-class Container9(ContainerBase):
-    Items: list['Any']
-
-@struct
-class Crafter(Container9):
-    crafting_ticks_remaining: int
-    disabled_slots: Any
-    triggered: Any
-
-@struct
-class MovingPiston(BlockEntity):
-    blockState: 'BlockState'
-    facing: 'Any'
-    progress: float
-    extending: bool
-    source: bool
-
-@struct
-class Jigsaw:
-    target_pool: str
-    joint: 'Any'
-    pool: str
-    name: str
-    target: str
-    final_state: str
-    attachment_type: str
-
-@struct
-class Bee:
-    min_ticks_in_hive: int
-    ticks_in_hive: int
-    entity_data: 'AnyEntity'
-
-@struct
-class Beehive(BlockEntity):
-    FlowerPos: 'FlowerPos'
-    flower_pos: Any
-    Bees: list['LegacyBee']
-    bees: list['Bee']
-
-@struct
-class Banner(BlockEntity, Nameable):
-    Patterns: list['BannerPatternLayer']
-    patterns: list['BannerPatternLayer']
-
-@struct
-class EnchantingTable(BlockEntity, Nameable):
+class DataComponentPatch:
     pass
-
-@struct
-class Spawner(BlockEntity):
-    SpawnPotentials: list['Any']
-    SpawnData: Any
-    SpawnCount: short
-    SpawnRange: short
-    Delay: short
-    MinSpawnDelay: short
-    MaxSpawnDelay: short
-    MaxNearbyEntities: short
-    RequiredPlayerRange: short
-
-@struct
-class TestBlock(BlockEntity):
-    mode: 'Any'
-    message: str
-    powered: bool
 
 @struct
 class StructureBlock(BlockEntity):
@@ -142,9 +34,9 @@ class StructureBlock(BlockEntity):
     sizeX: int
     sizeY: int
     sizeZ: int
-    rotation: 'Any'
-    mirror: 'Any'
-    mode: 'Any'
+    rotation: 'Rotation'
+    mirror: str
+    mode: str
     ignoreEntities: bool
     showboundingbox: bool
     powered: bool
@@ -154,43 +46,154 @@ class StructureBlock(BlockEntity):
     seed: long
 
 @struct
-class Conduit(BlockEntity):
-    target_uuid: 'TargetUuid'
-    Target: Any
+class ChargeCursor:
+    pos: list[int]
+    charge: int
+    decay_delay: int
+    update_delay: int
+    facings: list[str]
 
 @struct
-class Container27(ContainerBase):
-    Items: list['Any']
+class SculkSensor:
+    last_vibration_frequency: int
+    listener: 'VibrationListener'
 
 @struct
-class Campfire(BlockEntity):
-    Items: list['Any']
-    CookingTimes: Any
-    CookingTotalTimes: Any
+class TrialSpawnerConfig:
+    spawn_range: int
+    total_mobs: float
+    total_mobs_added_per_player: float
+    simultaneous_mobs: float
+    simultaneous_mobs_added_per_player: float
+    ticks_between_spawn: int
+    spawn_potentials: list['SpawnPotential']
+    loot_tables_to_eject: 'WeightedList'
+    items_to_drop_when_ominous: str
+ItemPredicate = Union[{'item': str, 'items': list[str], 'tag': str, 'durability': 'MinMaxBounds', 'potion': str, 'enchantments': list['EnchantmentPredicate'], 'stored_enchantments': list['EnchantmentPredicate'], 'nbt': str}, {'items': Union[str, list[str]], 'count': 'MinMaxBounds', 'components': 'DataComponentExactPredicate', 'predicates': 'DataComponentPredicate'}]
 
 @struct
-class BrushableBlock(BlockEntity):
+class Nameable:
+    CustomName: Union[str, 'Text']
+
+@struct
+class Lockable:
+    Lock: str
+    lock: 'ItemPredicate'
+
+@struct
+class BrewingStand(BlockEntity, Nameable, Lockable):
+    Items: list['SlottedItem']
+    BrewTime: short
+    Fuel: byte
+
+@struct
+class SculkShrieker:
+    warning_level: int
+    listener: 'VibrationListener'
+
+@struct
+class FlowerPos:
+    X: int
+    Y: int
+    Z: int
+
+@struct
+class Spawner(BlockEntity):
+    SpawnPotentials: list['SpawnPotential']
+    SpawnData: Union['AnyEntity', 'SpawnerEntry']
+    SpawnCount: short
+    SpawnRange: short
+    Delay: short
+    MinSpawnDelay: short
+    MaxSpawnDelay: short
+    MaxNearbyEntities: short
+    RequiredPlayerRange: short
+
+@struct
+class ProfilePropertyMap:
+    pass
+
+@struct
+class SculkCatalyst(BlockEntity):
+    cursors: list['ChargeCursor']
+
+@struct
+class TestBlock(BlockEntity):
+    mode: str
+    message: str
+    powered: bool
+
+@struct
+class EnchantmentPredicate:
+    enchantment: str
+    enchantments: Union[str, list[str]]
+    levels: 'MinMaxBounds'
+
+@struct
+class ContainerBase(BlockEntity, Nameable, Lockable):
     LootTable: str
     LootTableSeed: long
-    item: 'ItemStack'
-    hit_direction: 'Any'
+
+@struct
+class TargetUuid:
+    M: long
+    L: long
+
+@struct
+class CustomSpawnRules:
+    block_light_limit: 'InclusiveRange'
+    sky_light_limit: 'InclusiveRange'
+
+@struct
+class AnyEntity:
+    id: str
+BannerPatternLayer = Union[{'Color': 'DyeColorInt', 'Pattern': str}, {'color': 'DyeColor', 'pattern': Union[str, 'BannerPattern']}]
+Profile = Union[{'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], 'ProfilePropertyMap']}, {'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], list['ProfileProperty'], 'ProfilePropertyMap'], 'texture': str, 'cape': str, 'elytra': str, 'model': str}, str]
 
 @struct
 class SkullOwner:
-    Id: Any
+    Id: Union[str, Any]
     Name: str
     Properties: 'Properties'
 
 @struct
-class ChiseledBookshelf(BlockEntity):
-    Items: list['Any']
-    last_interacted_slot: int
+class TestInstanceBlock(BlockEntity):
+    data: {'test': str, 'size': Any, 'rotation': 'Rotation', 'ignore_entities': bool, 'status': str, 'error_message': 'Text'}
+    errors: list[{'pos': Any, 'text': 'Text'}]
 
 @struct
-class DecoratedPot(BlockEntity):
-    LootTable: str
-    LootTableSeed: long
-    item: 'ItemStack'
+class VibrationListener:
+    source: 'PositionSource'
+    range: int
+    event: 'ReceivingEvent'
+    event_distance: float
+    event_delay: int
+
+@struct
+class HoverEvent:
+    action: str
+
+@struct
+class Jukebox(BlockEntity):
+    RecordItem: 'ItemStack'
+    ticks_since_song_started: long
+
+@struct
+class SpawnerEntry:
+    entity: 'AnyEntity'
+    custom_spawn_rules: 'CustomSpawnRules'
+    equipment: 'SpawnEquipment'
+RGBA = Union[int, list[float]]
+
+@struct
+class Campfire(BlockEntity):
+    Items: list['SlottedItem']
+    CookingTimes: Any
+    CookingTotalTimes: Any
+
+@struct
+class Comparator(BlockEntity):
+    OutputSignal: int
 
 @struct
 class Texture:
@@ -198,24 +201,66 @@ class Texture:
     Value: str
 
 @struct
-class Vault:
-    server_data: dict
-    config: dict
-    shared_data: dict
+class BannerPattern:
+    asset_id: str
+    translation_key: str
 
 @struct
-class SpawnEquipment:
-    loot_table: str
-    slot_drop_chances: Any
+class ReceivingEvent:
+    game_event: str
+    distance: float
+    pos: list[float]
+    source: list[int]
+    projectile_owner: list[int]
 
 @struct
-class Skull(BlockEntity):
-    Owner: 'SkullOwner'
-    SkullOwner: 'SkullOwner'
-    ExtraType: str
-    note_block_sound: Any
-    profile: 'Any'
-    custom_name: Any
+class Furnace(BlockEntity, Nameable, Lockable):
+    Items: list['SlottedItem']
+    RecipesUsed: dict
+
+@struct
+class Properties:
+    textures: list['Texture']
+
+@struct
+class BaseCommandBlock:
+    Command: str
+    SuccessCount: int
+    LastOutput: Union[str, 'Text']
+    TrackOutput: bool
+    UpdateLastExecution: bool
+    LastExecution: long
+
+@struct
+class CommandBlock(BlockEntity, Nameable, BaseCommandBlock):
+    powered: bool
+    auto: bool
+    conditionMet: bool
+
+@struct
+class ChiseledBookshelf(BlockEntity):
+    Items: list['SlottedItem']
+    last_interacted_slot: int
+TextObject = Union[{'text': str, 'type': Any}, {'translate': str, 'fallback': str, 'with': list['Text'], 'type': Any}, {'score': {'objective': str, 'name': str}, 'type': Any}, {'selector': str, 'separator': 'Text', 'type': Any}, {'keybind': str, 'type': Any}, {'block': str, 'nbt': str, 'source': Any, 'type': Any}, {'entity': str, 'nbt': str, 'source': Any, 'type': Any}, {'storage': str, 'nbt': str, 'source': Any, 'type': Any}, {'atlas': str, 'sprite': str, 'object': Any, 'type': Any}, {'player': 'Profile', 'hat': bool, 'object': Any, 'type': Any}]
+
+@struct
+class ClickEvent:
+    action: str
+
+@struct
+class Lectern(BlockEntity):
+    Book: 'ItemStack'
+    Page: int
+
+@struct
+class LegacyBee:
+    MinOccupationTicks: int
+    TicksInHive: int
+    EntityData: 'AnyEntity'
+
+@struct
+class Container9(ContainerBase):
+    Items: list['SlottedItem']
 
 @struct
 class ExitPortal:
@@ -224,43 +269,99 @@ class ExitPortal:
     Z: int
 
 @struct
-class Beacon(BlockEntity, Nameable, Lockable):
-    Levels: int
-    Primary: Any
-    Secondary: Any
-    primary_effect: str
-    secondary_effect: str
+class BlockState:
+    Name: str
+    Properties: Any
+
+@struct
+class PotentSulfur(BlockEntity):
+    countdown: int
+
+@struct
+class Banner(BlockEntity, Nameable):
+    Patterns: list['BannerPatternLayer']
+    patterns: list['BannerPatternLayer']
+
+@struct
+class DataComponentExactPredicate:
+    pass
+
+@struct
+class Conduit(BlockEntity):
+    target_uuid: 'TargetUuid'
+    Target: Any
+
+@struct
+class Beehive(BlockEntity):
+    FlowerPos: 'FlowerPos'
+    flower_pos: Any
+    Bees: list['LegacyBee']
+    bees: list['Bee']
+
+@struct
+class Bee:
+    min_ticks_in_hive: int
+    ticks_in_hive: int
+    entity_data: 'AnyEntity'
+ItemStackTemplate = Union['ItemStack', str]
+
+@struct
+class CreakingHeart(BlockEntity):
+    creaking: list[int]
+Text = Union[str, 'TextObject', list['Text']]
+
+@struct
+class TextStyle:
+    color: Union[str, str]
+    shadow_color: 'RGBA'
+    font: str
+    bold: bool
+    italic: bool
+    underlined: bool
+    strikethrough: bool
+    obfuscated: bool
+    insertion: str
+    clickEvent: 'ClickEvent'
+    click_event: 'ClickEvent'
+    hoverEvent: 'HoverEvent'
+    hover_event: 'HoverEvent'
+
+@struct
+class TextBase(TextStyle):
+    extra: list['Text']
 
 @struct
 class PositionSource:
     type: str
 
 @struct
-class ChargeCursor:
-    pos: list[int]
-    charge: int
-    decay_delay: int
-    update_delay: int
-    facings: list['Any']
+class ProfileProperty:
+    name: Union[str, str]
+    value: Union[str, str]
+    signature: Union[str, str]
 
 @struct
-class SpawnerEntry:
-    entity: 'AnyEntity'
-    custom_spawn_rules: 'CustomSpawnRules'
-    equipment: 'SpawnEquipment'
+class Vault:
+    server_data: {'state_updating_resumes_at': long, 'rewarded_players': list[Any], 'items_to_eject': list['ItemStack'], 'total_ejections_needed': int}
+    config: {'key_item': 'ItemStack', 'loot_table': str, 'override_loot_table_to_display': str, 'activation_range': double, 'deactivation_range': double}
+    shared_data: {'display_item': 'ItemStack', 'connected_players': list[Any], 'connected_particles_range': double}
 
 @struct
-class CreakingHeart(BlockEntity):
-    creaking: list[int]
+class PotDecorations:
+    back: 'ItemStackTemplate'
+    left: 'ItemStackTemplate'
+    right: 'ItemStackTemplate'
+    front: 'ItemStackTemplate'
 
 @struct
-class AnyEntity:
-    id: str
+class SpawnEquipment:
+    loot_table: str
+    slot_drop_chances: Union[float, dict]
 
 @struct
 class TrialSpawner:
-    normal_config: Any
-    ominous_config: Any
+    normal_config: Union['TrialSpawnerConfig', str]
+    ominous_config: Union['TrialSpawnerConfig', str]
     required_player_range: int
     target_cooldown_length: int
     registered_players: list[list[int]]
@@ -272,23 +373,38 @@ class TrialSpawner:
     ejecting_loot_table: str
 
 @struct
-class DataComponentPatch:
-    pass
+class TextNbtBase(TextBase):
+    interpret: bool
+    plain: bool
+    separator: 'Text'
 
 @struct
-class Lectern(BlockEntity):
-    Book: 'ItemStack'
-    Page: int
+class Beacon(BlockEntity, Nameable, Lockable):
+    Levels: int
+    Primary: Union['NoneId', 'EffectId']
+    Secondary: Union['NoneId', 'EffectId']
+    primary_effect: str
+    secondary_effect: str
 
 @struct
-class BrewingStand(BlockEntity, Nameable, Lockable):
-    Items: list['Any']
-    BrewTime: short
-    Fuel: byte
+class BrushableBlock(BlockEntity):
+    LootTable: str
+    LootTableSeed: long
+    item: 'ItemStack'
+    hit_direction: int
 
 @struct
-class Properties:
-    textures: list['Texture']
+class MovingPiston(BlockEntity):
+    blockState: 'BlockState'
+    facing: int
+    progress: float
+    extending: bool
+    source: bool
+
+@struct
+class Shelf(ContainerBase):
+    Items: list['SlottedItem']
+    align_items_to_bottom: bool
 
 @struct
 class EndGateway(BlockEntity):
@@ -298,70 +414,50 @@ class EndGateway(BlockEntity):
     exit_portal: Any
 
 @struct
-class Comparator(BlockEntity):
-    OutputSignal: int
+class EnchantingTable(BlockEntity, Nameable):
+    pass
 
 @struct
-class TargetUuid:
-    M: long
-    L: long
+class Skull(BlockEntity):
+    Owner: 'SkullOwner'
+    SkullOwner: 'SkullOwner'
+    ExtraType: str
+    note_block_sound: Any
+    profile: 'Profile'
+    custom_name: Any
+NoneId = Union[Any, Any]
+
+@struct
+class ObjectTextConfig:
+    fallback: 'Text'
 
 @struct
 class Hopper(ContainerBase):
-    Items: list['Any']
+    Items: list['SlottedItem']
     TransferCooldown: int
 
 @struct
-class BlockState:
-    Name: str
-    Properties: Any
+class Crafter(Container9):
+    crafting_ticks_remaining: int
+    disabled_slots: Any
+    triggered: Union[Any, Any]
 
 @struct
-class Furnace(BlockEntity, Nameable, Lockable):
-    Items: list['Any']
-    RecipesUsed: dict
+class Jigsaw:
+    target_pool: str
+    joint: str
+    pool: str
+    name: str
+    target: str
+    final_state: str
+    attachment_type: str
+SpawnPotential = Union[{'Entity': 'AnyEntity', 'Weight': Union[int, byte]}, 'WeightedEntry']
 
 @struct
-class SculkSensor:
-    last_vibration_frequency: int
-    listener: 'VibrationListener'
+class DataComponentPredicate:
+    pass
+EffectId = Union[int, int]
 
 @struct
-class SculkShrieker:
-    warning_level: int
-    listener: 'VibrationListener'
-
-@struct
-class LegacyBee:
-    MinOccupationTicks: int
-    TicksInHive: int
-    EntityData: 'AnyEntity'
-
-@struct
-class BaseCommandBlock:
-    Command: str
-    SuccessCount: int
-    LastOutput: Any
-    TrackOutput: bool
-    UpdateLastExecution: bool
-    LastExecution: long
-
-@struct
-class VibrationListener:
-    source: 'PositionSource'
-    range: int
-    event: 'ReceivingEvent'
-    event_distance: float
-    event_delay: int
-
-@struct
-class CommandBlock(BlockEntity, Nameable, BaseCommandBlock):
-    powered: bool
-    auto: bool
-    conditionMet: bool
-
-@struct
-class FlowerPos:
-    X: int
-    Y: int
-    Z: int
+class Container27(ContainerBase):
+    Items: list['SlottedItem']

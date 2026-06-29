@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .nbt import nbt
-from ..context import runcommand
+from ..context import _runcmd
 from ..nbt_schema import ENTITY_SCHEMA
 
 
@@ -11,8 +11,8 @@ class tagged:
         self.tag_name = tag_name
 
     def __icopy__(self, varid: str):
-        runcommand(f"tag @e remove {varid}")
-        runcommand(f"tag {self._target} add {varid}")
+        _runcmd(f"tag @e remove {varid}")
+        _runcmd(f"tag {self._target} add {varid}")
         return tagged(self._target, tag_name=varid)
 
     def __iset__(self, other):
@@ -27,8 +27,8 @@ class tagged:
                 "tagged can only be set to a string selector, selector object, or another tagged object"
             )
 
-        runcommand(f"tag @e remove {self.tag_name}")
-        runcommand(f"tag {target} add {self.tag_name}")
+        _runcmd(f"tag @e remove {self.tag_name}")
+        _runcmd(f"tag {target} add {self.tag_name}")
 
     def __setitem__(self, key, value):
         if (
@@ -49,6 +49,19 @@ class tagged:
         return str(self._target)
 
 
+class _PrintableSelector:
+    def __init__(self, target_str: str, separator):
+        self._target_str = target_str
+        self.separator = separator
+
+    def __print__(self):
+        from ..print import _to_print_component
+        sep_comp = _to_print_component(self.separator, 0)
+        if len(sep_comp) == 1:
+            sep_comp = sep_comp[0]
+        return {"selector": self._target_str, "separator": sep_comp}
+
+
 class selector:
     def __init__(self, target: str):
         self._target_str = target
@@ -59,8 +72,19 @@ class selector:
     def __repr__(self):
         return f'selector("{self._target_str}")'
 
+    def __print__(self):
+        return {"selector": self._target_str}
+
+    def sep(self, separator):
+        return _PrintableSelector(self._target_str, separator)
+
     def __getattr__(self, name):
+        if name.startswith("__") and name.endswith("__"):
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
         return _SelectorAttribute(self._target_str, name)
+
+    def __getitem__(self, item):
+        return _SelectorAttribute(self._target_str, str(item))
 
     def __with__(self, body_func):
         self._as().__with__(body_func)
@@ -121,6 +145,10 @@ class selector:
     def vehicle(self):
         return self._as().applyon("vehicle")
 
+    def score(self, objective: str):
+        from .score import score
+        return score(addr=f"{self._target_str} {objective}")
+
 
 class _SelectorAttribute(nbt):
     def __init__(self, target, name):
@@ -139,9 +167,9 @@ class _SelectorAttribute(nbt):
     def __call__(self, *args):
         args_str = " ".join(str(a) for a in args)
         if args_str:
-            runcommand(f"{self._name} {self._target} {args_str}")
+            _runcmd(f"{self._name} {self._target} {args_str}")
         else:
-            runcommand(f"{self._name} {self._target}")
+            _runcmd(f"{self._name} {self._target}")
 
 
 class ref:

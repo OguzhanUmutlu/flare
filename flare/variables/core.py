@@ -257,6 +257,58 @@ class UnaryOp:
             "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
 
 
+class NBTSliceOp(ArithmeticSupported):
+    def __init__(self, operand, start, stop):
+        from ..types import NBTType
+        self.operand = operand
+        self.start = start
+        self.stop = stop
+        self._type = NBTType.String
+        self._schema_node = {"type": NBTType.String}
+        self._is_nbt_op = True
+
+    def _best_leaf(self):
+        return self.operand
+
+    def _eval_into(self, dest):
+        from ..context import _runcmd
+        start_str = str(self.start) if self.start is not None else "0"
+        stop_str = f" {self.stop}" if self.stop is not None else ""
+        _runcmd(f"data modify {addr(dest)} set string {addr(self.operand)} {start_str}{stop_str}")
+        return dest
+
+    def __branch__(self, invert=False):
+        return BinaryOp(self, 0, "ne").__branch__(invert)
+
+    def _alloc_temp(self):
+        return self.operand._alloc_temp()
+
+
+class NBTLengthOp(ArithmeticSupported):
+    def __init__(self, operand):
+        self.operand = operand
+        self._is_macro_param = False
+
+    def _best_leaf(self):
+        from .score import score
+        return score(addr="!dummy dummy")
+
+    def _eval_into(self, dest):
+        from .. import context as ctx
+        from ..context import _runcmd
+        from .score import score
+        if isinstance(dest, score):
+            _runcmd(f"execute store result score {addr(dest)} run data get {addr(self.operand)}")
+        else:
+            temp = score(addr=f"!len{ctx.next_temp_id()} {ctx.temp_obj}")
+            self._eval_into(temp)
+            dest[:] = temp
+        return dest
+
+    def __branch__(self, invert=False):
+        return BinaryOp(self, 0, "ne").__branch__(invert)
+
+
 class UnsupportedOperandError(Exception):
     def __init__(self, a, op, b):
         super().__init__(f"Unsupported operand type(s) for {op}: '{type(a).__name__}' and '{type(b).__name__}'")

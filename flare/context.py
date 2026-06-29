@@ -167,22 +167,27 @@ def namespace(name: str | None = None):
 from .validator import validate_command, FlareCommandValidationError
 
 
-def runcommand(command: str, local_vars=None, global_vars=None):
+def runcommand(command: str, local_vars=None, global_vars=None, validation: str = None):
     if local_vars is not None and global_vars is not None:
         command = interpolate_command(command, local_vars, global_vars)
         if _cp._macro_substituted and not command.startswith("$"):
             command = "$" + command
 
-    if validation_level != "none":
+    val_level = validation if validation is not None else validation_level
+    if val_level != "none":
         try:
             validate_command(command, minecraft_version)
         except FlareCommandValidationError as e:
-            if validation_level == "strict":
+            if val_level == "strict":
                 raise e
-            elif validation_level == "warning":
+            elif val_level == "warning":
                 print(f"[Flare Compiler Warning] {e}")
 
     files[current_file].append(command)
+
+
+def _runcmd(command: str):
+    runcommand(command, validation="none")
 
 
 def dbg(*args):
@@ -212,7 +217,7 @@ def _invoke_stdlib(func_name, generator, inputs=None, outputs=None, with_=None):
         with_cmd = f" with {addr(with_)}"
     elif isinstance(with_, str):
         with_cmd = f" {with_}"
-    runcommand(f"function {func_name}{with_cmd}")
+    _runcmd(f"function {func_name}{with_cmd}")
     for k, v in outputs.items():
         v[:] = std_outputs[k]
 
@@ -240,7 +245,7 @@ def _flare_print(*args, sep: str = " ", color: str | int | Color | None = None, 
     else:
         cmd_text = json.dumps(components)
 
-    runcommand(f"tellraw @a {cmd_text}")
+    _runcmd(f"tellraw @a {cmd_text}")
 
 
 def export(func=None, *, name=None, append=False, returns=None):
@@ -313,19 +318,19 @@ def export(func=None, *, name=None, append=False, returns=None):
                 if is_recursive and isinstance(target, nbt):
                     base_addr = f"storage {args_storage} {func.__name__}_{arg_name}"
                     if isinstance(arg_val, (int, float, str)):
-                        runcommand(f"data modify {base_addr} append value {json.dumps(arg_val)}")
+                        _runcmd(f"data modify {base_addr} append value {json.dumps(arg_val)}")
                     elif isinstance(arg_val, nbt):
-                        runcommand(f"data modify {base_addr} append from {addr(arg_val)}")
+                        _runcmd(f"data modify {base_addr} append from {addr(arg_val)}")
                     elif isinstance(arg_val, score):
-                        runcommand(f"data modify {base_addr} append value 0")
-                        runcommand(
+                        _runcmd(f"data modify {base_addr} append value 0")
+                        _runcmd(
                             f"execute store result {base_addr}[-1] int {1 / arg_val._multiplier} run scoreboard players get {addr(arg_val)}")
                     elif hasattr(type(arg_val), "_eval_into"):
                         global _temp_id
                         temp = nbt(addr=f"storage {temp_storage} !t{_temp_id}", datatype=target._type)
                         _temp_id += 1
                         arg_val._eval_into(temp)
-                        runcommand(f"data modify {base_addr} append from {addr(temp)}")
+                        _runcmd(f"data modify {base_addr} append from {addr(temp)}")
                 else:
                     target.__iset__(arg_val)
 
@@ -340,13 +345,13 @@ def export(func=None, *, name=None, append=False, returns=None):
                 if hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
                     temp_ret = score(addr=f"!ret{_temp_id}")
                     _temp_id += 1
-                    runcommand(
+                    _runcmd(
                         f"scoreboard players operation {addr(temp_ret)} = {func_name.replace(':', '_')}_ret {vars_obj}")
                     return temp_ret
                 else:
                     temp_ret = nbt(addr=f"storage {temp_storage} !ret{_temp_id}")
                     _temp_id += 1
-                    runcommand(
+                    _runcmd(
                         f"data modify {addr(temp_ret)} set from storage {returns_storage} {func_name.replace(':', '_')}")
                     return temp_ret
 
@@ -366,38 +371,38 @@ def export(func=None, *, name=None, append=False, returns=None):
                 all_literal = all(isinstance(v, (int, float, str, bool)) for v in macro_args.values())
                 if all_literal:
                     json_obj = {k: v for k, v in macro_args.items()}
-                    runcommand(f"function {func_name} {json.dumps(json_obj)}")
+                    _runcmd(f"function {func_name} {json.dumps(json_obj)}")
                 else:
                     storage_ns = _current_namespace
                     storage_path = f"{storage_ns}:__flare_macros__"
                     call_key = f"call_{_temp_id}"
                     _temp_id += 1
-                    runcommand(f"data modify storage {storage_path} {call_key} set value {{}}")
+                    _runcmd(f"data modify storage {storage_path} {call_key} set value {{}}")
                     for k, v in macro_args.items():
                         if isinstance(v, (int, float, str, bool)):
                             val_str = json.dumps(v)
-                            runcommand(
+                            _runcmd(
                                 f"data modify storage {storage_path} {call_key}.{k} set value {val_str}")
                         elif isinstance(v, nbt):
                             v._check_addr()
-                            runcommand(f"data modify storage {storage_path} {call_key}.{k} set from {addr(v)}")
+                            _runcmd(f"data modify storage {storage_path} {call_key}.{k} set from {addr(v)}")
                         else:
                             raise TypeError(
                                 f"Macro argument '{k}' must be a literal or NBT value, got {type(v).__name__}")
-                    runcommand(f"function {func_name} with storage {storage_path} {call_key}")
+                    _runcmd(f"function {func_name} with storage {storage_path} {call_key}")
             else:
-                runcommand(f"function {func_name}")
+                _runcmd(f"function {func_name}")
 
             if is_recursive:
                 for arg_name in bound.arguments.keys():
                     if isinstance(kwargs[arg_name], nbt):
                         base_addr = f"storage {args_storage} {func.__name__}_{arg_name}"
-                        runcommand(f"data remove {base_addr}[-1]")
+                        _runcmd(f"data remove {base_addr}[-1]")
 
                 if func_name in recursive_locals:
                     for varid in recursive_locals[func_name]:
                         base_addr = f"storage {_current_namespace}:vars {varid}"
-                        runcommand(f"data remove {base_addr}[-1]")
+                        _runcmd(f"data remove {base_addr}[-1]")
 
             return self._emit_return()
 
@@ -422,7 +427,7 @@ def export(func=None, *, name=None, append=False, returns=None):
             else:
                 raise TypeError(f"with_() source must be an nbt value, got {type(source_nbt).__name__}")
 
-            runcommand(f"function {func_name} with {with_src}")
+            _runcmd(f"function {func_name} with {with_src}")
             return self._emit_return()
 
     proxy = ProxyFunction()
@@ -575,7 +580,7 @@ def _flare_return(value):
             target = nbt(addr=f"storage {returns_storage} {func_name.replace(':', '_')}", datatype=datatype)
         target.__iset__(value)
 
-    runcommand("return 1")
+    _runcmd("return 1")
 
 
 def tick(func=None):

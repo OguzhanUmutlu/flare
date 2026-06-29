@@ -2,7 +2,49 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
+
+@struct
+class StandingSign:
+    wood_type: str
+    texture: str
+    attachement: str
+
+@struct
+class ShulkerBox:
+    texture: str
+    openness: float
+    orientation: str
+
+@struct
+class Bed:
+    texture: str
+    part: str
+
+@struct
+class HangingSign:
+    wood_type: str
+    texture: str
+    attachment: str
+
+@struct
+class Head:
+    kind: str
+    animation: float
+
+@struct
+class Banner:
+    color: 'DyeColor'
+    attachment: str
+
+@struct
+class EndCube:
+    effect: str
+
+@struct
+class CopperGolemStatue:
+    pose: str
+    texture: str
 
 @struct
 class Book:
@@ -11,49 +53,7 @@ class Book:
     page2: float
 
 @struct
-class StandingSign:
-    wood_type: 'Any'
-    texture: str
-    attachement: 'Any'
-
-@struct
-class Bed:
-    texture: str
-    part: 'Any'
-
-@struct
 class Chest:
     texture: str
     openness: float
-    chest_type: 'Any'
-
-@struct
-class Head:
-    kind: 'Any'
-    animation: float
-
-@struct
-class CopperGolemStatue:
-    pose: 'Any'
-    texture: str
-
-@struct
-class EndCube:
-    effect: 'Any'
-
-@struct
-class HangingSign:
-    wood_type: 'Any'
-    texture: str
-    attachment: 'Any'
-
-@struct
-class ShulkerBox:
-    texture: str
-    openness: float
-    orientation: 'Any'
-
-@struct
-class Banner:
-    color: 'Any'
-    attachment: 'Any'
+    chest_type: str

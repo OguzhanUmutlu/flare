@@ -4,7 +4,7 @@ from math import *
 
 from flare.context import next_temp_id
 from . import context as ctx
-from .context import push_context, runcommand, vars_obj
+from .context import push_context, _runcmd, vars_obj
 
 _orig = {"floor": math.floor, "ceil": math.ceil, "round": builtins.round, "sqrt": math.sqrt, "sin": math.sin,
          "cos": math.cos, "tan": math.tan, "asin": math.asin, "acos": math.acos, "atan": math.atan, "atan2": math.atan2,
@@ -69,7 +69,7 @@ def _dispatch(name, *args, memoize=True):
                 else:
                     in_var[:] = arg
 
-        runcommand(f"function {memo['func_path']}")
+        _runcmd(f"function {memo['func_path']}")
 
         out_var = _clone_var(memo["out_var_prototype"], memo["out_addr"])
         return out_var.__icopy__(f"!{memo_key}_res_{next_temp_id()}")

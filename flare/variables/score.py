@@ -7,7 +7,7 @@ from math import log
 
 from .core import addr, ArithmeticSupported
 from .. import context as ctx
-from ..context import runcommand, temp_obj, constant_obj, constants, vars_obj, next_temp_id
+from ..context import _runcmd, temp_obj, constant_obj, constants, vars_obj, next_temp_id
 from ..control_flow import ScoreIfScore, ScoreIfMatches
 
 INT32_LIMIT = (2 ** 31) - 1
@@ -130,16 +130,16 @@ class score(ArithmeticSupported):
             other._check_addr()
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
-            runcommand(f"scoreboard players set {addr(self)} {val}")
+            _runcmd(f"scoreboard players set {addr(self)} {val}")
             return self
         if isinstance(other, _nbt()):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot set score with non-numeric NBT")
-            runcommand(f"execute store result score {addr(self)} run data get {addr(other)}" + (
+            _runcmd(f"execute store result score {addr(self)} run data get {addr(other)}" + (
                 f" {self._multiplier}" if self._multiplier != 1.0 else ""))
             return self
         if isinstance(other, score):
-            runcommand(f"scoreboard players operation {addr(self)} = {addr(other)}")
+            _runcmd(f"scoreboard players operation {addr(self)} = {addr(other)}")
             self *= other._multiplier / self._multiplier
             return self
         return self._try_math("__iset__", "=", other, (float, int, score, _nbt()))
@@ -153,15 +153,15 @@ class score(ArithmeticSupported):
         temp = self.__icopy__(f"!math_{ctx.next_temp_id()}")
         m_addr = addr(getscore(m))
         half = m // 2
-        runcommand(f"scoreboard players add {addr(temp)} {half}")
-        runcommand(
+        _runcmd(f"scoreboard players add {addr(temp)} {half}")
+        _runcmd(
             f"execute if score {addr(temp)} matches 0.. run scoreboard players operation {addr(temp)} /= {m_addr}")
-        runcommand(
+        _runcmd(
             f"execute if score {addr(temp)} matches 0.. run scoreboard players operation {addr(temp)} *= {m_addr}")
-        runcommand(f"execute if score {addr(temp)} matches ..-1 run scoreboard players remove {addr(temp)} {m - 1}")
-        runcommand(
+        _runcmd(f"execute if score {addr(temp)} matches ..-1 run scoreboard players remove {addr(temp)} {m - 1}")
+        _runcmd(
             f"execute if score {addr(temp)} matches ..-1 run scoreboard players operation {addr(temp)} /= {m_addr}")
-        runcommand(
+        _runcmd(
             f"execute if score {addr(temp)} matches ..-1 run scoreboard players operation {addr(temp)} *= {m_addr}")
         return temp
 
@@ -171,14 +171,14 @@ class score(ArithmeticSupported):
             return self
         temp = self.__icopy__(f"!math_{ctx.next_temp_id()}")
         m_addr = addr(getscore(m))
-        runcommand(
+        _runcmd(
             f"execute if score {addr(temp)} matches 0.. run scoreboard players operation {addr(temp)} /= {m_addr}")
-        runcommand(
+        _runcmd(
             f"execute if score {addr(temp)} matches 0.. run scoreboard players operation {addr(temp)} *= {m_addr}")
-        runcommand(f"execute if score {addr(temp)} matches ..-1 run scoreboard players remove {addr(temp)} {m - 1}")
-        runcommand(
+        _runcmd(f"execute if score {addr(temp)} matches ..-1 run scoreboard players remove {addr(temp)} {m - 1}")
+        _runcmd(
             f"execute if score {addr(temp)} matches ..-1 run scoreboard players operation {addr(temp)} /= {m_addr}")
-        runcommand(
+        _runcmd(
             f"execute if score {addr(temp)} matches ..-1 run scoreboard players operation {addr(temp)} *= {m_addr}")
         return temp
 
@@ -188,14 +188,14 @@ class score(ArithmeticSupported):
             return self
         temp = self.__icopy__(f"!math_{ctx.next_temp_id()}")
         m_addr = addr(score(m))
-        runcommand(f"execute if score {addr(temp)} matches 0.. run scoreboard players add {addr(temp)} {m - 1}")
-        runcommand(
+        _runcmd(f"execute if score {addr(temp)} matches 0.. run scoreboard players add {addr(temp)} {m - 1}")
+        _runcmd(
             f"execute if score {addr(temp)} matches 0.. run scoreboard players operation {addr(temp)} /= {m_addr}")
-        runcommand(
+        _runcmd(
             f"execute if score {addr(temp)} matches 0.. run scoreboard players operation {addr(temp)} *= {m_addr}")
-        runcommand(
+        _runcmd(
             f"execute if score {addr(temp)} matches ..-1 run scoreboard players operation {addr(temp)} /= {m_addr}")
-        runcommand(
+        _runcmd(
             f"execute if score {addr(temp)} matches ..-1 run scoreboard players operation {addr(temp)} *= {m_addr}")
         return temp
 
@@ -237,12 +237,12 @@ class score(ArithmeticSupported):
 
         a = score(multiplier=self._multiplier)
 
-        runcommand(f"scoreboard players operation {addr(a)} = {addr(y_abs)}")
-        runcommand(
+        _runcmd(f"scoreboard players operation {addr(a)} = {addr(y_abs)}")
+        _runcmd(
             f"execute if score {addr(x_abs)} < {addr(y_abs)} run scoreboard players operation {addr(a)} /= {addr(y_abs)}")
-        runcommand(
+        _runcmd(
             f"execute if score {addr(x_abs)} >= {addr(y_abs)} run scoreboard players operation {addr(a)} = {addr(y_abs)}")
-        runcommand(
+        _runcmd(
             f"execute if score {addr(x_abs)} >= {addr(y_abs)} run scoreboard players operation {addr(a)} /= {addr(x_abs)}")
 
         s = a * a
@@ -259,16 +259,16 @@ class score(ArithmeticSupported):
 
         temp1 = score(multiplier=self._multiplier)
         temp1[:] = pi_2 - res
-        runcommand(
+        _runcmd(
             f"execute if score {addr(y_abs)} > {addr(x_abs)} run scoreboard players operation {addr(res)} = {temp1._addr}")
 
         temp2 = score(multiplier=self._multiplier)
         temp2[:] = pi - res
-        runcommand(
+        _runcmd(
             f"execute if score {addr(x)} matches ..-1 run scoreboard players operation {addr(res)} = {temp2._addr}")
 
         m1 = getscore(-1, multiplier=1.0)
-        runcommand(
+        _runcmd(
             f"execute if score {addr(self)} matches ..-1 run scoreboard players operation {addr(res)} *= {addr(m1)}")
 
         return res
@@ -322,24 +322,24 @@ class score(ArithmeticSupported):
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
             if val >= 0:
-                runcommand(f"scoreboard players add {addr(self)} {val}")
+                _runcmd(f"scoreboard players add {addr(self)} {val}")
             else:
-                runcommand(f"scoreboard players remove {addr(self)} {-val}")
+                _runcmd(f"scoreboard players remove {addr(self)} {-val}")
             return self
         if isinstance(other, _nbt()):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot add non-numeric NBT to score")
-            runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
+            _runcmd(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
                 f" {self._multiplier}" if self._multiplier != 1.0 else ""))
-            runcommand(f"scoreboard players operation {addr(self)} += {addr(temp)}")
+            _runcmd(f"scoreboard players operation {addr(self)} += {addr(temp)}")
             return self
         if isinstance(other, score):
             if self._multiplier == other._multiplier:
-                runcommand(f"scoreboard players operation {addr(self)} += {addr(other)}")
+                _runcmd(f"scoreboard players operation {addr(self)} += {addr(other)}")
             else:
-                runcommand(f"scoreboard players operation {addr(temp)} = {addr(other)}")
+                _runcmd(f"scoreboard players operation {addr(temp)} = {addr(other)}")
                 temp *= other._multiplier / self._multiplier
-                runcommand(f"scoreboard players operation {addr(self)} += {addr(temp)}")
+                _runcmd(f"scoreboard players operation {addr(self)} += {addr(temp)}")
             return self
         return self._try_math("__iadd__", "+=", other, (float, int, score, _nbt()))
 
@@ -351,27 +351,27 @@ class score(ArithmeticSupported):
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
             if val >= 0:
-                runcommand(f"scoreboard players remove {addr(self)} {val}")
+                _runcmd(f"scoreboard players remove {addr(self)} {val}")
             else:
-                runcommand(f"scoreboard players add {addr(self)} {-val}")
+                _runcmd(f"scoreboard players add {addr(self)} {-val}")
             return self
         if isinstance(other, _nbt()):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot subtract non-numeric NBT from score")
-            runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
+            _runcmd(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
                 f" {self._multiplier}" if self._multiplier != 1.0 else ""))
-            runcommand(f"scoreboard players operation {addr(self)} -= {addr(temp)}")
+            _runcmd(f"scoreboard players operation {addr(self)} -= {addr(temp)}")
             return self
         if isinstance(other, score):
             if self._addr == other._addr:
-                runcommand(f"scoreboard players set {addr(self)} 0")
+                _runcmd(f"scoreboard players set {addr(self)} 0")
                 return self
             if self._multiplier == other._multiplier:
-                runcommand(f"scoreboard players operation {addr(self)} -= {addr(other)}")
+                _runcmd(f"scoreboard players operation {addr(self)} -= {addr(other)}")
             else:
-                runcommand(f"scoreboard players operation {addr(temp)} = {addr(other)}")
+                _runcmd(f"scoreboard players operation {addr(temp)} = {addr(other)}")
                 temp *= other._multiplier / self._multiplier
-                runcommand(f"scoreboard players operation {addr(self)} -= {addr(temp)}")
+                _runcmd(f"scoreboard players operation {addr(self)} -= {addr(temp)}")
             return self
         return self._try_math("__isub__", "-=", other, (float, int, score, _nbt()))
 
@@ -386,18 +386,18 @@ class score(ArithmeticSupported):
             frac = Fraction(other).limit_denominator(1000000)
             n, d = frac.numerator, frac.denominator
             if n != 1:
-                runcommand(f"scoreboard players operation {addr(self)} *= {getscore(n)._addr}")
+                _runcmd(f"scoreboard players operation {addr(self)} *= {getscore(n)._addr}")
             if d != 1:
-                runcommand(f"scoreboard players operation {addr(self)} /= {getscore(d)._addr}")
+                _runcmd(f"scoreboard players operation {addr(self)} /= {getscore(d)._addr}")
             return self
         if isinstance(other, _nbt()):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot multiply score with non-numeric NBT")
-            runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}")
-            runcommand(f"scoreboard players operation {addr(self)} *= {addr(temp)}")
+            _runcmd(f"execute store result score {addr(temp)} run data get {addr(other)}")
+            _runcmd(f"scoreboard players operation {addr(self)} *= {addr(temp)}")
             return self
         if isinstance(other, score):
-            runcommand(f"scoreboard players operation {addr(self)} *= {addr(other)}")
+            _runcmd(f"scoreboard players operation {addr(self)} *= {addr(other)}")
             self *= other._multiplier
             return self
         return self._try_math("__imul__", "*=", other, (float, int, score, _nbt()))
@@ -409,7 +409,7 @@ class score(ArithmeticSupported):
             other._check_addr()
         if isinstance(other, int) or (isinstance(other, float) and other.is_integer()):
             other = int(other)
-            runcommand(f"scoreboard players operation {addr(self)} /= {getscore(other)._addr}")
+            _runcmd(f"scoreboard players operation {addr(self)} /= {getscore(other)._addr}")
             return self
         if isinstance(other, float):
             self *= 1.0 / other
@@ -417,16 +417,16 @@ class score(ArithmeticSupported):
         if isinstance(other, _nbt()):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot divide score with non-numeric NBT")
-            runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}")
-            runcommand(f"scoreboard players operation {addr(self)} /= {addr(temp)}")
+            _runcmd(f"execute store result score {addr(temp)} run data get {addr(other)}")
+            _runcmd(f"scoreboard players operation {addr(self)} /= {addr(temp)}")
             return self
         if isinstance(other, score):
             if self._addr == other._addr:
                 val = int(round(1.0 / self._multiplier))
-                runcommand(f"scoreboard players set {addr(self)} {val}")
+                _runcmd(f"scoreboard players set {addr(self)} {val}")
                 return self
             self *= 1.0 / other._multiplier
-            runcommand(f"scoreboard players operation {addr(self)} /= {addr(other)}")
+            _runcmd(f"scoreboard players operation {addr(self)} /= {addr(other)}")
             return self
         return self._try_math("__idiv__", "/=", other, (float, int, score, _nbt()))
 
@@ -437,25 +437,25 @@ class score(ArithmeticSupported):
             other._check_addr()
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
-            runcommand(f"scoreboard players operation {addr(self)} %= {getscore(val)._addr}")
+            _runcmd(f"scoreboard players operation {addr(self)} %= {getscore(val)._addr}")
             return self
         if isinstance(other, _nbt()):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot modulo score with non-numeric NBT")
-            runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
+            _runcmd(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
                 f" {self._multiplier}" if self._multiplier != 1.0 else ""))
-            runcommand(f"scoreboard players operation {addr(self)} %= {addr(temp)}")
+            _runcmd(f"scoreboard players operation {addr(self)} %= {addr(temp)}")
             return self
         if isinstance(other, score):
             if self._addr == other._addr:
-                runcommand(f"scoreboard players set {addr(self)} 0")
+                _runcmd(f"scoreboard players set {addr(self)} 0")
                 return self
             if self._multiplier == other._multiplier:
-                runcommand(f"scoreboard players operation {addr(self)} %= {addr(other)}")
+                _runcmd(f"scoreboard players operation {addr(self)} %= {addr(other)}")
             else:
-                runcommand(f"scoreboard players operation {addr(temp)} = {addr(other)}")
+                _runcmd(f"scoreboard players operation {addr(temp)} = {addr(other)}")
                 temp *= other._multiplier / self._multiplier
-                runcommand(f"scoreboard players operation {addr(self)} %= {addr(temp)}")
+                _runcmd(f"scoreboard players operation {addr(self)} %= {addr(temp)}")
             return self
         return self._try_math("__imod__", "%=", other, (float, int, score, _nbt()))
 
@@ -466,21 +466,21 @@ class score(ArithmeticSupported):
             other._check_addr()
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
-            runcommand(f"scoreboard players operation {addr(self)} > {addr(getscore(val))}")
+            _runcmd(f"scoreboard players operation {addr(self)} > {addr(getscore(val))}")
             return self
         if isinstance(other, _nbt()):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot compare score with non-numeric NBT")
-            runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
+            _runcmd(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
                 f" {self._multiplier}" if self._multiplier != 1.0 else ""))
-            runcommand(f"scoreboard players operation {addr(self)} > {addr(temp)}")
+            _runcmd(f"scoreboard players operation {addr(self)} > {addr(temp)}")
             return self
         if isinstance(other, score):
             if self._addr == other._addr:
                 return self
-            runcommand(f"scoreboard players operation {addr(temp)} = {addr(other)}")
+            _runcmd(f"scoreboard players operation {addr(temp)} = {addr(other)}")
             temp *= other._multiplier / self._multiplier
-            runcommand(f"scoreboard players operation {addr(self)} > {addr(temp)}")
+            _runcmd(f"scoreboard players operation {addr(self)} > {addr(temp)}")
             return self
         return self._try_math("__imax__", "max", other, (float, int, score, _nbt()))
 
@@ -491,21 +491,21 @@ class score(ArithmeticSupported):
             other._check_addr()
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
-            runcommand(f"scoreboard players operation {addr(self)} < {getscore(val)._addr}")
+            _runcmd(f"scoreboard players operation {addr(self)} < {getscore(val)._addr}")
             return self
         if isinstance(other, _nbt()):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot compare score with non-numeric NBT")
-            runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
+            _runcmd(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
                 f" {self._multiplier}" if self._multiplier != 1.0 else ""))
-            runcommand(f"scoreboard players operation {addr(self)} < {addr(temp)}")
+            _runcmd(f"scoreboard players operation {addr(self)} < {addr(temp)}")
             return self
         if isinstance(other, score):
             if self._addr == other._addr:
                 return self
-            runcommand(f"scoreboard players operation {addr(temp)} = {addr(other)}")
+            _runcmd(f"scoreboard players operation {addr(temp)} = {addr(other)}")
             temp *= other._multiplier / self._multiplier
-            runcommand(f"scoreboard players operation {addr(self)} < {addr(temp)}")
+            _runcmd(f"scoreboard players operation {addr(self)} < {addr(temp)}")
             return self
         return self._try_math("__imin__", "min", other, (float, int, score, _nbt()))
 
@@ -519,20 +519,20 @@ class score(ArithmeticSupported):
         if isinstance(other, _nbt()):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot swap score with non-numeric NBT")
-            runcommand(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
+            _runcmd(f"execute store result score {addr(temp)} run data get {addr(other)}" + (
                 f" {self._multiplier}" if self._multiplier != 1.0 else ""))
             datatype = other._type.name.lower() if other._type else "double"
-            runcommand(
+            _runcmd(
                 f"execute store result storage {other._target} {other._path} {datatype} {1 / self._multiplier} run scoreboard players get {addr(self)}")
-            runcommand(f"scoreboard players operation {addr(self)} = {addr(temp)}")
+            _runcmd(f"scoreboard players operation {addr(self)} = {addr(temp)}")
             return self
         if isinstance(other, score):
             if getattr(other, "objective", None) == constant_obj:
                 raise ValueError(f"Cannot swap with a constant")
             if self._multiplier == other._multiplier:
-                runcommand(f"scoreboard players operation {addr(self)} >< {addr(other)}")
+                _runcmd(f"scoreboard players operation {addr(self)} >< {addr(other)}")
             else:
-                runcommand(f"scoreboard players operation {addr(temp)} = {addr(self)}")
+                _runcmd(f"scoreboard players operation {addr(temp)} = {addr(self)}")
                 self[:] = other
                 other[:] = score(addr=temp._addr, multiplier=self._multiplier)
             return self

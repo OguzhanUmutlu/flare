@@ -98,6 +98,28 @@ def test(x: score):
 
 print(test(5))
 
+print("--- NBT Strings ---")
+s = nbtstr("flare_compiler")
+sub = nbtstr("")
+sub = s[0:5]
+print(style(sub, color="aqua", bold=True))
+
+for char in sub:
+    print(char)
+
+print("--- Structs ---")
+@struct
+class Point:
+    x: int
+    y: int
+
+p = nbt[Point]({"x": 10, "y": 20})
+p.x += 5
+print(p.x)
+
+print("--- Schedule ---")
+with schedule("1s"):
+    print(style("1 second later!", color="green"))
 hello2 = nbt[int](10)
 print(test(y))
 

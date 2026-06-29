@@ -2,7 +2,12 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
+
+@struct
+class CustomAction:
+    id: str
+    payload: Any
 
 @struct
 class OpenUrl:
@@ -15,13 +20,12 @@ class ChangePage:
     page: int
 
 @struct
-class CustomAction:
-    id: str
-    payload: Any
+class Dialog:
+    type: str
 
 @struct
 class ShowDialog:
-    dialog: Any
+    dialog: Union[str, 'Dialog']
 
 @struct
 class SuggestCommand:
@@ -29,10 +33,10 @@ class SuggestCommand:
     command: str
 
 @struct
-class CopyToClipboard:
-    value: str
+class RunCommand:
+    value: Union[str, str]
+    command: str
 
 @struct
-class RunCommand:
-    value: Any
-    command: str
+class CopyToClipboard:
+    value: str

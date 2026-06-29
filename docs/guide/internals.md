@@ -36,7 +36,7 @@ item.name = "data"  # Sets 'root.child[0].name'
 | `__icopy__` | `y = x` (first use of `y`) | Creates a new Minecraft variable for `y` and copies `x`'s value into it |
 | `__iset__` | `y = x` (existing `y`) | Updates `y`'s existing address with `x`'s value without creating a new variable. Intercepted automatically by the preprocessor! |
 
-Because Flare uses an AST preprocessor, you do **not** need to use slice notation (`y[:] = x`) to update an existing variable. `y = x` works perfectly and will not lose track of the original address.
+Because Flare uses an AST preprocessor, you do **not** need to use the slice assignment notation (`y[:] = x`) to update an existing variable. `y = x` works perfectly natively. The `[:]` assignment is strictly an internal mechanism used by the compiler internally as a substitute for normal assignment, so do not use it in your code.
 
 ## Command Memoization
 

@@ -2,12 +2,12 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
-
-@struct
-class UniformBonusFormula:
-    parameters: dict
+from typing import Any, Union
 
 @struct
 class BinomialWithBonusCountFormula:
-    parameters: dict
+    parameters: {'extra': int, 'probability': float}
+
+@struct
+class UniformBonusFormula:
+    parameters: {'bonusMultiplier': int}

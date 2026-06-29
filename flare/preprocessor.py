@@ -137,7 +137,6 @@ class FlareTransformer(ast.NodeTransformer):
         return node
 
     def visit_While(self, node):
-
         class BreakContinueVisitor(ast.NodeVisitor):
             def __init__(self):
                 self.has_break = False
@@ -202,7 +201,6 @@ class FlareTransformer(ast.NodeTransformer):
         return funcs
 
     def visit_For(self, node):
-
         class BreakContinueVisitor(ast.NodeVisitor):
             def __init__(self):
                 self.has_break = False
@@ -271,7 +269,6 @@ class FlareTransformer(ast.NodeTransformer):
         return funcs
 
     def visit_Compare(self, node):
-
         self.generic_visit(node)
         if len(node.ops) == 1:
             if isinstance(node.ops[0], ast.In):
@@ -329,7 +326,6 @@ class FlareTransformer(ast.NodeTransformer):
         return node
 
     def visit_Return(self, node):
-
         self.generic_visit(node)
 
         value = node.value if node.value is not None else ast.Constant(value=None)
@@ -344,7 +340,6 @@ class FlareTransformer(ast.NodeTransformer):
         return if_node
 
     def visit_With(self, node):
-
         self.generic_visit(node)
 
         name_body = self.gen_name()
@@ -420,7 +415,7 @@ def process_nbt_literals(source: str) -> str:
                             flare_types = [t for t in dir(flare) if not t.startswith("_")]
                             if inner in ("int", "float", "str", "bool", "list", "dict", "nbt", "score",
                                          "fixed") or inner in flare_types or inner.startswith(
-                                "list[") or inner.startswith("array["):
+                                "list[") or inner.startswith("array[") or inner.isidentifier():
                                 out.append(source[i:curr])
                                 i = curr
                                 continue
@@ -621,21 +616,39 @@ def preprocess_minecraft_commands(source: str) -> str:
                     i += 2
 
                     if i < len(tokens) and tokens[i].type == tokenize.OP and tokens[i].string == "[":
-                        bracket_count = 1
-                        selector_str += "["
-                        i += 1
-                        while i < len(tokens) and bracket_count > 0:
-                            tok2 = tokens[i]
-                            if tok2.type == tokenize.STRING:
-                                selector_str += tok2.string
-                            else:
-                                selector_str += tok2.string
-                            if tok2.type == tokenize.OP:
-                                if tok2.string == "[":
-                                    bracket_count += 1
-                                elif tok2.string == "]":
-                                    bracket_count -= 1
+                        has_selector_arg = False
+                        temp_i = i + 1
+                        temp_bracket = 1
+                        while temp_i < len(tokens) and temp_bracket > 0:
+                            t = tokens[temp_i]
+                            if t.type == tokenize.OP:
+                                if t.string in ("[", "{", "("):
+                                    temp_bracket += 1
+                                elif t.string in ("]", "}", ")"):
+                                    temp_bracket -= 1
+                                elif t.string == "=" and temp_bracket == 1:
+                                    has_selector_arg = True
+                                elif t.string == "$" and temp_i + 1 < len(tokens) and tokens[temp_i + 1].string == "(":
+                                    has_selector_arg = True
+                            temp_i += 1
+
+                        is_empty = (temp_i == i + 2)
+                        if has_selector_arg or is_empty:
+                            bracket_count = 1
+                            selector_str += "["
                             i += 1
+                            while i < len(tokens) and bracket_count > 0:
+                                tok2 = tokens[i]
+                                if tok2.type == tokenize.STRING:
+                                    selector_str += tok2.string
+                                else:
+                                    selector_str += tok2.string
+                                if tok2.type == tokenize.OP:
+                                    if tok2.string == "[":
+                                        bracket_count += 1
+                                    elif tok2.string == "]":
+                                        bracket_count -= 1
+                                i += 1
 
                     out_tokens.append((tokenize.NAME, "selector"))
                     out_tokens.append((tokenize.OP, "("))

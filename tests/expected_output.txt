@@ -29,6 +29,18 @@ No entity was found for selector s
 0.8402000000000001
 0.5399
 10
+--- NBT Strings ---
+flare
+f
+l
+a
+r
+e
+--- Structs ---
+15
+--- Schedule ---
+Scheduled pack:__flare__schedule__/sched_13 to run at tick 20
 10
 [Server] 10
 Successfully loaded datapack: dist
+1 second later!

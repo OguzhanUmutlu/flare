@@ -2,7 +2,7 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
 
 @struct
 class Directory:
@@ -10,9 +10,27 @@ class Directory:
     prefix: str
 
 @struct
+class UnstitchRegion:
+    sprite: str
+    x: double
+    y: double
+    width: double
+    height: double
+
+@struct
 class FilterPattern:
     namespace: str
     path: str
+
+@struct
+class Single:
+    resource: str
+    sprite: str
+
+@struct
+class Filter:
+    pattern: 'FilterPattern'
+PaletteTexture = Union[str, 'PaletteRef']
 
 @struct
 class Unstitch:
@@ -22,25 +40,8 @@ class Unstitch:
     regions: list['UnstitchRegion']
 
 @struct
-class Filter:
-    pattern: 'FilterPattern'
-
-@struct
 class PalettedPermutations:
     textures: list[str]
-    palette_key: 'Any'
+    palette_key: 'PaletteTexture'
     permutations: dict
     separator: str
-
-@struct
-class Single:
-    resource: str
-    sprite: str
-
-@struct
-class UnstitchRegion:
-    sprite: str
-    x: double
-    y: double
-    width: double
-    height: double

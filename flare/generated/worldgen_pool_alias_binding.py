@@ -2,16 +2,16 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
 
 @struct
 class RandomGroupPoolAlias:
-    groups: 'Any'
+    groups: 'NonEmptyWeightedList'
 
 @struct
 class RandomPoolAlias:
     alias: str
-    targets: 'Any'
+    targets: 'NonEmptyWeightedList'
 
 @struct
 class DirectPoolAlias:

@@ -2,19 +2,19 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
+
+@struct
+class ContextDimension:
+    pass
+
+@struct
+class ContextEntityType:
+    pass
 
 @struct
 class CustomModelDataStrings:
     index: int
-
-@struct
-class BlockState:
-    block_state_property: Any
-
-@struct
-class ComponentStrings:
-    component: str
 
 @struct
 class TrimMaterial:
@@ -27,21 +27,21 @@ class LocalTime:
     time_zone: str
 
 @struct
-class ContextEntityType:
+class MainHand:
     pass
+
+@struct
+class BlockState:
+    block_state_property: Any
 
 @struct
 class ChargeType:
     pass
 
 @struct
+class ComponentStrings:
+    component: str
+
+@struct
 class DisplayContext:
-    pass
-
-@struct
-class ContextDimension:
-    pass
-
-@struct
-class MainHand:
     pass

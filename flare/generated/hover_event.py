@@ -2,18 +2,74 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
+
+@struct
+class ShowEntity:
+    value: {'name': str, 'type': str, 'id': str}
+    contents: {'type': str, 'id': Union[list[int], str], 'name': 'Text'}
+Text = Union[str, 'TextObject', list['Text']]
+
+@struct
+class DataComponentPatch:
+    pass
+
+@struct
+class TextStyle:
+    color: Union[str, str]
+    shadow_color: 'RGBA'
+    font: str
+    bold: bool
+    italic: bool
+    underlined: bool
+    strikethrough: bool
+    obfuscated: bool
+    insertion: str
+    clickEvent: 'ClickEvent'
+    click_event: 'ClickEvent'
+    hoverEvent: 'HoverEvent'
+    hover_event: 'HoverEvent'
+
+@struct
+class TextBase(TextStyle):
+    extra: list['Text']
+Profile = Union[{'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], 'ProfilePropertyMap']}, {'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], list['ProfileProperty'], 'ProfilePropertyMap'], 'texture': str, 'cape': str, 'elytra': str, 'model': str}, str]
+
+@struct
+class HoverEvent:
+    action: str
+
+@struct
+class ProfileProperty:
+    name: Union[str, str]
+    value: Union[str, str]
+    signature: Union[str, str]
+
+@struct
+class ShowText:
+    value: 'Text'
+RGBA = Union[int, list[float]]
+
+@struct
+class TextNbtBase(TextBase):
+    interpret: bool
+    plain: bool
+    separator: 'Text'
+
+@struct
+class ProfilePropertyMap:
+    pass
+
+@struct
+class ObjectTextConfig:
+    fallback: 'Text'
 
 @struct
 class ShowItem(ItemStack):
     value: str
-    contents: dict
+    contents: {'id': str, 'count': int, 'tag': str, 'components': 'DataComponentPatch'}
+TextObject = Union[{'text': str, 'type': Any}, {'translate': str, 'fallback': str, 'with': list['Text'], 'type': Any}, {'score': {'objective': str, 'name': str}, 'type': Any}, {'selector': str, 'separator': 'Text', 'type': Any}, {'keybind': str, 'type': Any}, {'block': str, 'nbt': str, 'source': Any, 'type': Any}, {'entity': str, 'nbt': str, 'source': Any, 'type': Any}, {'storage': str, 'nbt': str, 'source': Any, 'type': Any}, {'atlas': str, 'sprite': str, 'object': Any, 'type': Any}, {'player': 'Profile', 'hat': bool, 'object': Any, 'type': Any}]
 
 @struct
-class ShowText:
-    value: 'Any'
-
-@struct
-class ShowEntity:
-    value: dict
-    contents: dict
+class ClickEvent:
+    action: str

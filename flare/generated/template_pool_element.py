@@ -2,26 +2,48 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
+PlacedFeatureRef = Union[str, 'PlacedFeature']
+
+@struct
+class PlacementModifier:
+    type: str
+ProcessorList = Union[list['Processor'], {'processors': list['Processor']}]
+
+@struct
+class Element:
+    element_type: str
 
 @struct
 class ElementBase:
-    projection: 'Any'
+    projection: str
+
+@struct
+class FeatureElement(ElementBase):
+    feature: Union['ConfiguredFeatureRef', 'PlacedFeatureRef']
 
 @struct
 class SingleElement(ElementBase):
     location: str
-    processors: 'Any'
-    override_liquid_settings: 'Any'
+    processors: 'ProcessorListRef'
+    override_liquid_settings: str
+ProcessorListRef = Union[str, 'ProcessorList']
+ConfiguredFeatureRef = Union[str, str, 'ConfiguredFeature']
 
 @struct
 class ListElement(ElementBase):
     elements: list['Element']
 
 @struct
-class FeatureElement(ElementBase):
-    feature: Any
+class PlacedFeature:
+    feature: 'ConfiguredFeatureRef'
+    placement: list['PlacementModifier']
 
 @struct
-class Element:
-    element_type: str
+class Processor:
+    processor_type: str
+
+@struct
+class ConfiguredFeature:
+    type: Union[str, str]
+    config: Any

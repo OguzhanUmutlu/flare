@@ -2,7 +2,7 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
 
 @struct
 class LinearPos:
@@ -13,4 +13,4 @@ class LinearPos:
 
 @struct
 class AxisAlignedLinearPos(LinearPos):
-    axis: 'Any'
+    axis: str

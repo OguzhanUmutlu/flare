@@ -42,7 +42,7 @@ class StringReader:
         while self.can_read():
             c = self.read()
             if escaped:
-                if c == quote or c == "\\":
+                if c in (quote, "\\", "n", "t", "r", "b", "f", "u"):
                     result.append(c)
                     escaped = False
                 else:

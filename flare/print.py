@@ -1,8 +1,7 @@
 import copy
 
 from flare.context import addr
-from . import context as ctx
-from .context import vars_obj, next_temp_id, runcommand, push_context, temp_storage
+from .context import vars_obj, next_temp_id, _runcmd, push_context, temp_storage
 
 _COLORS = (
     "black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray", "dark_gray", "blue",
@@ -71,18 +70,33 @@ class _PrintStyle:
             i += 1
         if not components:
             return ""
-        if isinstance(components, list):
-            if len(components) > 1:
-                return {"extra": components, **styling}
-            components = components[0]
-        if isinstance(components, str):
-            components = {"text": components}
-        return {**components, **styling}
+
+        def _flatten(lst):
+            res = []
+            for item in lst:
+                if isinstance(item, list):
+                    res.extend(_flatten(item))
+                else:
+                    res.append(item)
+            return res
+
+        flattened = []
+        for comp in _flatten(components):
+            if isinstance(comp, str):
+                comp = {"text": comp}
+            merged = {**styling}
+            merged.update(comp)
+            flattened.append(merged)
+
+        if len(flattened) == 1:
+            return flattened[0]
+        return flattened
 
 
 def _to_print_component(arg, i):
     from .variables.score import score
     from .variables.nbt import nbt
+    from . import context as ctx
 
     if isinstance(arg, _PrintStyle):
         res = arg.__print__()
@@ -92,6 +106,10 @@ def _to_print_component(arg, i):
         arg = arg.__icopy__(f"!print_{next_temp_id()}")
 
     if hasattr(arg, "__print__"):
+        if not hasattr(arg, "__icopy__"):
+            res = arg.__print__()
+            return res if isinstance(res, list) else [res]
+
         type_name = type(arg).__name__
         memo_key = f"{type_name}_print"
 
@@ -111,17 +129,28 @@ def _to_print_component(arg, i):
         memo = ctx.memoized_math[memo_key]
 
         arg.__icopy__(f"!{memo_key}_in0")
-        runcommand(f"function {memo['func_path']}")
+        _runcmd(f"function {memo['func_path']}")
 
         p = copy.deepcopy(memo["res_comps"])
         return p if isinstance(p, list) else [p]
+
+    if not isinstance(arg, (score, nbt)) and (getattr(arg, "_is_nbt_op", False) or hasattr(type(arg), "_eval_into")):
+        if hasattr(arg, "_alloc_temp"):
+            temp = arg._alloc_temp()
+        elif getattr(arg, "operand", None) and hasattr(arg.operand, "_alloc_temp"):
+            temp = arg.operand._alloc_temp()
+        else:
+            temp = score(addr=f"!print{ctx.next_temp_id()} {ctx.temp_obj}")
+
+        arg._eval_into(temp)
+        arg = temp
 
     if isinstance(arg, score):
         if arg._multiplier != 1.0:
             scale_str = f"{arg._multiplier:.15f}".rstrip("0")
             if scale_str.endswith("."):
                 scale_str += "0"
-            runcommand(
+            _runcmd(
                 f"execute store result storage {temp_storage} __flare_debug_{i} double {scale_str} run scoreboard players get {addr(arg)}")
             return [{"nbt": f"__flare_debug_{i}", "storage": str(temp_storage)}]
         else:

@@ -2,77 +2,32 @@
 from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
-from typing import Any
+from typing import Any, Union
 
 @struct
 class VibrationParticleData:
     arrival_in_ticks: int
     destination: 'SafePositionSource'
+DustColor = Union['LegacyDustColor', 'RGB']
 
 @struct
-class DustParticle:
-    value: dict
-
-@struct
-class GeyserBaseParticle:
-    water_blocks: int
-    burst_impulse_base: float
-
-@struct
-class EntityEffectParticle:
-    value: dict
-    color: 'Any'
+class ShriekParticle:
+    value: int
+    delay: int
+RGB = Union[int, list[float]]
 
 @struct
 class TintedLeavesParticle:
-    color: 'Any'
-
-@struct
-class TrailParticle:
-    target: list[double]
-    color: 'Any'
-    duration: int
+    color: 'RGBA'
 
 @struct
 class GeyserParticle:
     water_blocks: int
 
 @struct
-class EffectParticle:
-    power: float
-    color: 'Any'
-
-@struct
-class SafePositionSource:
-    type: Any
-    pos: list[int]
-
-@struct
-class VibrationParticle(VibrationParticleData):
-    value: 'VibrationParticleData'
-
-@struct
-class ItemParticle:
-    value: 'ItemStack'
-    item: Any
-
-@struct
-class DragonBreathParticle:
-    power: float
-
-@struct
-class ShriekParticle:
-    value: int
-    delay: int
-
-@struct
-class FlashParticle:
-    color: 'Any'
-
-@struct
-class BlockParticle:
-    value: 'BlockState'
-    block_state: Any
+class EntityEffectParticle:
+    value: {'r': float, 'g': float, 'b': float, 'a': float}
+    color: 'TranslucentParticle'
 
 @struct
 class BlockState:
@@ -80,10 +35,60 @@ class BlockState:
     Properties: Any
 
 @struct
-class DustColorTransitionParticle:
-    value: dict
+class DragonBreathParticle:
+    power: float
+RGBA = Union[int, list[float]]
 
 @struct
 class SculkChargeParticle:
     value: float
     roll: float
+
+@struct
+class FlashParticle:
+    color: 'TranslucentParticle'
+
+@struct
+class BlockParticle:
+    value: 'BlockState'
+    block_state: Union[str, 'BlockState']
+
+@struct
+class DustParticle:
+    value: {'r': float, 'g': float, 'b': float, 'scale': float}
+ItemStackTemplate = Union['ItemStack', str]
+
+@struct
+class EffectParticle:
+    power: float
+    color: 'RGB'
+
+@struct
+class DustColorTransitionParticle:
+    value: {'fromColor': 'DustColor', 'toColor': 'DustColor', 'scale': float}
+
+@struct
+class SafePositionSource:
+    type: Any
+    pos: list[int]
+
+@struct
+class ItemParticle:
+    value: 'ItemStack'
+    item: Union[str, 'SingleItem', 'ItemStackTemplate']
+
+@struct
+class GeyserBaseParticle:
+    water_blocks: int
+    burst_impulse_base: float
+TranslucentParticle = Union['LegacyTranslucentParticle', 'RGBA']
+
+@struct
+class TrailParticle:
+    target: list[double]
+    color: 'RGB'
+    duration: int
+
+@struct
+class VibrationParticle(VibrationParticleData):
+    value: 'VibrationParticleData'

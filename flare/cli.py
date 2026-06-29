@@ -116,8 +116,9 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         exec(compile(tree, abs_path, "exec"), global_env)
         sys.path.pop(0)
     except Exception as e:
-        print(f"Build failed: {e}")
-        traceback.print_exc()
+        print(f"\033[91mBuild failed: {e}\033[0m")
+        tb_str = traceback.format_exc()
+        print(f"\033[91m{tb_str}\033[0m")
         return False, {os.path.abspath(file_path)}, None
 
     new_modules = set(sys.modules.keys()) - old_modules
@@ -309,7 +310,8 @@ def main():
     if hasattr(args, "validation") and args.validation is not None:
         cli_overrides["validation_level"] = args.validation
         if args.validation not in ("none", "warning", "strict"):
-            print(f"Invalid validation level: {args.validation}. Must be one of 'none', 'warning', or 'strict'.")
+            print(
+                f"\033[91mInvalid validation level: {args.validation}. Must be one of 'none', 'warning', or 'strict'.\033[0m")
             sys.exit(1)
     i = 0
     while i < len(unknown_args):
@@ -344,7 +346,7 @@ def main():
                 file_path = f"{args.target}.py"
 
     if not os.path.exists(file_path) and not is_init:
-        print(f"Error: Target file {file_path} not found.")
+        print(f"\033[91mError: Target file {file_path} not found.\033[0m")
         return
 
     success, watch_files, build_dir = build_datapack(file_path, cli_overrides)
@@ -356,8 +358,8 @@ def main():
 
     if args.watch:
         if not HAS_WATCHDOG:
-            print("Error: The 'watchdog' module is required for the --watch flag.")
-            print("Install it with: pip install flaremc[cli]")
+            print("\033[91mError: The 'watchdog' module is required for the --watch flag.\033[0m")
+            print("\033[93mInstall it with: pip install flaremc[cli]\033[0m")
             return
 
         print(f"Watching for changes in {len(watch_files)} files...")

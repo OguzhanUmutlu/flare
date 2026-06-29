@@ -97,17 +97,17 @@ class ExecuteChain:
                 cmd = ctx.files[func_name][0]
                 del ctx.files[func_name]
                 if cmd.startswith("execute "):
-                    ctx.runcommand(f"{prefix} {cmd[8:]}")
+                    ctx._runcmd(f"{prefix} {cmd[8:]}")
                 else:
-                    ctx.runcommand(f"{prefix} run {cmd}")
+                    ctx._runcmd(f"{prefix} run {cmd}")
             else:
                 ctx.files[func_name].append("return 0")
                 ret_temp = score(addr=f"!ret{ctx.next_temp_id()} {ctx.temp_obj}")
                 if prefix.startswith("execute "):
-                    ctx.runcommand(f"execute store result score {addr(ret_temp)} {prefix[8:]} run function {func_name}")
+                    ctx._runcmd(f"execute store result score {addr(ret_temp)} {prefix[8:]} run function {func_name}")
                 else:
-                    ctx.runcommand(f"execute store result score {addr(ret_temp)} run function {func_name}")
-                ctx.runcommand(f"execute if score {addr(ret_temp)} matches 1 run return 1")
+                    ctx._runcmd(f"execute store result score {addr(ret_temp)} run function {func_name}")
+                ctx._runcmd(f"execute if score {addr(ret_temp)} matches 1 run return 1")
 
 
 class StoreExecuteChain(ExecuteChain):
