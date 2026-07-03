@@ -70,7 +70,7 @@ class NoiseGeneratorSettings:
     legacy_random_source: bool
     noise: 'NoiseSettings'
     noise_router: 'NoiseRouter'
-    spawn_target: list['ClimateParameters']
+    spawn_target: Union[list['ClimateParameters'], list['SpawnTargetPoint']]
     surface_rule: 'MaterialRuleRef'
     material_rule: 'MaterialRuleRef'
     structures: 'StructureSettings'
@@ -125,6 +125,10 @@ class NoiseSlideSettings:
     target: float
     size: int
     offset: int
+
+@struct
+class SpawnTargetPoint:
+    pass
 
 @struct
 class StructureSettings:

@@ -3,7 +3,7 @@ from flare.variables.nbt import struct
 from flare.types import byte, short, long, double
 from flare.basesymbols import *
 from typing import Any, Union
-VerticalAnchor = Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}]
+VerticalAnchor = Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}, {'relative_to_sea_level': int}]
 
 @struct
 class BiomeCondition:

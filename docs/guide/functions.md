@@ -57,11 +57,51 @@ def broken():          # Returns a plain Python value Flare can't map to MC
 - If it returns a `score` / `nbt` → detected automatically.
 - If it returns something Flare can't recognize → `TypeError`.
 
+### `return fail`
+
+You can use the `fail` pseudo-variable to execute Minecraft's `return fail` command:
+
+```python
+from flare import export, fail, score
+
+@export
+def process_data(value: score):
+    if value < 0:
+        return fail
+    
+    say Data was valid!
+```
+
+## Game Loop Integrations (`@tick` and `@load`)
+
+Flare provides specialized decorators for automatically hooking your functions into Minecraft's execution loop.
+
+- `@tick`: Operates identically to `@export`, but automatically registers the generated function to the `#minecraft:tick` function tag, causing it to run 20 times a second.
+- `@load`: Operates identically to `@export`, but automatically registers the generated function to the `#minecraft:load` function tag, causing it to run when the datapack is reloaded or the world is loaded.
+
+```python
+from flare import tick, load, score
+
+my_global = score("my_global")
+
+@load(name="startup")
+def init():
+    # Runs when /reload is executed
+    my_global = 0
+
+@tick
+def loop():
+    # Runs 20 times a second
+    my_global += 1
+```
+
+> **Note**: Just like `@export`, these decorators also accept `name` keyword arguments to customize the generated function file name.
+
 ## Recursion & NBT Stacks
 
 Flare features a fully-fledged **Static Call Graph Analyzer** that automatically detects if your function is recursive.
 
-If a function calls itself (or is part of a mutually recursive loop), Flare **automatically allocates** all arguments and local variables to an **NBT Stack** (`storage flare:args` and `storage flare:vars`) instead of static addresses, enabling deep recursion without variable pollution.
+If a function calls itself (or is part of a mutually recursive loop), Flare **automatically allocates** all arguments and local variables to an **NBT Stack** (`storage flare:args` and `storage flare:vars`) instead of static addresses, enabling deep recursion without variable pollution. When your function enters scope, Flare pushes empty compounds onto the stack, and when it returns, the preprocessor uses RAII hooks to deterministically `pop()` them off the stack.
 
 ::: warning Recursive functions must use `nbt` types
 Because scoreboard objectives cannot be stacked, all arguments and local variables in a recursive function **must be typed as `nbt`**. You cannot use `score` inside a recursive function's local scope.
@@ -76,6 +116,57 @@ def factorial(n: nbt[int]) -> nbt[int]:
     if n <= 1:
         return 1
     return n * factorial(n - 1)
+```
+
+### Bypassing Auto-Stack (`@nostack`)
+
+Sometimes you may want to build a recursive structure, but you **know** that you don't need stack allocation (for example, if you are doing simple tail-call loops and don't care about memory clobbering, or if you're building a state machine).
+
+You can bypass the Static Call Graph Analyzer by wrapping your function in `@nostack`:
+
+```python
+from flare import export, nostack, score
+
+@nostack
+@export
+def countdown(n: score):
+    if n <= 0:
+        return
+    say Counting down!
+    n -= 1
+    countdown(n)
+```
+Because of `@nostack`, Flare won't push or pop any recursion frames, avoiding overhead!
+
+### Manual Stack Variables (`stack`)
+
+Flare exposes a `stack` wrapper for NBT types, allowing you to manually instantiate stack-allocated variables that operate exactly like C++ RAII (Resource Acquisition Is Initialization).
+
+When you instantiate a `stack`, you **must** provide an initializer value. The value is immediately pushed to the end of the stack array. `stack[T]` behaves identically to `nbt[T]`, meaning it automatically targets `[-1]` of its address. Because it's tied to the scope of your function (or block), Flare will automatically inject teardown logic to pop the element from the stack as soon as the scope finishes!
+
+```python
+from flare import export
+from flare.variables.nbt import stack
+
+@export
+def complex_work():
+    # Pushes '10' to the my_list stack
+    my_list = stack[int](10, addr="storage my_pack:stack my_list")
+    
+    # You can interact with it just like a normal nbt[int]!
+    # Assigning to it overwrites the top of the stack:
+    my_list = 20
+    my_list += 30
+    
+    # my_list evaluates to [-1], so it points to 50!
+    
+    if True:
+        # Inner scopes have their own RAII bindings
+        inner = stack[str]("hello", addr="storage my_pack:stack inner_list")
+        inner = "world"
+        # When this 'if' block ends, Flare automatically pops inner_list[-1]!
+        
+    # When complex_work() ends, Flare automatically pops my_list[-1]!
 ```
 
 ## Minecraft Function Macros
@@ -209,3 +300,90 @@ with schedule("20t", append=True) as timer:
 ::: tip
 Scheduled functions are placed under `__flare__schedule__/` in your datapack. They behave like any other exported function and can call other exported functions, use scores, NBT, etc.
 :::
+
+## Lazy Evaluation (`@lazify`)
+
+For complex compiler-side operations (like math functions or string manipulations) that should only allocate temporary NBT or Scoreboard variables when their results are actually used, you can use the `@lazify` decorator.
+
+When a function is wrapped in `@lazify`, it defers execution and returns a `LazyOp` object. The operation is only emitted if the value is assigned to a variable, used in an arithmetic operation, or printed. This prevents generating unnecessary commands when the return value is discarded.
+
+### Basic Usage
+
+You can use `@lazify` on normal Python functions by passing a `FlareValue` type (like `nbt[str]`) to use as the constructor for its temporary variables.
+
+```python
+from flare.variables.core import lazify
+from flare import nbt
+
+# Pass a specific type like nbt[str] to allocate the temporary as that type
+@lazify(self=nbt[str])
+def typed_standalone_op(*, dest=None):
+    # This function body is the eval_fn!
+    # It's only called when the value needs to be computed.
+    # The target storage address is passed as 'dest'
+    dest = "typed hello"
+    return dest
+
+# The function can be called normally and will lazily evaluate:
+x = typed_standalone_op()
+```
+
+> **Note**: `@lazify` can also be used directly on methods of custom `FlareValue` classes (automatically extracting `self`). See the [Internals](internals.md#the-_lazify-helper) documentation for more advanced use-cases.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `temp` | `str\|callable` | `"!temp"` | The prefix for the temporary variable. Can also be a callable that returns a `FlareValue`. |
+| `datatype` | `NBTType` | `None` | The specific NBT type (e.g. `NBTType.String`) to enforce on the temporary output object. |
+| `self` | `bool\|type` | `True` | If `True`, expects the first argument to be `self`. If `False`, treats as a standalone function. If a `FlareValue` subclass, uses that class to construct temporary variables. |
+| `copy` | `callable` | `None` | Optional custom copy handler `lambda varid: ...` for duplicating the variable. |
+
+### Signature Requirements
+
+Methods or functions decorated with `@lazify` **must** accept a keyword-only argument `*, dest=None`. The `dest` argument represents the pre-allocated location where the result should be stored, allowing Flare to optimize out intermediate temporary variables.
+
+## Built-in Python Functions
+
+Flare overrides several of Python's built-in global functions to seamlessly interact with Flare values (like `score` and `nbt` variables) in a lazy, optimized manner. When you use these functions on a `FlareValue`, they are transpiled into Minecraft commands; if you use them on a normal Python value, they fall back to their standard behavior!
+
+### `len()`
+Returns the length of a sequence or string. For NBT strings or lists, this evaluates dynamically at runtime in Minecraft.
+
+```python
+from flare import nbtstr
+
+name = nbtstr("flare")
+length = len(name) # Stored dynamically in a scoreboard objective
+```
+
+### `ord()`
+Returns the ASCII integer value of a given character.
+
+```python
+from flare import nbtstr
+
+char = nbtstr("A")
+ascii_val = ord(char) # ascii_val dynamically becomes 65
+```
+
+### `bin()`
+Converts an integer score into its binary string representation.
+
+```python
+from flare import score
+
+my_num = score(5)
+binary_str = bin(my_num) # binary_str dynamically becomes "101"
+```
+
+### `range()`
+Creates an iterable sequence of integers. If any argument passed to `range()` is a dynamic `score` or `nbt` value, Flare transpiles the `for` loop into a Minecraft `while` loop that iterates at runtime based on the scoreboard value!
+
+```python
+from flare import score
+
+limit = score(10)
+for i in range(limit):
+    say Looping dynamically!
+```

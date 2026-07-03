@@ -29,6 +29,14 @@ dbg(c)
 if 5 in myarray:
     print("5 is in myarray")
 
+myscore = score(2)
+if myscore in (1, 2, 3):
+    print("myscore is in tuple")
+
+mynbt = nbt("b")
+if mynbt in ("a", "b", "c"):
+    print("mynbt is in tuple")
+
 @export
 def factorial(n: nbt[int]) -> nbt[int]:
     if n <= 1:

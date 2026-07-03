@@ -5,7 +5,6 @@ from typing import Union, Any
 import flare
 from . import context as ctx
 from .variables.core import addr
-from .variables.nbt import nbt
 from .variables.selector import selector
 
 
@@ -64,15 +63,29 @@ class ExecuteChain:
     def summon(self, entity: str) -> ExecuteChain:
         return self._add(f"summon {entity}")
 
-    def store(self, target: Union["flare.variables.score", nbt, str]) -> ExecuteChain:
+    def store(self, target: Union["flare.variables.score", "flare.variables.nbt", str]) -> ExecuteChain:
+        from .variables.nbt import nbt
         from .variables.score import score
+
         if isinstance(target, score):
             target._check_addr()
             return self._add(f"store result score {addr(target)}")
         elif isinstance(target, nbt):
             target._check_addr()
-            return StoreExecuteChain(self.fragments.copy(), target)
+            return StoreExecuteChain(self.fragments.copy(), target, is_success=False)
         return self._add(f"store result {target}")
+
+    def store_success(self, target: Union["flare.variables.score", "flare.variables.nbt", str]) -> ExecuteChain:
+        from .variables.nbt import nbt
+        from .variables.score import score
+
+        if isinstance(target, score):
+            target._check_addr()
+            return self._add(f"store success score {addr(target)}")
+        elif isinstance(target, nbt):
+            target._check_addr()
+            return StoreExecuteChain(self.fragments.copy(), target, is_success=True)
+        return self._add(f"store success {target}")
 
     def __str__(self):
         return " ".join(self.fragments)
@@ -108,19 +121,42 @@ class ExecuteChain:
                     ctx._runcmd(f"execute store result score {addr(ret_temp)} run function {func_name}")
                 ctx._runcmd(f"execute if score {addr(ret_temp)} matches 1 run return 1")
 
+    def then(self, s):
+        commands = []
+        file_len = len(ctx.files[ctx.current_file])
+
+        if callable(s):
+            s()
+        elif isinstance(s, list):
+            for func in s:
+                if callable(func):
+                    func()
+
+        commands.extend(ctx.files[ctx.current_file][file_len:])
+        ctx.files[ctx.current_file] = ctx.files[ctx.current_file][:file_len]
+
+        prefix = " ".join(self.fragments)
+        for cmd in commands:
+            if cmd.startswith("execute "):
+                ctx._runcmd(f"{prefix} {cmd[8:]}")
+            else:
+                ctx._runcmd(f"{prefix} run {cmd}")
+
 
 class StoreExecuteChain(ExecuteChain):
-    def __init__(self, fragments: list[str], target: nbt):
+    def __init__(self, fragments: list[str], target: "flare.variables.nbt", is_success: bool = False):
         super().__init__("")
         self.fragments = fragments
         self._target = target
-        self._datatype = target._type.name.lower() if target._type else "double"
+        self._datatype = target._type_name.lower() if target._type else "double"
         self._multiplier = 1.0
+        self._is_success = is_success
         self._update_frag()
 
     def _update_frag(self):
-        frag = f"store result storage {self._target.target} {self._target.path} {self._datatype} {self._multiplier}"
-        if self.fragments and self.fragments[-1].startswith("store result "):
+        store_type = "success" if self._is_success else "result"
+        frag = f"store {store_type} storage {self._target._target} {self._target._path} {self._datatype} {self._multiplier}"
+        if self.fragments and self.fragments[-1].startswith("store "):
             self.fragments[-1] = frag
         else:
             self.fragments.append(frag)
@@ -189,5 +225,5 @@ def summon(entity: str) -> ExecuteChain:
     return ExecuteChain().summon(entity)
 
 
-def store(target: Union["flare.variables.score", nbt, str]) -> ExecuteChain:
+def store(target: Union["flare.variables.score", "flare.variables.nbt", str]) -> ExecuteChain:
     return ExecuteChain().store(target)

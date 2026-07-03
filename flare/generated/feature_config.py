@@ -31,8 +31,15 @@ class BlockPlacer:
 
 @struct
 class ColumnsConfig:
+    block: 'BlockStateProvider'
+    can_replace: 'BlockPredicate'
+    continue_through: 'BlockPredicate'
+    cannot_place_on: Union[str, list[str]]
     reach: Union['UniformInt', 'IntProvider']
+    column_reach: 'IntProvider'
+    column_count: 'IntProvider'
     height: Union['UniformInt', 'IntProvider']
+    cluster_reach: 'IntProvider'
 
 @struct
 class ConfiguredFeature:
@@ -233,13 +240,33 @@ class OreConfig(TargetBlock):
     discard_chance_on_air_exposure: float
 
 @struct
+class OverlayConfig:
+    features: Union[list['PlacedFeatureRef'], str]
+
+@struct
 class ProbabilityConfig:
     probability: float
+
+@struct
+class ProjectedSquareConfig:
+    block: 'BlockStateProvider'
+    project_through: 'BlockPredicate'
+    size: 'IntProvider'
+    max_projection_height: int
 
 @struct
 class RandomBooleanSelector:
     feature_false: 'FeatureRef'
     feature_true: 'FeatureRef'
+
+@struct
+class RandomNeighborSpreadConfig:
+    block: 'BlockStateProvider'
+    accepted_neighbors: Union[str, list[str]]
+    can_replace: 'BlockPredicate'
+    attempts: 'IntProvider'
+    xy_offset: 'IntProvider'
+    y_offset: 'IntProvider'
 
 @struct
 class RandomPatchConfig:
@@ -302,6 +329,14 @@ class SimpleBlockConfig:
 @struct
 class SimpleRandomSelectorConfig:
     features: Union[list['FeatureRef'], str]
+
+@struct
+class SingleBlockPillarConfig:
+    block: 'BlockStateProvider'
+    can_replace: 'BlockPredicate'
+    direction: str
+    chance_to_continue: float
+    cap_feature: 'PlacedFeatureRef'
 
 @struct
 class SmallDripstoneConfig:

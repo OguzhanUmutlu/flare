@@ -20,7 +20,7 @@ class ConstantHeightProvider:
 @struct
 class TrapezoidHeightProvider(UniformHeightProvider):
     plateau: int
-VerticalAnchor = Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}]
+VerticalAnchor = Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}, {'relative_to_sea_level': int}]
 
 @struct
 class WeightListHeightProvider:

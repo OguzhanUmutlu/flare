@@ -9,7 +9,7 @@ def get_schema(minecraft_version: str) -> dict:
     if minecraft_version in _memory_cache:
         return _memory_cache[minecraft_version]
 
-    cache_dir = Path.home() / ".flare" / "cache"
+    cache_dir = Path.home() / ".flare" / "commands"
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_path = cache_dir / f"commands_{minecraft_version}.json"
 

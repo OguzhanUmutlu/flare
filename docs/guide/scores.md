@@ -79,4 +79,22 @@ y = score(20)
 y = x
 ```
 
-You do **not** need to use slice notation (`y[:] = x`) or manually manage addresses when updating a variable.
+You do **not** need to use slice notation or manually manage addresses when updating a variable.
+
+## Manual Objective Management (`Objective`)
+
+If you want to explicitly declare a scoreboard objective in your code (perhaps with a specific display name or type other than `dummy`), you can use the `Objective` class:
+
+```python
+from flare import Objective, selector
+
+# Emits: scoreboard objectives add my_obj dummy {"text": "My Obj"}
+# Automatically prevents the compiler from emitting an internal 'dummy' objective of the same name.
+my_obj = Objective("my_obj", type="dummy", display='{"text": "My Obj"}')
+
+# You can access scores on this objective using standard Python indexing:
+my_score = my_obj[selector("@s")]
+named_score = my_obj["my_fake_player"]
+
+my_score += 10
+```

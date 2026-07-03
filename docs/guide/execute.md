@@ -65,6 +65,17 @@ with y.store().datatype(double).multiplier(0.02):
     say Storing into y with custom datatype and multiplier!
 ```
 
+You can also store the **success** of an operation (rather than its result) using `.success()` on any `score` or `nbt` variable:
+
+```python
+from flare import score
+success_score = score()
+
+# store success score ...
+with success_score.success():
+    say("This command will run, and its success (1 or 0) will be stored in success_score")
+```
+
 ## Selector Proxy & Terminal Commands
 
 Call arbitrary Minecraft commands directly on any selector as a method:

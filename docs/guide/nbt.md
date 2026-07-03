@@ -1,6 +1,7 @@
 # NBT Variables
 
-Flare provides a full, type-safe NBT manipulation system. Every NBT path is represented as an `nbt` object, and Flare tracks the datatype so it can emit the correct commands automatically.
+Flare provides a full, type-safe NBT manipulation system. Every NBT path is represented as an `nbt` object, and Flare
+tracks the datatype so it can emit the correct commands automatically.
 
 ## Declaring NBT Variables
 
@@ -23,7 +24,8 @@ level = storage.mypack.data.Level[int]
 ```
 
 > [!WARNING]
-> Use `ref()` when you only want a shorthand for an existing path. Without `ref()`, Flare emits a `data modify ... set from ...` command, creating a new copy.
+> Use `ref()` when you only want a shorthand for an existing path. Without `ref()`, Flare emits a
+`data modify ... set from ...` command, creating a new copy.
 
 ## NBT Type System
 
@@ -44,7 +46,7 @@ level = storage.mypack.data.Level[int]
 
 | Annotation         | Shorthand      | Minecraft type         |
 |--------------------|----------------|------------------------|
-| `nbt[dict]`        | `nbtdict`      | Compound `{}`          |
+| `nbt[dict]`        | `nbtcompound`  | Compound `{}`          |
 | `nbt[list]`        | `nbtlist`      | List `[]` (untyped)    |
 | `nbt[list[int]]`   | —              | List of ints           |
 | `nbt[array[int]]`  | `nbtintarray`  | Int array `[I;1,2,3]`  |
@@ -52,14 +54,15 @@ level = storage.mypack.data.Level[int]
 | `nbt[array[long]]` | `nbtlongarray` | Long array `[L;1,2,3]` |
 
 > [!IMPORTANT]
-> `list[int]` and `array[int]` are **different** NBT types. `list[int]` is a regular NBT List; `array[int]` is a packed `[I;...]` Int Array. Use `array[X]` for typed arrays and `list[X]` for typed lists.
+> `list[int]` and `array[int]` are **different** NBT types. `list[int]` is a regular NBT List; `array[int]` is a packed
+`[I;...]` Int Array. Use `array[X]` for typed arrays and `list[X]` for typed lists.
 
 ### Type shorthands
 
 You can import the pre-built typed classes directly to avoid writing `nbt[int]` everywhere:
 
 ```python
-from flare import nbtint, nbtstr, nbtlist, nbtdict, nbtbytearray
+from flare import nbtint, nbtstr, nbtlist, nbtcompound, nbtbytearray
 
 x = nbtint(addr="storage mypack:data X")
 ```
@@ -68,9 +71,21 @@ x = nbtint(addr="storage mypack:data X")
 
 ## NBT Numbers
 
-Integer NBT types support arithmetic directly. They are compiled into scoreboard values securely using temporary math operations.
+Integer NBT types support arithmetic directly. They are compiled into scoreboard values securely using temporary math
+operations.
+
+### Number Methods Quick Reference
+
+- `+`, `-`, `*`, `/`, `%`: Standard arithmetic operators.
+- `+=`, `-=`, `*=`, `/=`, `%=`: In-place assignment arithmetic.
+- `.addp(other, multiplier)`: Fixed-point addition with precision multiplier.
+- `.subp(other, multiplier)`: Fixed-point subtraction.
+- `.mulp(other, multiplier)`: Fixed-point multiplication.
+- `.divp(other, multiplier)`: Fixed-point division.
+- `len(number)`: Returns the value of the number as a score (useful for uniform processing).
 
 ### Arithmetic
+
 ```python
 x = ref(storage.mypack.data.Score[int])
 x += 5
@@ -85,102 +100,45 @@ For **float/double** NBT arithmetic (which requires a fixed-point intermediate),
 ```python
 # addp(other, multiplier): multiplies both sides before operating, then divides back
 hp = ref(storage.mypack.data.Health[double])
-hp.addp(1.5, 1000)    # adds 1.5 with 1000x precision
+hp.addp(1.5, 1000)  # adds 1.5 with 1000x precision
 hp.mulp(1.1, 1000)
 hp.divp(2.0, 1000)
 ```
 
 ### Swapping Values
+
 You can cleanly swap NBT values together. Flare uses hidden temporary NBT nodes to safely facilitate the swap:
 
 ```python
 a = ref(storage.mypack.data.A[int])
 b = ref(storage.mypack.data.B[int])
 
-a, b = b, a   # emits 3 data modify commands via a temp
+a, b = b, a  # emits 3 data modify commands via a temp
 ```
 
 ---
 
 ## NBT Strings
 
-Flare supports powerful compile-time optimizations for string operations. Whenever a string manipulation evaluates into a variable, Flare optimizes the evaluation cleanly using Minecraft's macro parameters or slice features.
-
-### Slicing
-You can natively slice NBT strings using standard Python slice objects. A sliced string lazily compiles into a `data modify set string` command without allocating a single temp object:
-
-```python
-from flare import nbtstr
-
-a = nbtstr("hello_world")
-b = nbtstr("")
-
-# Extracts "world" by taking characters from index 6 up to index 11
-b = a[6:11]
-
-# Compares slice cleanly inline!
-if b == a[6:11]:
-    print("Slicing matched!")
-```
-
-### `.length()`
-Compute the length of a string effortlessly using `.length()`. It produces a lazy scoreboard evaluate operation mapping back cleanly to the string!
-
-```python
-# Stores the character length of 'a' immediately into the score 'length'
-length = a.length()
-
-if length > 5:
-    print("Greater than 5 characters.")
-```
-
-### Iterating over strings
-You can iterate directly over NBT strings. Flare hides the complexity by constructing a fast pointer tracker and slicing one character at a time using `set string` parameters.
-
-```python
-for char in a:
-    # 'char' contains the individual character slice at the active pointer!
-    print(char)
-```
-
-### `.split()`
-Split a string by a delimiter into an NBT list of strings. The default delimiter is `","`. The result is a lazy operation that resolves into a list when assigned.
-
-```python
-csv = nbtstr("apple,banana,cherry,,date")
-
-# Split on the default "," delimiter
-parts = csv.split()
-# parts → ['apple', 'banana', 'cherry', '', 'date']
-# Empty segments (from consecutive delimiters) are preserved.
-
-# Split on a custom compile-time string
-words = nbtstr("one|two|three")
-word_list = words.split("|")
-
-# Split on a runtime NBT string delimiter
-sep = nbtstr(",")
-dynamic_parts = csv.split(sep)
-```
-
-**Special case with an empty delimiter:** Passing `""` splits every individual character into its own list entry:
-
-```python
-chars = nbtstr("abc")
-char_list = chars.split("")
-# char_list → ['a', 'b', 'c']
-```
-
-> [!NOTE]
-> Empty segments between consecutive delimiters (e.g. `"a,,b"` split on `","`) produce `""` entries in the list, exactly matching Python's `str.split()` with an explicit separator.
+Flare supports powerful compile-time optimizations for string operations. For a comprehensive guide on slicing,
+iterating, and manipulating NBT strings, see the [String Manipulation](./string) guide.
 
 ---
 
 ## NBT Sequences
 
-Collections such as lists, arrays, structs, and generic dictionaries represent sequence and grouping paths inside NBT values.
+Collections such as lists and arrays represent sequence paths inside NBT values.
 
-### Collections: `append`, `insert`, `prepend`, `merge`
+### Sequence Methods Quick Reference
+
+- `.append(value)`: Appends an element to the end of the sequence.
+- `.prepend(value)`: Prepends an element to the start of the sequence.
+- `.insert(index, value)`: Inserts an element at a specific index.
+- `.remove()`: Removes the sequence element currently pointed to.
+- `.erase(value)`: Not natively supported for lists (use for strings instead).
+- `len(sequence)`: Returns the number of items in the sequence as a score.
+
+### Collections: `append`, `insert`, `prepend`
 
 ```python
 from flare import storage, ref, array
@@ -196,18 +154,15 @@ items.insert(0, "first")
 
 # Prepend (alias for insert at 0)
 items.prepend("first")
-
-# Merge two compounds
-compound = ref(storage.mypack.data.Config[dict])
-compound.merge(other_compound)
 ```
 
-### `.length()`
-You can retrieve the number of items or nodes inside a sequence:
+### `len()`
+
+You can retrieve the number of items or nodes inside a sequence natively using `len()`:
 
 ```python
 # Evaluates directly into a score count!
-n = items.length()
+n = len(items)
 ```
 
 ### Iteration
@@ -224,7 +179,8 @@ for name in names:
 ```
 
 > [!NOTE]
-> Flare compiles `for` loops over NBT lists into a recursive function that pops elements from a temporary copy of the list. The original list is not modified.
+> Flare compiles `for` loops over NBT lists into a recursive function that pops elements from a temporary copy of the
+> list. The original list is not modified.
 
 ### The `in` Operator
 
@@ -237,30 +193,55 @@ if "Alice" in names:
     print("found Alice")
 ```
 
+---
+
+## NBT Compounds
+
+Compounds (`nbtcompound`) and Structs represent grouping paths inside NBT values.
+
+### Compound Methods Quick Reference
+
+- `.merge(other_compound)`: Merges the contents of another compound into this compound.
+- `len(compound)`: Returns the number of keys inside the compound as a score.
+
+### Merging Compounds
+
+You can easily merge two compound dictionaries together using `.merge()`:
+
+```python
+compound = ref(storage.mypack.data.Config[dict])
+compound.merge(other_compound)
+```
+
 ### Struct: Typed Compound Schemas
 
-Use `@struct` to define a typed NBT Compound with named, typed fields. This gives Flare full knowledge of the compound's shape so field access is type-checked and type-inferred automatically.
+Use `@struct` to define a typed NBT Compound with named, typed fields. This gives Flare full knowledge of the compound's
+shape so field access is type-checked and type-inferred automatically.
 
 ```python
 from flare import struct, storage, ref, byte, short
+
 
 @struct
 class Lore:
     text: str
     color: str
 
+
 @struct
 class Item:
     count: int
     name: str
     damage: short
-    lore: list[Lore]       # list of nested structs
+    lore: list[Lore]  # list of nested structs
+
 
 @struct
 class FileType:
     id: int
     name: str
     children: list[FileType]  # self-referential, works without quotes!
+
 
 # Usage: cast any NBT path to the struct type
 chest_item = ref(storage.mypack.chest.item[Item])
@@ -286,20 +267,30 @@ tree.children[0].children[0].name = "leaf"
 
 ## Entity NBT via Selectors
 
-Any attribute access on a selector resolves to an **NBT data path** on that entity. Flare's built-in schema automatically infers the correct type for standard Minecraft entity NBT paths:
+Any attribute access on a selector resolves to an **NBT data path** on that entity. Flare's built-in schema
+automatically infers the correct type for standard Minecraft entity NBT paths:
 
 ```python
 from flare import ref
 
+
 # Schema-aware: Flare knows Health is a float, Count is a byte
-@s.Health -= 2.0
-@s.Inventory[0].Count = 10
+@s.Health
+
+-= 2.0
+
+
+@s.Inventory[0].Count
+
+= 10
 
 # For custom entity NBT, use a ref() alias
-inv = ref(@s.Inventory)
+inv = ref( @ s.Inventory)
 
 # Selectors with filters
-@a[distance=..5].Health = 20.0
+@a[distance
+
+=..5].Health = 20.0
 ```
 
 See [Selectors](./selectors) for the full selector API.
@@ -335,4 +326,5 @@ main_hand = ref(player.Inventory[{"Slot": 0}])
 
 ## Inline NBT Macros
 
-See [Native Commands → Inline NBT Macros](./native-commands#inline-nbt-macros-nbt-and-nbt) for `nbt{...}` and `nbt[...]` usage.
+See [Native Commands → Inline NBT Macros](./native-commands#inline-nbt-macros-nbt-and-nbt) for `nbt{...}` and `nbt[...]`
+usage.

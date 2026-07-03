@@ -1,8 +1,7 @@
-from flare.variables.core import is_lazy
 import copy
 
-from flare.context import addr
-from .context import vars_obj, next_temp_id, _runcmd, push_context, temp_storage
+from .context import vars_obj, next_temp_id, _runcmd, push_context, temp_storage, addr
+from .variables.core import is_lazy
 
 _COLORS = (
     "black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray", "dark_gray", "blue",
@@ -141,10 +140,13 @@ def _to_print_component(arg, i):
         elif getattr(arg, "operand", None) and hasattr(arg.operand, "_alloc_temp"):
             temp = arg.operand._alloc_temp()
         else:
-            temp = score(addr=f"!print{ctx.next_temp_id()} {ctx.temp_obj}")
+            temp = score(addr=f"!print{ctx.next_temp_id()}")
 
-        arg._eval_into(temp)
+        arg._compile_into(temp)
         arg = temp
+
+    if isinstance(arg, (score, nbt)):
+        arg._check_addr()
 
     if isinstance(arg, score):
         if arg._multiplier != 1.0:
@@ -173,6 +175,24 @@ def _to_print_component(arg, i):
             nbt_comp["nbt"] = "{}"
 
         return [nbt_comp]
+    elif isinstance(arg, dict):
+        res = copy.deepcopy(arg)
+        if "with" in res and isinstance(res["with"], (list, tuple)):
+            new_with = []
+            for j, w in enumerate(res["with"]):
+                w_comps = _to_print_component(w, f"{i}_w_{j}")
+                new_with.append(w_comps[0] if len(w_comps) == 1 else w_comps)
+            res["with"] = new_with
+        if "extra" in res and isinstance(res["extra"], (list, tuple)):
+            new_extra = []
+            for j, e in enumerate(res["extra"]):
+                new_extra.extend(_to_print_component(e, f"{i}_e_{j}"))
+            res["extra"] = new_extra
+        if "hover_event" in res and hasattr(res["hover_event"], "__print__"):
+            res["hover_event"] = res["hover_event"].__print__()
+        if "click_event" in res and hasattr(res["click_event"], "__print__"):
+            res["click_event"] = res["click_event"].__print__()
+        return [res]
     else:
         return [{"text": str(arg)}]
 
@@ -222,11 +242,22 @@ def _parse_color(color: str | int | Color):
 
 
 class click_event:
-    pass
+    def __init__(self, action: str, value: str):
+        self.action = action
+        self.value = value
+
+    def __print__(self):
+        return {"action": self.action, "value": self.value}
 
 
 class hover_event:
-    pass
+    def __init__(self, action: str, value):
+        self.action = action
+        self.value = value
+
+    def __print__(self):
+        comps = _to_print_component(self.value, "hover_val")
+        return {"action": self.action, "value": comps[0] if len(comps) == 1 else comps}
 
 
 class DialogAction:
@@ -238,7 +269,7 @@ class DialogAction:
         self.width = width
 
     def __print__(self):
-        res = {"label": self.label}
+        res: dict = {"label": self.label}
         if self.action is not None:
             res["action"] = self.action.__print__() if hasattr(self.action, "__print__") else self.action
         if self.tooltip is not None:
@@ -258,7 +289,7 @@ class Dialog:
         self.can_close_with_escape = can_close_with_escape
 
     def __print__(self):
-        res = {"type": self.type, "title": self.title}
+        res: dict = {"type": self.type, "title": self.title}
         if self.external_title is not None:
             res["external_title"] = self.external_title
         if self.body is not None:
@@ -421,7 +452,7 @@ class show_item(hover_event):
         self.components = components
 
     def __print__(self):
-        res = {"action": "show_item", "id": self.id, "count": self.count}
+        res: dict = {"action": "show_item", "id": self.id, "count": self.count}
         if self.components is not None:
             res["components"] = self.components
         return res
@@ -434,7 +465,7 @@ class show_entity(hover_event):
         self.uuid = uuid
 
     def __print__(self):
-        res = {"action": "show_entity", "id": self.id}
+        res: dict = {"action": "show_entity", "id": self.id}
         if self.name is not None:
             res["name"] = self.name
         if self.uuid is not None:
@@ -451,3 +482,38 @@ def style(*args, color: str | int | Color | None = None, font: str | None = None
         strikethrough=strikethrough, obfuscate=obfuscate, shadow_color=shadow_color,
         insertion=insertion, click_event=click_event, hover_event=hover_event, sep=sep
     )
+
+
+class _TranslateComponent:
+    def __init__(self, key: str, *args, fallback: str | None = None):
+        self.key = key
+        self.args = args
+        self.fallback = fallback
+
+    def __print__(self):
+        res = {"translate": self.key}
+        if self.fallback is not None:
+            res["fallback"] = self.fallback
+        if self.args:
+            with_comps = []
+            for i, arg in enumerate(self.args):
+                comps = _to_print_component(arg, f"trans_{i}")
+                with_comps.append(comps[0] if len(comps) == 1 else comps)
+            res["with"] = with_comps
+        return res
+
+
+def translate(key: str, *args, fallback: str | None = None):
+    return _TranslateComponent(key, *args, fallback=fallback)
+
+
+class _KeybindComponent:
+    def __init__(self, key: str):
+        self.key = key
+
+    def __print__(self):
+        return {"keybind": self.key}
+
+
+def keybind(key: str):
+    return _KeybindComponent(key)

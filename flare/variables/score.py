@@ -4,6 +4,7 @@ import math
 from fractions import Fraction
 from math import inf
 from math import log
+from typing import Any
 
 from .core import is_lazy, addr, FlareValue
 from .. import context as ctx
@@ -13,17 +14,9 @@ from ..context import (
     constant_obj,
     constants,
     vars_obj,
-    next_temp_score,
 )
-from ..control_flow import ScoreIfScore, ScoreIfMatches
 
 INT32_LIMIT = (2 ** 31) - 1
-
-
-def _nbt():
-    from .nbt import nbt
-
-    return nbt
 
 
 def getscore(x: int | float, multiplier: float = 1.0):
@@ -42,43 +35,53 @@ def getscore(x: int | float, multiplier: float = 1.0):
     return constants[(x, multiplier)]
 
 
-class score(FlareValue):
-    _implements_set = (int, float)
+nbt: Any = lambda *_, **__: Any()
 
+
+class score(FlareValue):
     def __init__(
             self,
-            value: int | float | None = None,
+            value: Any = None,
             *,
-            addr: str | None = None,
+            addr: str | True | None = None,
             multiplier: float = 1.0,
     ):
-        score._implements_set = (int, float, _nbt())
+        global nbt
+        from .nbt import nbt as _nbt
+
+        nbt = _nbt
+        score._implements_set = (int, float, nbt)
         self._multiplier = float(multiplier)
         self._readonly = False
         self._value_to_set = value
-        self._addr = addr
-        if addr is not None:
-            parts = addr.split(" ", 1)
-            if len(parts) == 2:
-                self._name, self._objective = parts[0], parts[1]
-                ctx.ensure_objective(self._objective)
-            else:
-                self._name = parts[0]
-                self._objective = ctx.temp_obj
-                self._addr = f"{self._name} {self._objective}"
-                ctx.ensure_objective(self._objective)
-            if self._value_to_set is not None:
-                self[:] = self._value_to_set
+        if addr is True:
+            self._addr: str = None
+            self._check_addr()
         else:
-            self._name = ""
-            self._objective = ""
+            self._addr = addr
+            if addr is not None:
+                parts = addr.split(" ", 1)
+                if len(parts) == 2:
+                    self._name, self._objective = parts[0], parts[1]
+                    ctx.ensure_objective(self._objective)
+                else:
+                    self._name = parts[0]
+                    self._objective = ctx.temp_obj
+                    self._addr = f"{self._name} {self._objective}"
+                    ctx.ensure_objective(self._objective)
+                if self._value_to_set is not None:
+                    self[:] = self._value_to_set
+            else:
+                self._name = ""
+                self._objective = ""
 
     def _type_priority(self):
         return -self._multiplier
 
-    def _alloc_temp(self):
-        t = next_temp_score("t", multiplier=self._multiplier)
-        return t
+    def _alloc_temp(self, prefix="!temp"):
+        if isinstance(prefix, score):
+            prefix = prefix._name
+        return score(0, addr=f"{prefix}_{ctx.next_temp_id()}", multiplier=self._multiplier)
 
     def _create_var(self, varid: str):
         return score(addr=f"{varid} {vars_obj}", multiplier=self._multiplier)
@@ -101,12 +104,19 @@ class score(FlareValue):
         return f"[Score {addr(self)}]"
 
     def __branch__(self, invert=False):
+        from ..control_flow import ScoreIfMatches
+
         return ScoreIfMatches(self, (-2147483648, 2147483647)).__branch__(invert)
 
     def store(self):
-        from ..execute_modifiers import store
+        from ..execute_modifiers import ExecuteChain
 
-        return store(self)
+        return ExecuteChain().store(self)
+
+    def success(self):
+        from ..execute_modifiers import ExecuteChain
+
+        return ExecuteChain().store_success(self)
 
     def _check_addr(self):
         if self._addr is None:
@@ -139,21 +149,20 @@ class score(FlareValue):
     def _num(self, num):
         return getscore(num, self._multiplier)
 
-    def _tmp(self):
-        return type(self)(multiplier=self._multiplier)
+    _implements_set = (int, float)
 
     def __iset__(self, other):
         self._check_writable()
         if is_lazy(other):
-            other._eval_into(self)
+            other._compile_into(self)
             return self
-        if isinstance(other, (score, _nbt())):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
             _runcmd(f"scoreboard players set {addr(self)} {val}")
             return self
-        if isinstance(other, _nbt()):
+        if isinstance(other, nbt):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot set score with non-numeric NBT")
             _runcmd(
@@ -165,7 +174,7 @@ class score(FlareValue):
             _runcmd(f"scoreboard players operation {addr(self)} = {addr(other)}")
             self *= other._multiplier / self._multiplier
             return self
-        return self._try_math("__iset__", "=", other, (float, int, score, _nbt()))
+        return self._try_binary("__iset__", "=", other, (float, int, score, nbt))
 
     def __round__(self, ndigits=None):
         if ndigits is not None:
@@ -196,7 +205,7 @@ class score(FlareValue):
         )
         return temp
 
-    def __floor__(self):
+    def __floor__(self, dest=None):
         m = int(round(1.0 / self._multiplier))
         if m == 1:
             return self
@@ -219,7 +228,7 @@ class score(FlareValue):
         )
         return temp
 
-    def __ceil__(self):
+    def __ceil__(self, dest=None):
         m = int(round(1.0 / self._multiplier))
         if m == 1:
             return self
@@ -242,26 +251,28 @@ class score(FlareValue):
         )
         return temp
 
-    def __fastsin__(self):
+    def __fastsin__(self, dest=None):
+        from ..control_flow import ScoreIfMatches, ScoreIfScore
+
         x = self.__icopy__("!sin_x")
         x %= 2 * math.pi
 
-        is_neg = score(0, addr="!neg_fastsin")
+        is_neg = score(0, addr="!neg_fastsin", multiplier=1.0)
         ScoreIfScore(x, ">", self._num(math.pi)).then(
             [lambda: is_neg.__iset__(1), lambda: x.__isub__(math.pi)]
         )
 
         term = x * (math.pi - x)
 
-        result = self._tmp()
+        result = dest if dest is not None else self._alloc_temp()
         result[:] = term / ((5.0 / 16.0) * math.pi * math.pi - 0.25 * term)
         ScoreIfMatches(is_neg, 1).then(lambda: result.__imul__(-1))
         return result
 
-    def __sin__(self):
+    def __sin__(self, dest=None):
         from ..control_flow import ScoreIfMatches, ScoreIfScore
 
-        result = self._tmp()
+        result = dest if dest is not None else self._alloc_temp()
         result[:] = self
         result %= 2 * math.pi
 
@@ -269,21 +280,15 @@ class score(FlareValue):
             lambda: result.__iadd__(2 * math.pi)
         )
 
-        is_neg = score(0, addr="!fsin_neg", multiplier=1.0)
-        is_gt_pi = score(0, addr="!sin_gtpi", multiplier=1.0)
-        is_gt_halfpi = score(0, addr="!sin_gthalf", multiplier=1.0)
+        is_neg = score(0, addr="!sin_neg", multiplier=1.0)
+        is_gt_pi = score(0, addr="!sin_gt_pi", multiplier=1.0)
+        is_gt_half_pi = score(0, addr="!sin_gt_half", multiplier=1.0)
 
         ScoreIfScore(result, ">", self._num(math.pi)).then(lambda: is_gt_pi.__iset__(1))
-        ScoreIfMatches(is_gt_pi, 1).then(
-            [lambda: is_neg.__iset__(1), lambda: result.__isub__(math.pi)]
-        )
+        ScoreIfMatches(is_gt_pi, 1).then(lambda: [is_neg.__iset__(1), result.__isub__(math.pi)])
 
-        ScoreIfScore(result, ">", self._num(math.pi / 2)).then(
-            lambda: is_gt_halfpi.__iset__(1)
-        )
-        ScoreIfMatches(is_gt_halfpi, 1).then(
-            [lambda: result.__imul__(-1), lambda: result.__iadd__(math.pi)]
-        )
+        ScoreIfScore(result, ">", self._num(math.pi / 2)).then(lambda: is_gt_half_pi.__iset__(1))
+        ScoreIfMatches(is_gt_half_pi, 1).then(lambda: [result.__imul__(-1), result.__iadd__(math.pi)])
 
         digit_precision = int(round(-log(self._multiplier, 10)))
         iterations = {1: 4, 2: 6, 3: 6, 4: 8, 5: 4, 6: 1}.get(digit_precision, 0)
@@ -307,13 +312,16 @@ class score(FlareValue):
         ScoreIfMatches(is_neg, 1).then(lambda: result.__imul__(-1))
         return result
 
-    def __cos__(self):
-        half_pi = getscore(math.pi / 2.0, multiplier=self._multiplier)
-        temp = self._tmp()
+    def __cos__(self, dest=None):
+        half_pi = score(0, addr="!cos_hpi", multiplier=self._multiplier)
+        half_pi[:] = math.pi / 2
+        temp = self._alloc_temp()
         temp[:] = self + half_pi
-        return temp.__sin__()
+        return temp.__sin__(dest)
 
     def __abs__(self):
+        from ..control_flow import ScoreIfMatches
+
         temp = self.__icopy__("!abs")
         ScoreIfMatches(temp, (-inf, -1)).then(lambda: temp.__imul__(-1))
         return temp
@@ -351,13 +359,13 @@ class score(FlareValue):
         temp1 = score(multiplier=self._multiplier)
         temp1[:] = pi_2 - res
         _runcmd(
-            f"execute if score {addr(y_abs)} > {addr(x_abs)} run scoreboard players operation {addr(res)} = {temp1._addr}"
+            f"execute if score {addr(y_abs)} > {addr(x_abs)} run scoreboard players operation {addr(res)} = {addr(temp1)}"
         )
 
         temp2 = score(multiplier=self._multiplier)
         temp2[:] = pi - res
         _runcmd(
-            f"execute if score {addr(x)} matches ..-1 run scoreboard players operation {addr(res)} = {temp2._addr}"
+            f"execute if score {addr(x)} matches ..-1 run scoreboard players operation {addr(res)} = {addr(temp2)}"
         )
 
         m1 = getscore(-1, multiplier=1.0)
@@ -367,7 +375,7 @@ class score(FlareValue):
 
         return res
 
-    def __log__(self):
+    def __log__(self, dest=None):
         guess = getscore(1.0, multiplier=self._multiplier)
         two = getscore(2.0, multiplier=self._multiplier)
         for _ in range(5):
@@ -375,7 +383,7 @@ class score(FlareValue):
             guess = (guess + two * (self - e_y) / (self + e_y)).__icopy__("!log_guess")
         return guess
 
-    def __exp__(self):
+    def __exp__(self, dest=None):
         x = self / getscore(16.0, multiplier=self._multiplier)
         one = getscore(1.0, multiplier=self._multiplier)
 
@@ -396,22 +404,35 @@ class score(FlareValue):
 
         for _ in range(4):
             res = (res * res).__icopy__("!exp_res")
+
+        if dest is not None:
+            dest[:] = res
+            return dest
         return res
 
-    def fastsqrt(self):
+    def fastsqrt(self, dest=None):
         return self.__sqrt__()
 
-    def __sqrt__(self):
-        guess = getscore(1.0, multiplier=self._multiplier)
-        half = getscore(0.5, multiplier=self._multiplier)
-        for _ in range(5):
-            guess = (half * (guess + self / guess)).__icopy__("!sqrt_guess")
-        return guess
+    def __sqrt__(self, dest=None):
+        raw_self = score(addr=self._addr, multiplier=1.0)
+        guess = score(1, multiplier=1.0)
+        for _ in range(15):
+            guess = ((guess + raw_self / guess) / 2).__icopy__("!sqrt_guess")
+
+        if dest is None:
+            dest = self._alloc_temp()
+
+        _runcmd(f"scoreboard players operation {addr(dest)} = {addr(guess)}")
+        factor = 1.0 / math.sqrt(self._multiplier)
+        if factor != 1.0:
+            dest *= factor
+
+        return dest
 
     def __iadd__(self, other):
         self._check_writable()
         temp = score(addr="!add0")
-        if isinstance(other, (score, _nbt())):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
@@ -420,7 +441,7 @@ class score(FlareValue):
             else:
                 _runcmd(f"scoreboard players remove {addr(self)} {-val}")
             return self
-        if isinstance(other, _nbt()):
+        if isinstance(other, nbt):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot add non-numeric NBT to score")
             _runcmd(
@@ -437,12 +458,12 @@ class score(FlareValue):
                 temp *= other._multiplier / self._multiplier
                 _runcmd(f"scoreboard players operation {addr(self)} += {addr(temp)}")
             return self
-        return self._try_math("__iadd__", "+=", other, (float, int, score, _nbt()))
+        return self._try_binary("__iadd__", "+=", other, (float, int, score, nbt))
 
     def __isub__(self, other):
         self._check_writable()
         temp = score(addr="!sub0")
-        if isinstance(other, (score, _nbt())):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
@@ -451,7 +472,7 @@ class score(FlareValue):
             else:
                 _runcmd(f"scoreboard players add {addr(self)} {-val}")
             return self
-        if isinstance(other, _nbt()):
+        if isinstance(other, nbt):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot subtract non-numeric NBT from score")
             _runcmd(
@@ -471,12 +492,12 @@ class score(FlareValue):
                 temp *= other._multiplier / self._multiplier
                 _runcmd(f"scoreboard players operation {addr(self)} -= {addr(temp)}")
             return self
-        return self._try_math("__isub__", "-=", other, (float, int, score, _nbt()))
+        return self._try_binary("__isub__", "-=", other, (float, int, score, nbt))
 
     def __imul__(self, other):
         self._check_writable()
         temp = score(addr="!mul0", multiplier=1.0)
-        if isinstance(other, (score, _nbt())):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if isinstance(other, (int, float)):
             if other == 1.0:
@@ -485,14 +506,14 @@ class score(FlareValue):
             n, d = frac.numerator, frac.denominator
             if n != 1:
                 _runcmd(
-                    f"scoreboard players operation {addr(self)} *= {getscore(n)._addr}"
+                    f"scoreboard players operation {addr(self)} *= {addr(getscore(n))}"
                 )
             if d != 1:
                 _runcmd(
-                    f"scoreboard players operation {addr(self)} /= {getscore(d)._addr}"
+                    f"scoreboard players operation {addr(self)} /= {addr(getscore(d))}"
                 )
             return self
-        if isinstance(other, _nbt()):
+        if isinstance(other, nbt):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot multiply score with non-numeric NBT")
             _runcmd(
@@ -504,23 +525,23 @@ class score(FlareValue):
             _runcmd(f"scoreboard players operation {addr(self)} *= {addr(other)}")
             self *= other._multiplier
             return self
-        return self._try_math("__imul__", "*=", other, (float, int, score, _nbt()))
+        return self._try_binary("__imul__", "*=", other, (float, int, score, nbt))
 
     def __idiv__(self, other):
         self._check_writable()
         temp = score(addr="!div0", multiplier=1.0)
-        if isinstance(other, (score, _nbt())):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if isinstance(other, int) or (isinstance(other, float) and other.is_integer()):
             other = int(other)
             _runcmd(
-                f"scoreboard players operation {addr(self)} /= {getscore(other)._addr}"
+                f"scoreboard players operation {addr(self)} /= {addr(getscore(other))}"
             )
             return self
         if isinstance(other, float):
             self *= 1.0 / other
             return self
-        if isinstance(other, _nbt()):
+        if isinstance(other, nbt):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot divide score with non-numeric NBT")
             _runcmd(
@@ -536,20 +557,20 @@ class score(FlareValue):
             self *= 1.0 / other._multiplier
             _runcmd(f"scoreboard players operation {addr(self)} /= {addr(other)}")
             return self
-        return self._try_math("__idiv__", "/=", other, (float, int, score, _nbt()))
+        return self._try_binary("__idiv__", "/=", other, (float, int, score, nbt))
 
     def __imod__(self, other):
         self._check_writable()
         temp = score(addr="!mod0")
-        if isinstance(other, (score, _nbt())):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
             _runcmd(
-                f"scoreboard players operation {addr(self)} %= {getscore(val)._addr}"
+                f"scoreboard players operation {addr(self)} %= {addr(getscore(val))}"
             )
             return self
-        if isinstance(other, _nbt()):
+        if isinstance(other, nbt):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot modulo score with non-numeric NBT")
             _runcmd(
@@ -569,12 +590,12 @@ class score(FlareValue):
                 temp *= other._multiplier / self._multiplier
                 _runcmd(f"scoreboard players operation {addr(self)} %= {addr(temp)}")
             return self
-        return self._try_math("__imod__", "%=", other, (float, int, score, _nbt()))
+        return self._try_binary("__imod__", "%=", other, (float, int, score, nbt))
 
     def __imax__(self, other):
         self._check_writable()
         temp = score(addr="!imax0")
-        if isinstance(other, (score, _nbt())):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
@@ -582,7 +603,7 @@ class score(FlareValue):
                 f"scoreboard players operation {addr(self)} > {addr(getscore(val))}"
             )
             return self
-        if isinstance(other, _nbt()):
+        if isinstance(other, nbt):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot compare score with non-numeric NBT")
             _runcmd(
@@ -598,20 +619,20 @@ class score(FlareValue):
             temp *= other._multiplier / self._multiplier
             _runcmd(f"scoreboard players operation {addr(self)} > {addr(temp)}")
             return self
-        return self._try_math("__imax__", "max", other, (float, int, score, _nbt()))
+        return self._try_binary("__imax__", "max", other, (float, int, score, nbt))
 
     def __imin__(self, other):
         self._check_writable()
         temp = score(addr="!imin0")
-        if isinstance(other, (score, _nbt())):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
             _runcmd(
-                f"scoreboard players operation {addr(self)} < {getscore(val)._addr}"
+                f"scoreboard players operation {addr(self)} < {addr(getscore(val))}"
             )
             return self
-        if isinstance(other, _nbt()):
+        if isinstance(other, nbt):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot compare score with non-numeric NBT")
             _runcmd(
@@ -627,23 +648,23 @@ class score(FlareValue):
             temp *= other._multiplier / self._multiplier
             _runcmd(f"scoreboard players operation {addr(self)} < {addr(temp)}")
             return self
-        return self._try_math("__imin__", "min", other, (float, int, score, _nbt()))
+        return self._try_binary("__imin__", "min", other, (float, int, score, nbt))
 
     def __swap__(self, other):
         self._check_addr()
         temp = score(addr="!swap0")
         if isinstance(other, (int, float)):
             raise TypeError("Cannot swap score with a number")
-        if isinstance(other, (score, _nbt())):
+        if isinstance(other, (score, nbt)):
             other._check_addr()
-        if isinstance(other, _nbt()):
+        if isinstance(other, nbt):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot swap score with non-numeric NBT")
             _runcmd(
                 f"execute store result score {addr(temp)} run data get {addr(other)}"
                 + (f" {self._multiplier}" if self._multiplier != 1.0 else "")
             )
-            datatype = other._type.name.lower() if other._type else "double"
+            datatype = other._type_name.lower() if other._type else "double"
             _runcmd(
                 f"execute store result storage {other._target} {other._path} {datatype} {1 / self._multiplier} run scoreboard players get {addr(self)}"
             )
@@ -659,7 +680,7 @@ class score(FlareValue):
                 self[:] = other
                 other[:] = score(addr=temp._addr, multiplier=self._multiplier)
             return self
-        return self._try_math("__swap__", "swap", other, (score, _nbt()))
+        return self._try_binary("__swap__", "swap", other, (score, nbt))
 
     def __call__(self, *args, **kwargs):
         self[:] = args[0]
@@ -671,6 +692,8 @@ class score(FlareValue):
         return f'score(addr="{addr(self)}")'
 
     def __gt__(self, other):
+        from ..control_flow import ScoreIfMatches
+
         if isinstance(other, (int, float)):
             val = int(math.floor(other / self._multiplier)) + 1
             adjusted_val = val / self._multiplier if self._multiplier != 0 else val
@@ -678,6 +701,8 @@ class score(FlareValue):
         return super().__gt__(other)
 
     def __ge__(self, other):
+        from ..control_flow import ScoreIfMatches
+
         if isinstance(other, (int, float)):
             val = int(math.ceil(other / self._multiplier))
             adjusted_val = val / self._multiplier if self._multiplier != 0 else val
@@ -685,6 +710,8 @@ class score(FlareValue):
         return super().__ge__(other)
 
     def __lt__(self, other):
+        from ..control_flow import ScoreIfMatches
+
         if isinstance(other, (int, float)):
             val = int(math.ceil(other / self._multiplier)) - 1
             adjusted_val = val / self._multiplier if self._multiplier != 0 else val
@@ -692,6 +719,8 @@ class score(FlareValue):
         return super().__lt__(other)
 
     def __le__(self, other):
+        from ..control_flow import ScoreIfMatches
+
         if isinstance(other, (int, float)):
             val = int(math.floor(other / self._multiplier))
             adjusted_val = val / self._multiplier if self._multiplier != 0 else val
@@ -699,6 +728,8 @@ class score(FlareValue):
         return super().__le__(other)
 
     def __eq__(self, other):
+        from ..control_flow import ScoreIfMatches
+
         if isinstance(other, (int, float)):
             val = int(round(other / self._multiplier))
             adjusted_val = val / self._multiplier if self._multiplier != 0 else val
@@ -711,7 +742,7 @@ class fixed(score):
             self,
             value: int | float | None = None,
             *,
-            addr: str = None,
+            addr: str | True | None = None,
             multiplier: float = 1e-4,
     ):
         super().__init__(value, addr=addr, multiplier=multiplier)

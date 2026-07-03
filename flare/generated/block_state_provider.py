@@ -28,6 +28,10 @@ class BlockStateProvider:
     type: str
 
 @struct
+class CopyPropertiesProvider:
+    source_block_state_provider: 'BlockStateProvider'
+
+@struct
 class DualNoiseProvider(BaseNoiseProvider):
     variety: 'InclusiveRange'
     slow_noise: 'NoiseParameters'

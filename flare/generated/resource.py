@@ -588,8 +588,6 @@ class VillagerTrade:
     xp: 'NumberProvider'
     merchant_predicate: 'NonReferencePredicate'
     double_trade_price_enchantments: Union[str, list[str]]
-HeightProvider = Union[{'type': str}, 'VerticalAnchor']
-VerticalAnchor = Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}]
 
 @struct
 class Biome:
@@ -609,7 +607,7 @@ class Biome:
     starts: list['StructureRef']
     spawners: dict
     spawn_costs: dict
-    carvers: Union[dict, Union[list['CarverRef'], str]]
+    carvers: Union[dict, Union[list['CarverRef'], str, str]]
     features: Union[list[list['ConfiguredFeatureRef']], list[Union[list['PlacedFeatureRef'], str]]]
 
 @struct
@@ -646,20 +644,12 @@ class SpawnerData:
     weight: int
     minCount: int
     maxCount: int
-
-@struct
-class CarverDebugSettings:
-    debug_mode: bool
-    air_state: 'BlockState'
-    water_state: 'BlockState'
-    lava_state: 'BlockState'
-    barrier_state: 'BlockState'
-CarverRef = Union[str, 'ConfiguredCarver']
+CarverRef = Union[str, str, 'ConfiguredCarver']
 
 @struct
 class ConfiguredCarver:
-    type: str
-    config: {'probability': float, 'replaceable': Union[list[str], str]}
+    type: Union[str, str]
+    config: Any
 CubicSpline = Union[float, {'coordinate': Union[str, 'DensityFunctionRef'], 'points': list['SplinePoint']}]
 DensityFunction = Union['NoiseRange', {'type': str}]
 DensityFunctionRef = Union[str, 'DensityFunction']
@@ -782,7 +772,7 @@ class NoiseGeneratorSettings:
     legacy_random_source: bool
     noise: 'NoiseSettings'
     noise_router: 'NoiseRouter'
-    spawn_target: list['ClimateParameters']
+    spawn_target: Union[list['ClimateParameters'], list['SpawnTargetPoint']]
     surface_rule: 'MaterialRuleRef'
     material_rule: 'MaterialRuleRef'
     structures: 'StructureSettings'
@@ -836,6 +826,10 @@ class NoiseSlideSettings:
     target: float
     size: int
     offset: int
+
+@struct
+class SpawnTargetPoint:
+    pass
 
 @struct
 class StructureSettings:

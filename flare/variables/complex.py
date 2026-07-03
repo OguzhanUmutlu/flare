@@ -4,7 +4,7 @@ import builtins
 import math
 
 from .core import is_lazy, FlareValue
-from ..context import temp_obj, next_temp_id
+from ..context import next_temp_id
 
 
 class complex(FlareValue):
@@ -12,10 +12,10 @@ class complex(FlareValue):
         self.real = real
         self.imag = imag
 
-    def _alloc_temp(self):
+    def _alloc_temp(self, prefix="!temp"):
         tid = next_temp_id()
-        t = type(self)(self.real.__class__(addr=f"!tr{tid} {temp_obj}"),
-                       self.imag.__class__(addr=f"!ti{tid} {temp_obj}"))
+        t = type(self)(self.real.__class__(addr=f"{prefix}r{tid}"),
+                       self.imag.__class__(addr=f"{prefix}i{tid}"))
         return t
 
     def _create_var(self, varid: str):
@@ -34,16 +34,16 @@ class complex(FlareValue):
 
         return complex(dest_real, dest_imag)
 
-    def _eval_into(self, dest):
+    def _compile_into(self, dest):
         if not isinstance(dest, complex):
             raise TypeError("Cannot evaluate complex into non-complex destination")
         if is_lazy(self.real):
-            self.real._eval_into(dest.real)
+            self.real._compile_into(dest.real)
         else:
             dest.real[:] = self.real
 
         if is_lazy(self.imag):
-            self.imag._eval_into(dest.imag)
+            self.imag._compile_into(dest.imag)
         else:
             dest.imag[:] = self.imag
 
@@ -52,7 +52,7 @@ class complex(FlareValue):
             self.real[:] = other.real
             self.imag[:] = other.imag
             return self
-        return self._try_math("__iset__", "=", other)
+        return self._try_binary("__iset__", "=", other)
 
     def __iadd__(self, other):
         if isinstance(other, complex):
@@ -117,6 +117,7 @@ class complex(FlareValue):
 
     def __print__(self):
         from ..print import _to_print_component
+
         comps = []
         if hasattr(self.real, "__print__"):
             comps.extend(self.real.__print__())

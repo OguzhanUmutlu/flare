@@ -1,5 +1,6 @@
-from .matchers import MATCHERS
-from .parser import StringReader
+from functools import lru_cache
+
+from .matchers import MATCHERS, StringReader
 from .schema import get_schema
 
 
@@ -70,9 +71,6 @@ def match_node(node: dict, root: dict, reader: StringReader) -> bool:
             reader.cursor = start_cursor
 
     return False
-
-
-from functools import lru_cache
 
 
 @lru_cache(maxsize=4096)

@@ -51,6 +51,22 @@ for item in my_array:
     print(item)
 ```
 
+## In Operator
+
+You can effortlessly check if a Flare variable (`score` or `nbt` type) is contained within a compile-time Python list or tuple:
+
+```python
+x = score(5)
+
+# Flare will dynamically allocate a temporary score, check all items, and compile the result!
+if x in (1, 3, 5, 7):
+    print("X is an odd number under 10!")
+
+my_str = nbt("flare")
+if my_str in ("apple", "flare", "banana"):
+    print("String found!")
+```
+
 ## Compile-Time Optimization
 
 Flare is highly optimized and checks conditions **at compile-time**.

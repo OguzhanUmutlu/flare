@@ -43,11 +43,27 @@ inv = @s.Inventory         # NBT path: 'Inventory' on @s
 @s.Pos[1] = 20.5
 ```
 
-### Automatic Type Inference
+### Generic Typed Selectors
 
-Thanks to Flare's built-in **NBT Schema parser**, standard Minecraft entity paths have their types inferred automatically, eliminating the need for manual typecasting for known properties like `Count`, `Pos`, `Health`, etc.
+By default, an untyped `selector("@a")` acts as a union of all possible entity properties in the game. Flare dynamically builds a fallback schema that merges all entity properties together, allowing standard properties (like `Health` or `foodLevel`) to be statically typed as shorts/ints respectively, even without explicit typing.
 
-For custom or unknown paths, use inline typecasting:
+For precision, you can cast your selector to a specific entity struct using Python type hints, simply by instantiating the struct class directly with a target string:
+
+```python
+from flare.nbt import Player, Zombie
+
+# Strictly typed to the Player struct
+sp = Player("@a")
+sp.foodLevel = 20
+
+# Strictly typed to the Zombie struct
+sz = Zombie("@e[type=zombie]")
+sz.IsBaby = True
+```
+
+If you access an invalid or unknown property on a selector, Flare gracefully falls back to an untyped `NBTType.Unknown`, preserving dynamic flexibility.
+
+For entirely custom NBT data paths that Flare's schema isn't aware of, you can still use inline typecasting:
 
 ```python
 storage.my_data.test[int] = 10
@@ -82,4 +98,20 @@ with on("attacker"):
 # Or using selector method syntax:
 with @s.attacker():
     say Got you!
+```
+
+## Advancements
+
+You can easily grant or revoke advancements from entities using the `grant_advancement` and `revoke_advancement` methods directly on a selector:
+
+```python
+# Granting
+@a.grant_advancement("my_namespace:my_advancement") # only my_advancement
+@a.grant_advancement("my_namespace:my_advancement", criterion="my_crit") # only my_advancement my_crit
+@a.grant_advancement("my_namespace:my_advancement", mode="from") # from my_advancement
+@a.grant_advancement(mode="everything") # everything
+
+# Revoking
+@a.revoke_advancement("my_namespace:my_advancement") # only my_advancement
+@a.revoke_advancement("my_namespace:my_advancement", mode="until") # until my_advancement
 ```

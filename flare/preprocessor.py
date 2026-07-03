@@ -11,14 +11,21 @@ class CallGraphAnalyzer(ast.NodeVisitor):
         self.call_graph = {}
         self.current_func = None
         self.exported_funcs = set()
+        self.nostack_funcs = set()
 
     def visit_FunctionDef(self, node):
         is_exported = any(
             isinstance(dec, ast.Name) and dec.id == "export" or isinstance(dec, ast.Call) and getattr(dec.func, "id",
                                                                                                       "") == "export"
             for dec in node.decorator_list)
+        is_nostack = any(
+            isinstance(dec, ast.Name) and dec.id == "nostack" or isinstance(dec, ast.Call) and getattr(dec.func, "id",
+                                                                                                       "") == "nostack"
+            for dec in node.decorator_list)
         if is_exported:
             self.exported_funcs.add(node.name)
+        if is_nostack:
+            self.nostack_funcs.add(node.name)
 
         prev = self.current_func
         self.current_func = node.name
@@ -47,13 +54,14 @@ class CallGraphAnalyzer(ast.NodeVisitor):
                 for neighbor in self.call_graph.get(curr, set()):
                     if neighbor not in visited:
                         stack.append(neighbor)
-        return recursive
+        return recursive - self.nostack_funcs
 
 
 class FlareTransformer(ast.NodeTransformer):
     def __init__(self):
         super().__init__()
         self.counter = 0
+        self.in_flare_func = False
 
     def gen_name(self):
         self.counter += 1
@@ -65,7 +73,7 @@ class FlareTransformer(ast.NodeTransformer):
                 dec.func, "id", "") in ("export", "macro") for dec in node.decorator_list)
 
         is_generated = node.name.startswith("__flare_")
-        prev_in_flare = getattr(self, "in_flare_func", False)
+        prev_in_flare = self.in_flare_func
 
         if is_exported or is_generated:
             self.in_flare_func = True
@@ -74,6 +82,26 @@ class FlareTransformer(ast.NodeTransformer):
 
         self.generic_visit(node)
         self.in_flare_func = prev_in_flare
+
+        if self.in_flare_func or is_exported or is_generated:
+            enter_stmt = ast.Expr(
+                value=ast.Call(func=ast.Name(id="_flare_enter_scope", ctx=ast.Load()), args=[], keywords=[]))
+            ast.copy_location(enter_stmt, node)
+
+            exit_stmt = ast.Expr(
+                value=ast.Call(func=ast.Name(id="_flare_exit_scope", ctx=ast.Load()), args=[], keywords=[]))
+            ast.copy_location(exit_stmt, node)
+
+            try_node = ast.Try(
+                body=node.body,
+                handlers=[],
+                orelse=[],
+                finalbody=[exit_stmt]
+            )
+            ast.copy_location(try_node, node)
+
+            node.body = [enter_stmt, try_node]
+
         return node
 
     def visit_If(self, node):
@@ -289,11 +317,47 @@ class FlareTransformer(ast.NodeTransformer):
                 return call_expr
         return node
 
+    def visit_UnaryOp(self, node):
+        self.generic_visit(node)
+        if isinstance(node.op, ast.Not):
+            call_expr = ast.Call(
+                func=ast.Name(id="_flare_not", ctx=ast.Load()),
+                args=[node.operand],
+                keywords=[]
+            )
+            ast.copy_location(call_expr, node)
+            return call_expr
+        return node
+
+    def visit_BoolOp(self, node):
+        self.generic_visit(node)
+        if isinstance(node.op, ast.And):
+            func_name = "_flare_and"
+        elif isinstance(node.op, ast.Or):
+            func_name = "_flare_or"
+        else:
+            return node
+
+        args = []
+        for val in node.values:
+            lam = ast.Lambda(args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
+                             body=val)
+            ast.copy_location(lam, val)
+            args.append(lam)
+
+        call_expr = ast.Call(
+            func=ast.Name(id=func_name, ctx=ast.Load()),
+            args=args,
+            keywords=[]
+        )
+        ast.copy_location(call_expr, node)
+        return call_expr
+
     def visit_Assign(self, node):
         self.generic_visit(node)
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
             var_name = node.targets[0].id
-            is_local_val = getattr(self, "in_flare_func", False)
+            is_local_val = self.in_flare_func
 
             call_expr = ast.Call(func=ast.Name(id="_flare_assign", ctx=ast.Load()),
                                  args=[ast.Constant(value=var_name), node.value,
@@ -415,7 +479,8 @@ def process_nbt_literals(source: str) -> str:
                             flare_types = [t for t in dir(flare) if not t.startswith("_")]
                             if inner in ("int", "float", "str", "bool", "list", "dict", "nbt", "score",
                                          "fixed") or inner in flare_types or inner.startswith(
-                                "list[") or inner.startswith("array[") or inner.isidentifier():
+                                "list[") or inner.startswith("array[") or inner.startswith("dict[") or inner.startswith(
+                                "compound[") or inner.isidentifier():
                                 out.append(source[i:curr])
                                 i = curr
                                 continue
@@ -509,6 +574,7 @@ def preprocess_minecraft_commands(source: str) -> str:
                     break
                 i += 1
 
+            cmd_lines[0] = cmd
             full_cmd = " ".join([c.strip() for c in cmd_lines])
 
             if '"""' in full_cmd:

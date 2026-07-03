@@ -1,6 +1,6 @@
 from typing import Any
 
-from flare.variables.nbt import struct
+from .variables.nbt import struct
 
 
 @struct

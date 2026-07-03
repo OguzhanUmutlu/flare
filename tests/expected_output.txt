@@ -12,6 +12,8 @@ bigger than 3
 20000
 3.0
 5 is in myarray
+myscore is in tuple
+mynbt is in tuple
 40320
 248.4
 248.4
@@ -25,7 +27,7 @@ No entity was found for selector s
 6.28000020
 4.0769999999999999
 --- Math Functions ---
-0
+4
 0.8416
 0.5404
 10
@@ -43,7 +45,7 @@ e
 --- Structs ---
 15
 --- Schedule ---
-Scheduled pack:__flare__schedule__/sched_16 to run at tick 20
+Scheduled pack:__flare__schedule__/sched_20 to run at tick 20
 10
 [Server] 10
 Successfully loaded datapack: dist

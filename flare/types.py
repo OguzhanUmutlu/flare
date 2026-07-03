@@ -17,6 +17,14 @@ class NBTType(Enum):
     LongArray = "list[long]"
 
 
+_nbt_inner_mapping = {
+    int: NBTType.Int,
+    float: NBTType.Float,
+    str: NBTType.String,
+    bool: NBTType.Byte
+}
+
+
 class byte:
     def __init__(self): raise Exception("Use nbt[byte] instead of byte")
 
@@ -47,3 +55,20 @@ class array:
             __args__ = (item,)
 
         return _TypedArray
+
+
+class _compound_meta(type):
+    def __getitem__(cls, item):
+        from .variables.nbt import nbt
+        class _TypedCompound:
+            __origin__ = cls
+            __args__ = (item,)
+
+            def __new__(cls_t, *args, **kwargs):
+                return nbt[cls_t](*args, **kwargs)
+
+        return _TypedCompound
+
+
+class compound(metaclass=_compound_meta):
+    def __init__(self): raise Exception("Use compound[...] instead of compound")

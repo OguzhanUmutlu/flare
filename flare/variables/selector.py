@@ -1,8 +1,19 @@
 from __future__ import annotations
 
-from .nbt import nbt
+import inspect
+from typing import Generic, TypeVar
+
 from ..context import _runcmd
-from ..nbt_schema import ENTITY_SCHEMA
+from ..generated import entity as gen_entities
+
+T = TypeVar("T")
+
+_global_entity_schema = {}
+for _name, _obj in inspect.getmembers(gen_entities):
+    if inspect.isclass(_obj) and hasattr(_obj, "__flare_schema__"):
+        for _child_name, _child_node in _obj.__flare_schema__["children"].items():
+            if _child_name not in _global_entity_schema:
+                _global_entity_schema[_child_name] = _child_node
 
 
 class tagged:
@@ -56,13 +67,14 @@ class _PrintableSelector:
 
     def __print__(self):
         from ..print import _to_print_component
+
         sep_comp = _to_print_component(self.separator, 0)
         if len(sep_comp) == 1:
             sep_comp = sep_comp[0]
         return {"selector": self._target_str, "separator": sep_comp}
 
 
-class selector:
+class selector(Generic[T]):
     def __init__(self, target: str):
         self._target_str = target
 
@@ -79,12 +91,39 @@ class selector:
         return _PrintableSelector(self._target_str, separator)
 
     def __getattr__(self, name):
+        from .nbt import nbt
+
         if name.startswith("__") and name.endswith("__"):
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
-        return _SelectorAttribute(self._target_str, name)
+
+        orig = getattr(self, "__orig_class__", None)
+        entity_type = None
+        if orig and hasattr(orig, "__args__") and orig.__args__:
+            entity_type = orig.__args__[0]
+
+        schema_node = None
+        datatype = None
+
+        if entity_type is not None and hasattr(entity_type, "__flare_schema__"):
+            if name in entity_type.__flare_schema__["children"]:
+                schema_node = entity_type.__flare_schema__["children"][name]
+                datatype = schema_node.get("type", None)
+        else:
+            if name in _global_entity_schema:
+                schema_node = _global_entity_schema[name]
+                datatype = schema_node.get("type", None)
+
+        return nbt(addr=f"entity {self._target_str} {name}", datatype=datatype, schema_node=schema_node)
+
+    def __setattr__(self, name, value):
+        if name.startswith("_"):
+            super().__setattr__(name, value)
+            return
+
+        getattr(self, name).__iset__(value)
 
     def __getitem__(self, item):
-        return _SelectorAttribute(self._target_str, str(item))
+        return self.__getattr__(str(item))
 
     def __with__(self, body_func):
         self._as().__with__(body_func)
@@ -147,34 +186,27 @@ class selector:
 
     def score(self, objective: str):
         from .score import score
+
         return score(addr=f"{self._target_str} {objective}")
 
-
-class _SelectorAttribute(nbt):
-    def __init__(self, target, name):
-        schema_node = None
-        datatype = None
-        if name in ENTITY_SCHEMA["children"]:
-            schema_node = ENTITY_SCHEMA["children"][name]
-            datatype = schema_node.get("type", None)
-
-        super().__init__(
-            addr=f"entity {target} {name}", datatype=datatype, schema_node=schema_node
-        )
-        self._target = target
-        self._name = name
-
-    def __call__(self, *args):
-        args_str = " ".join(str(a) for a in args)
-        if args_str:
-            _runcmd(f"{self._name} {self._target} {args_str}")
+    def grant_advancement(self, advancement: str = None, mode: str = "only", criterion: str = None):
+        if mode == "everything":
+            _runcmd(f"advancement grant {self._target_str} everything")
+        elif mode == "only":
+            if criterion:
+                _runcmd(f"advancement grant {self._target_str} only {advancement} {criterion}")
+            else:
+                _runcmd(f"advancement grant {self._target_str} only {advancement}")
         else:
-            _runcmd(f"{self._name} {self._target}")
+            _runcmd(f"advancement grant {self._target_str} {mode} {advancement}")
 
-
-class ref:
-    def __init__(self, target):
-        self._target = target
-
-    def __icopy__(self, varid: str):
-        return self._target
+    def revoke_advancement(self, advancement: str = None, mode: str = "only", criterion: str = None):
+        if mode == "everything":
+            _runcmd(f"advancement revoke {self._target_str} everything")
+        elif mode == "only":
+            if criterion:
+                _runcmd(f"advancement revoke {self._target_str} only {advancement} {criterion}")
+            else:
+                _runcmd(f"advancement revoke {self._target_str} only {advancement}")
+        else:
+            _runcmd(f"advancement revoke {self._target_str} {mode} {advancement}")

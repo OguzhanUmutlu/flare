@@ -21,21 +21,17 @@ class ScoreIf:
             return ScoreIf([self, other])
         return ScoreIf([*self.t, other])
 
-    def then(self, s: str | Callable | list[str | Callable]):
-        if not isinstance(s, list): s = [s]
-        for i in range(len(s)):
-            if callable(s[i]):
-                file_len = len(ctx.files[ctx.current_file])
-                s[i]()
-                commands = ctx.files[ctx.current_file][file_len:]
-                if len(commands) != 1:
-                    raise AssertionError(f"Expected a single command in ScoreIf .then action, got {commands}")
-                ctx.files[ctx.current_file] = ctx.files[ctx.current_file][:file_len]
-                s[i] = commands[0]
+    def then(self, s: Callable):
+        commands = []
+        file_len = len(ctx.files[ctx.current_file])
+
+        s()
+        commands.extend(ctx.files[ctx.current_file][file_len:])
+        ctx.files[ctx.current_file] = ctx.files[ctx.current_file][:file_len]
 
         str_self = str(self)
-        for x in s:
-            _runcmd(str_self + str(x))
+        for cmd in commands:
+            _runcmd(str_self + str(cmd))
 
     def while_then(self, s, namespace=None):
         if isinstance(s, list):
@@ -43,12 +39,18 @@ class ScoreIf:
                 for f in s: f()
         else:
             body = s
-        from .control_flow import _flare_while
         _flare_while(lambda: self, body, namespace=namespace)
 
     def __str__(self):
         if isinstance(self.t, list):
-            conds = [str(x).removeprefix("execute ").removesuffix(" run ") for x in self.t]
+            conds = []
+            for x in self.t:
+                if isinstance(x, ScoreIf):
+                    conds.append(str(x).removeprefix("execute ").removesuffix(" run "))
+                elif hasattr(x, "__branch__"):
+                    conds.extend(x.__branch__())
+                else:
+                    conds.append(str(x).removeprefix("execute ").removesuffix(" run "))
             return f"execute {' '.join(conds)} run "
         raise NotImplementedError("ScoreIf.__str__ is not implemented")
 
@@ -59,7 +61,15 @@ class ScoreIf:
             return [f"unless score {addr(dest)} matches 1"]
 
         if isinstance(self.t, list):
-            return [str(x).removeprefix("execute ").removesuffix(" run ") for x in self.t]
+            conds = []
+            for x in self.t:
+                if isinstance(x, ScoreIf):
+                    conds.append(str(x).removeprefix("execute ").removesuffix(" run "))
+                elif hasattr(x, "__branch__"):
+                    conds.extend(x.__branch__())
+                else:
+                    conds.append(str(x).removeprefix("execute ").removesuffix(" run "))
+            return conds
 
         return [str(self).removeprefix("execute ").removesuffix(" run ")]
 
@@ -72,17 +82,47 @@ class ScoreIfMatches(ScoreIf):
         self.rng = rng
 
     def __str__(self):
-        a, b = self.rng
-        if not isinf(a): a = int(a * self.t._multiplier)
-        if not isinf(b): b = int(b * self.t._multiplier)
-        st = f"{a}..{b}"
-        if a == b:
-            st = f"{a}"
-        elif isinf(a):
-            st = f"..{b}"
-        elif isinf(b):
-            st = f"{a}.."
+        if isinstance(self.rng, str):
+            st = self.rng
+        else:
+            a, b = self.rng
+            if not isinf(a): a = int(a * self.t._multiplier)
+            if not isinf(b): b = int(b * self.t._multiplier)
+            st = f"{a}..{b}"
+            if a == b:
+                st = f"{a}"
+            elif isinf(a):
+                st = f"..{b}"
+            elif isinf(b):
+                st = f"{a}.."
         return f"execute if score {addr(self.t)} matches {st} run "
+
+    def invert(self):
+        return ScoreUnlessMatches(self.t, self.rng)
+
+
+class ScoreUnlessMatches(ScoreIf):
+    def __init__(self, t, rng):
+        super().__init__([])
+        self.t = t
+        if isinstance(rng, (int, float)): rng = (rng, rng)
+        self.rng = rng
+
+    def __str__(self):
+        if isinstance(self.rng, str):
+            st = self.rng
+        else:
+            a, b = self.rng
+            if not isinf(a): a = int(a * self.t._multiplier)
+            if not isinf(b): b = int(b * self.t._multiplier)
+            st = f"{a}..{b}"
+            if a == b:
+                st = f"{a}"
+            elif isinf(a):
+                st = f"..{b}"
+            elif isinf(b):
+                st = f"{a}.."
+        return f"execute unless score {addr(self.t)} matches {st} run "
 
 
 class ScoreIfScore(ScoreIf):
@@ -108,7 +148,7 @@ def _invoke_block(func_name, cond_str):
     if _has_early_return(func_name):
         if not (ctx.files[func_name] and ctx.files[func_name][-1] in ("return 0", "return 1")):
             ctx.files[func_name].append("return 0")
-        ret_temp = score(addr=f"!ret{next_temp_id()} {temp_obj}")
+        ret_temp = score(addr=f"!ret{next_temp_id()}")
 
         if cond_str:
             _runcmd(f"execute store result score {addr(ret_temp)} {cond_str} run function {func_name}")
@@ -310,7 +350,7 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
 
     cond_init = cond_func()
     conds_init = _flatten_and(cond_init)
-    ret_temp_init = score(addr=f"!ret{ctx.next_temp_id()} {temp_obj}")
+    ret_temp_init = score(addr=f"!ret{ctx.next_temp_id()}")
     _runcmd(f"execute store result score {addr(ret_temp_init)} {' '.join(conds_init)} run function {func_name}")
     _runcmd(f"execute if score {addr(ret_temp_init)} matches 1 run return 1")
 
@@ -374,6 +414,43 @@ def _flare_with(*args):
 
 
 def _flare_not(val):
-    if hasattr(val, "__branch__") and hasattr(val, "__invert__"):
-        return ~val
+    if hasattr(val, "__branch__"):
+        from .variables.core import UnaryOp
+        return UnaryOp(val, "not")
     return not val
+
+
+def _flare_and(*args):
+    from .variables.core import BinaryOp
+    current_flare = None
+    for arg in args:
+        val = arg()
+        if hasattr(val, "__branch__"):
+            if current_flare is None:
+                current_flare = val
+            else:
+                current_flare = BinaryOp(current_flare, val, "and")
+        else:
+            if not val:
+                return False
+    if current_flare is not None:
+        return current_flare
+    return True
+
+
+def _flare_or(*args):
+    from .variables.core import BinaryOp
+    current_flare = None
+    for arg in args:
+        val = arg()
+        if hasattr(val, "__branch__"):
+            if current_flare is None:
+                current_flare = val
+            else:
+                current_flare = BinaryOp(current_flare, val, "or")
+        else:
+            if val:
+                return True
+    if current_flare is not None:
+        return current_flare
+    return False

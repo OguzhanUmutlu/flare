@@ -149,7 +149,7 @@ def run_flare(ns, src):
             "from flare.command_parser import interpolate_command\\n"
             "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\\n"
             "from flare import nbt, score, fixed, tagged, ref, getscore, storage, array, byte, boolean, short, long, double\\n"
-            "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtdict, nbtbytearray, nbtintarray, nbtlongarray\\n"
+            "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray\\n"
             "from flare import round_, floor, ceil\\n"
             "from flare.math import *\\n"
             "from flare import dbg, export, namespace, tick", global_env)

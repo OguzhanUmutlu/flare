@@ -38,6 +38,42 @@ item.name = "data"  # Sets 'root.child[0].name'
 
 Because Flare uses an AST preprocessor, you do **not** need to use the slice assignment notation (`y[:] = x`) to update an existing variable. `y = x` works perfectly natively. The `[:]` assignment is strictly an internal mechanism used by the compiler internally as a substitute for normal assignment, so do not use it in your code.
 
+### Storing Success in Internal Operations
+
+When implementing lazy operations or internal compiler features, you may need to track whether an assignment or operation was successfully executed in Minecraft. You can utilize the `.success()` method on `score` or `nbt` objects combined with a lambda wrapping the internal assignment:
+
+```python
+# Internal compiler logic to execute `y = x` and store the success (1/0) into `result_score`
+result_score.success(lambda: y.__iset__(x))
+```
+
+## Scope Lifecycle & RAII
+
+Flare implements a deterministic scope tracking system that allows objects to define their own cleanup logic, akin to C++ RAII (Resource Acquisition Is Initialization).
+
+During the AST compilation phase, `FlareTransformer` injects `_flare_enter_scope()` and `_flare_exit_scope()` around the body of every function and block (`if`, `while`, `for`, `with`). 
+
+When a variable is assigned in Flare (via `_flare_assign`), the compiler tracks it within the current scope's stack. When the scope concludes and `_flare_exit_scope()` runs, Flare iterates backwards over all tracked variables in the current scope. If a variable implements a `__scope_exit__()` method, Flare invokes it.
+
+This generalized mechanism is what drives Flare's `stack` primitives and recursion handling. If you are building custom memory-managed structures, you can hook into this lifecycle:
+
+```python
+class MyTemporaryEntity(FlareValue):
+    def __init__(self, tag):
+        self.tag = tag
+        # Because we have _stack = True, _flare_assign will track us
+        self._stack = True 
+        _runcmd(f"summon armor_stand ~ ~ ~ {{Tags:['{self.tag}']}}")
+
+    def __scope_exit__(self):
+        # Flare automatically calls this when our scope exits!
+        _runcmd(f"kill @e[tag={self.tag}]")
+```
+
+To integrate with this system, your object simply needs to:
+1. Set `self._stack = True` so `_flare_assign` adds it to the scope stack.
+2. Implement `def __scope_exit__(self):` containing the teardown logic.
+
 ## Command Memoization
 
 To drastically speed up compile times, the Flare compiler uses automatic memoization for Minecraft command evaluation.
@@ -47,6 +83,50 @@ When Flare processes a raw Minecraft command, it compiles the template string in
 ## `FlareValue` and Lazy Operations
 
 Flare's internal `FlareValue` class is the foundational base class for all compiler operations. It provides a standardized framework for deferring evaluations. By overriding Python's standard math operators, it allows operations to be "chained" at compile-time and then resolved into a series of Minecraft commands only when the user assigns the variable or evaluates it.
+
+### The `@lazify` Decorator
+
+While `@lazify` is often used on standalone functions (as seen in the [Functions Guide](functions.md)), its primary internal use is as a method decorator for custom `FlareValue` classes.
+
+By default, `@lazify` assumes it's decorating a method of a `FlareValue` instance and will automatically extract `self`. It will use the instance to allocate temporary variables and generate copies when needed.
+
+```python
+from flare.variables.core import lazify
+from flare import nbt
+
+class MyCustomString(nbt):
+    @lazify(temp="!my_func_out")
+    def my_lazy_func(self, *, dest=None):
+        # This function body is the eval_fn!
+        # It's only called when the value needs to be computed.
+        # The target storage address is passed as 'dest'
+        dest = "hello"
+        return dest
+```
+
+### The `_lazify` Helper
+
+The simplest way to create a lazy operation is using the `_lazify` helper method built directly into `FlareValue`. Rather than creating a whole new class, you can pass an evaluation function directly to `_lazify()`, which returns a `LazyOp` wrapper around your operation.
+
+```python
+from flare import score
+
+x = score(10)
+
+def my_x_plus_one_function(dest):
+    # Operations performed here are only emitted when the variable is evaluated!
+    dest = x
+    dest += 1
+    return dest
+    
+# We can return the lazy operation without emitting commands!
+return x._lazify(my_x_plus_one_function)
+
+# Later, when the user assigns it to a variable, the commands are emitted!
+# my_lazy_value = get_my_lazy_op()
+```
+
+This is highly recommended for one-off operations (like many of Flare's built-in string methods) where defining an entire subclass of `FlareValue` would be overly verbose. `_lazify` takes care of all the boilerplate delegation for `_alloc_temp()` and `_best_leaf()` automatically by routing them back to the operand it was called on.
 
 ### Standard Operation Mapping
 
@@ -100,7 +180,7 @@ class PlusOneOp(FlareValue):
     def _eval_into(self, dest):
         # The logic to evaluate this node into the destination variable
         from flare.context import _runcmd
-        dest[:] = self.operand
+        dest = self.operand
         _runcmd(f"scoreboard players add {dest._addr} 1")
         return dest
 
@@ -113,25 +193,52 @@ class PlusOneOp(FlareValue):
 
 Now, `x = my_score.plus_one()` won't emit any commands until `x` is assigned to a score or evaluated!
 
-### `__irset__` — Implicit Casting for Custom Types
+### `__riset__` — Implicit Casting for Custom Types
 
-`__irset__` is the mechanism for **custom implicit casting**. It is called when another `FlareValue` tries to use your type as an operand but does not directly support it:
+`__riset__` is the mechanism for **custom implicit casting**. It is called when another `FlareValue` tries to use your type as an operand but does not directly support it:
 
 ```python
 # When score does:  dest.__iadd__(some_custom_type)
 # and score's __iadd__ hits _try_math(), it checks:
-#   hasattr(some_custom_type, "__irset__") -> calls some_custom_type.__irset__((score,))
-# Your __irset__ must return a score-compatible value.
+#   hasattr(some_custom_type, "__riset__") -> calls some_custom_type.__riset__((score,))
+# Your __riset__ must return a score-compatible value.
 
 class MyAngle(FlareValue):
     def __init__(self, degrees):
         self.degrees = degrees   # a score
 
-    def __irset__(self, target_types):
+    def __riset__(self, target_types):
         # When someone tries to assign/operate on us as a score, return our degrees
         if score in target_types:
             return self.degrees
         raise NotImplementedError()
 ```
 
-This lets `score_var += my_angle` work naturally. Flare will auto-cast `MyAngle` into a `score` via `__irset__` without you having to manually convert it at every call site. Think of it as Python's `__int__` or `__float__`, but for Flare's runtime command generation.
+This lets `score_var += my_angle` work naturally. Flare will auto-cast `MyAngle` into a `score` via `__riset__` without you having to manually convert it at every call site. Think of it as Python's `__int__` or `__float__`, but for Flare's runtime command generation.
+
+### `__random__` and `__rrandom__` — Custom Random Generation
+
+When generating random values using `flrand.random()`, Flare provides hooks for custom types to define how they should randomly generate their state. This is especially useful for types representing complex structures or physics (like random vectors, angles, or enums).
+
+You can pass `dest=...` or `type=...` to `flrand.random()`:
+- `flrand.random(type=MyCustomType)` triggers the class method `MyCustomType.__random__()`.
+- `flrand.random(dest=my_var)` triggers the instance method `my_var.__rrandom__()` (or falls back to `type(my_var).__random__()` if `__rrandom__` isn't defined).
+
+Both of these hooks should return a lazy operation (like `@lazify`) that resolves into the generated random commands when evaluated.
+
+```python
+from flare import flrand
+from flare.variables.core import FlareValue, lazify
+
+class MyAngle(FlareValue):
+    @classmethod
+    @lazify(temp="!rand_angle")
+    def __random__(cls, *, dest=None):
+        # When flrand.random(type=MyAngle) is called, it generates a random angle.
+        # dest will be automatically assigned when evaluated!
+        dest = flrand.randint(0, 359)
+        return dest
+
+# You can now generate it directly into an angle:
+my_random_angle = flrand.random(type=MyAngle)
+```

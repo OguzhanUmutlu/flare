@@ -32,9 +32,8 @@ class float64(FlareValue):
             return
         raise TypeError(f"'{type(self).__name__}' object does not support item assignment")
 
-    def _alloc_temp(self):
-        t = type(self)(addr=f"!t{next_temp_id()} {temp_obj}")
-        return t
+    def _alloc_temp(self, prefix="!temp"):
+        return type(self)(addr=f"{prefix}_{ctx.next_temp_id()}")
 
     def _create_var(self, varid: str):
         return type(self)(addr=f"{varid} {vars_obj}")
@@ -107,10 +106,10 @@ class float64(FlareValue):
             return self
 
         if is_lazy(other):
-            other._eval_into(self)
+            other._compile_into(self)
             return self
 
-        return self._try_math("__iset__", "=", other, (float, int, float64))
+        return self._try_binary("__iset__", "=", other, (float, int, float64))
 
     def __iadd__(self, other):
         if isinstance(other, float64):
@@ -128,12 +127,12 @@ class float64(FlareValue):
                 diff[:] = a._exp
                 diff -= b._exp
 
-                (ScoreIfMatches(diff, (-2147483648, -1))).then([
-                    lambda: a._sign.__swap__(b._sign),
-                    lambda: a._exp.__swap__(b._exp),
-                    lambda: a._mant_hi.__swap__(b._mant_hi),
-                    lambda: a._mant_lo.__swap__(b._mant_lo),
-                    lambda: diff.__imul__(-1)
+                (ScoreIfMatches(diff, (-2147483648, -1))).then(lambda: [
+                    a._sign.__swap__(b._sign),
+                    a._exp.__swap__(b._exp),
+                    a._mant_hi.__swap__(b._mant_hi),
+                    a._mant_lo.__swap__(b._mant_lo),
+                    diff.__imul__(-1)
                 ])
 
                 for p in reversed(range(0, 6)):
@@ -166,38 +165,36 @@ class float64(FlareValue):
                 a._mant_lo += b._mant_lo
                 a._mant_hi += b._mant_hi
 
-                ScoreIfMatches(a._mant_lo, (-2147483648, -1)).then([
-                    lambda: a._mant_hi.__isub__(1),
-                    lambda: a._mant_lo.__iadd__(67108864)
+                ScoreIfMatches(a._mant_lo, (-2147483648, -1)).then(lambda: [
+                    a._mant_hi.__isub__(1),
+                    a._mant_lo.__iadd__(67108864)
                 ])
-                ScoreIfMatches(a._mant_lo, (67108864, 2147483647)).then([
-                    lambda: a._mant_hi.__iadd__(1),
-                    lambda: a._mant_lo.__isub__(67108864)
+                ScoreIfMatches(a._mant_lo, (67108864, 2147483647)).then(lambda: [
+                    a._mant_hi.__iadd__(1),
+                    a._mant_lo.__isub__(67108864)
                 ])
 
                 a._sign[:] = 1
                 is_neg = score(0, addr="!f64_add_neg __flare_stdlib__")
-                (ScoreIfMatches(a._mant_hi, (-2147483648, -1))).then([
-                    lambda: is_neg.__iset__(1)
+                (ScoreIfMatches(a._mant_hi, (-2147483648, -1))).then(lambda: is_neg.__iset__(1))
+                ScoreIfMatches(is_neg, 1).then(lambda: [
+                    a._sign.__iset__(-1),
+                    a._mant_hi.__imul__(-1),
+                    a._mant_lo.__imul__(-1)
                 ])
-                ScoreIfMatches(is_neg, 1).then([
-                    lambda: a._sign.__iset__(-1),
-                    lambda: a._mant_hi.__imul__(-1),
-                    lambda: a._mant_lo.__imul__(-1)
-                ])
-                (ScoreIfMatches(is_neg, 1) & ScoreIfMatches(a._mant_lo, (-2147483648, -1))).then([
-                    lambda: a._mant_lo.__iadd__(67108864),
-                    lambda: a._mant_hi.__isub__(1)
+                (ScoreIfMatches(is_neg, 1) & ScoreIfMatches(a._mant_lo, (-2147483648, -1))).then(lambda: [
+                    a._mant_lo.__iadd__(67108864),
+                    a._mant_hi.__isub__(1)
                 ])
 
                 is_zero = score(0, addr="!f64_add_zero __flare_stdlib__")
-                (ScoreIfMatches(a._mant_hi, 0) & ScoreIfMatches(a._mant_lo, 0)).then([
-                    lambda: is_zero.__iset__(1)
+                (ScoreIfMatches(a._mant_hi, 0) & ScoreIfMatches(a._mant_lo, 0)).then(lambda: [
+                    is_zero.__iset__(1)
                 ])
 
-                ScoreIfMatches(is_zero, 1).then([
-                    lambda: a._exp.__iset__(0),
-                    lambda: a._sign.__iset__(1)
+                ScoreIfMatches(is_zero, 1).then(lambda: [
+                    a._exp.__iset__(0),
+                    a._sign.__iset__(1)
                 ])
 
                 ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, (134217728, 2147483647)).while_then(
@@ -211,10 +208,10 @@ class float64(FlareValue):
                         a._exp.__iadd__(1)
                     ], namespace="__flare_stdlib__")
 
-                (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, 0)).then([
-                    lambda: a._mant_hi.__iset__(a._mant_lo),
-                    lambda: a._mant_lo.__iset__(0),
-                    lambda: a._exp.__isub__(26)
+                (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, 0)).then(lambda: [
+                    a._mant_hi.__iset__(a._mant_lo),
+                    a._mant_lo.__iset__(0),
+                    a._exp.__isub__(26)
                 ])
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, (-2147483648, 67108863))).while_then(lambda: [
@@ -234,7 +231,7 @@ class float64(FlareValue):
             self[:] = _res
             return self
 
-        return self._try_math("__iadd__", "+=", other)
+        return self._try_binary("__iadd__", "+=", other)
 
     def __isub__(self, other):
         if isinstance(other, float64):
@@ -244,7 +241,7 @@ class float64(FlareValue):
             self += temp
             return self
 
-        return self._try_math("__isub__", "-=", other)
+        return self._try_binary("__isub__", "-=", other)
 
     def __ineg__(self):
         self._check_addr()
@@ -365,13 +362,13 @@ class float64(FlareValue):
                 res._exp += b._exp
 
                 is_zero = score(0, addr="!f64_mul_zero __flare_stdlib__")
-                (ScoreIfMatches(res._mant_hi, 0) & ScoreIfMatches(res._mant_lo, 0)).then([
-                    lambda: is_zero.__iset__(1)
+                (ScoreIfMatches(res._mant_hi, 0) & ScoreIfMatches(res._mant_lo, 0)).then(lambda: [
+                    is_zero.__iset__(1)
                 ])
 
-                ScoreIfMatches(is_zero, 1).then([
-                    lambda: res._exp.__iset__(0),
-                    lambda: res._sign.__iset__(1)
+                ScoreIfMatches(is_zero, 1).then(lambda: [
+                    res._exp.__iset__(0),
+                    res._sign.__iset__(1)
                 ])
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (134217728, 2147483647))).while_then(
@@ -401,7 +398,7 @@ class float64(FlareValue):
             self[:] = _res
             return self
 
-        return self._try_math("__imul__", "*=", other)
+        return self._try_binary("__imul__", "*=", other)
 
     def __idiv__(self, other):
         if isinstance(other, (int, float)):
@@ -433,45 +430,41 @@ class float64(FlareValue):
                         lambda: can_sub.__iset__(1))
 
                     q_bit = score(0, addr="!f64_div_qb __flare_stdlib__")
-                    ScoreIfMatches(can_sub, 1).then([
-                        lambda: q_bit.__iset__(1),
-                        lambda: a._mant_lo.__isub__(b._mant_lo)
+                    ScoreIfMatches(can_sub, 1).then(lambda: [
+                        q_bit.__iset__(1),
+                        a._mant_lo.__isub__(b._mant_lo)
                     ])
-                    (ScoreIfMatches(can_sub, 1) & ScoreIfMatches(a._mant_lo, (-2147483648, -1))).then([
-                        lambda: a._mant_hi.__isub__(1),
-                        lambda: a._mant_lo.__iadd__(67108864)
+                    (ScoreIfMatches(can_sub, 1) & ScoreIfMatches(a._mant_lo, (-2147483648, -1))).then(lambda: [
+                        a._mant_hi.__isub__(1),
+                        a._mant_lo.__iadd__(67108864)
                     ])
-                    ScoreIfMatches(can_sub, 1).then([
-                        lambda: a._mant_hi.__isub__(b._mant_hi)
-                    ])
+                    ScoreIfMatches(can_sub, 1).then(lambda: a._mant_hi.__isub__(b._mant_hi))
 
                     q_lo *= 2
                     q_hi *= 2
                     q_lo += q_bit
-                    ScoreIfMatches(q_lo, (67108864, 2147483647)).then([
-                        lambda: q_hi.__iadd__(1),
-                        lambda: q_lo.__isub__(67108864)
+                    ScoreIfMatches(q_lo, (67108864, 2147483647)).then(lambda: [
+                        q_hi.__iadd__(1),
+                        q_lo.__isub__(67108864)
                     ])
 
                     if step < 53:
                         a._mant_lo *= 2
                         a._mant_hi *= 2
-                        ScoreIfMatches(a._mant_lo, (67108864, 2147483647)).then([
-                            lambda: a._mant_hi.__iadd__(1),
-                            lambda: a._mant_lo.__isub__(67108864)
+                        ScoreIfMatches(a._mant_lo, (67108864, 2147483647)).then(lambda: [
+                            a._mant_hi.__iadd__(1),
+                            a._mant_lo.__isub__(67108864)
                         ])
 
                 res._mant_hi[:] = q_hi
                 res._mant_lo[:] = q_lo
 
                 is_zero = score(0, addr="!f64_div_zero __flare_stdlib__")
-                (ScoreIfMatches(res._mant_hi, 0) & ScoreIfMatches(res._mant_lo, 0)).then([
-                    lambda: is_zero.__iset__(1)
-                ])
+                (ScoreIfMatches(res._mant_hi, 0) & ScoreIfMatches(res._mant_lo, 0)).then(lambda: is_zero.__iset__(1))
 
-                ScoreIfMatches(is_zero, 1).then([
-                    lambda: res._exp.__iset__(0),
-                    lambda: res._sign.__iset__(1)
+                ScoreIfMatches(is_zero, 1).then(lambda: [
+                    res._exp.__iset__(0),
+                    res._sign.__iset__(1)
                 ])
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (134217728, 2147483647))).while_then(
@@ -501,7 +494,7 @@ class float64(FlareValue):
             self[:] = _res
             return self
 
-        return self._try_math("__idiv__", "/=", other)
+        return self._try_binary("__idiv__", "/=", other)
 
     def __floor__(self):
         def gen(inputs, outputs):
@@ -510,21 +503,22 @@ class float64(FlareValue):
             res[:] = x
 
             shift = score(addr="!f64_flr_sh __flare_stdlib__")
+            shc = score(addr="!f64_flr_shc __flare_stdlib__")
             shift[:] = 52
             shift -= res._exp
 
-            ScoreIfMatches(res._exp, (-2147483648, -1)).then([
-                lambda: res._mant_hi.__iset__(0),
-                lambda: res._mant_lo.__iset__(0),
-                lambda: res._exp.__iset__(0)
+            ScoreIfMatches(res._exp, (-2147483648, -1)).then(lambda: [
+                res._mant_hi.__iset__(0),
+                res._mant_lo.__iset__(0),
+                res._exp.__iset__(0)
             ])
-            (ScoreIfMatches(res._exp, (-2147483648, -1)) & ScoreIfMatches(res._sign, -1)).then([
-                lambda: res._mant_hi.__iset__(67108864),
-                lambda: res._sign.__iset__(-1)
+            (ScoreIfMatches(res._exp, (-2147483648, -1)) & ScoreIfMatches(res._sign, -1)).then(lambda: [
+                res._mant_hi.__iset__(67108864),
+                res._sign.__iset__(-1)
             ])
 
             cond = ScoreIfMatches(res._exp, (0, 51))
-            cond.then(lambda: score(addr="!f64_flr_shc __flare_stdlib__").__iset__(shift))
+            cond.then(lambda: shc.__iset__(shift))
 
             for p in reversed(range(0, 6)):
                 arr = []
@@ -544,10 +538,10 @@ class float64(FlareValue):
                         lambda: res._mant_lo.__idiv__(1 << (1 << p)),
                         lambda: res._mant_lo.__iadd__(cy)
                     ])
-                arr.append(lambda: score(addr="!f64_flr_shc __flare_stdlib__").__isub__(1 << p))
-                (cond & ScoreIfMatches(score(addr="!f64_flr_shc __flare_stdlib__"), (1 << p, 2147483647))).then(arr)
+                arr.append(lambda: shc.__isub__(1 << p))
+                (cond & ScoreIfMatches(shc, (1 << p, 2147483647))).then(arr)
 
-            cond.then(lambda: score(addr="!f64_flr_shc __flare_stdlib__").__iset__(shift))
+            cond.then(lambda: shc.__iset__(shift))
 
             for p in reversed(range(0, 6)):
                 arr = []
@@ -571,8 +565,8 @@ class float64(FlareValue):
                         lambda: res._mant_hi.__iadd__(cy2),
                         lambda: res._mant_hi.__iadd__(cy3)
                     ])
-                arr.append(lambda: score(addr="!f64_flr_shc __flare_stdlib__").__isub__(1 << p))
-                (cond & ScoreIfMatches(score(addr="!f64_flr_shc __flare_stdlib__"), (1 << p, 2147483647))).then(arr)
+                arr.append(lambda: shc.__isub__(1 << p))
+                (cond & ScoreIfMatches(shc, (1 << p, 2147483647))).then(arr)
 
         _res = type(self)(addr=f"!f64_flr_{next_temp_id()}")
         _invoke_stdlib("__flare_stdlib__:__float64_floor", gen, {"x": self}, {"res": _res})
@@ -627,12 +621,12 @@ class float64(FlareValue):
 
             cond_pi = type(x)(addr="!f64_sin_cpi __flare_stdlib__")
             cond_pi[:] = 0
-            ScoreIfMatches(sub._sign, 1).then([
-                lambda: is_neg.__iset__(1),
-                lambda: cond_pi._sign.__iset__(pi._sign),
-                lambda: cond_pi._exp.__iset__(pi._exp),
-                lambda: cond_pi._mant_hi.__iset__(pi._mant_hi),
-                lambda: cond_pi._mant_lo.__iset__(pi._mant_lo)
+            ScoreIfMatches(sub._sign, 1).then(lambda: [
+                is_neg.__iset__(1),
+                cond_pi._sign.__iset__(pi._sign),
+                cond_pi._exp.__iset__(pi._exp),
+                cond_pi._mant_hi.__iset__(pi._mant_hi),
+                cond_pi._mant_lo.__iset__(pi._mant_lo)
             ])
             x -= cond_pi
 
@@ -648,11 +642,11 @@ class float64(FlareValue):
             x_reflected[:] = pi
             x_reflected -= x
 
-            ScoreIfMatches(is_reflect, 1).then([
-                lambda: x._sign.__iset__(x_reflected._sign),
-                lambda: x._exp.__iset__(x_reflected._exp),
-                lambda: x._mant_hi.__iset__(x_reflected._mant_hi),
-                lambda: x._mant_lo.__iset__(x_reflected._mant_lo)
+            ScoreIfMatches(is_reflect, 1).then(lambda: [
+                x._sign.__iset__(x_reflected._sign),
+                x._exp.__iset__(x_reflected._exp),
+                x._mant_hi.__iset__(x_reflected._mant_hi),
+                x._mant_lo.__iset__(x_reflected._mant_lo)
             ])
 
             x2 = type(x)(addr="!f64_sin_x2 __flare_stdlib__")
@@ -927,8 +921,10 @@ class float64(FlareValue):
 
             x_calc = type(x)(addr="!f64_atan_xc __flare_stdlib__")
             x_calc[:] = abs_x
-            ScoreIfMatches(invert, 1).then([lambda: x_calc.__iset__(one),
-                                            lambda: x_calc.__idiv__(abs_x)])
+            ScoreIfMatches(invert, 1).then(lambda: [
+                x_calc.__iset__(one),
+                x_calc.__idiv__(abs_x)
+            ])
 
             x_sq = type(x)(addr="!f64_atan_xsq __flare_stdlib__")
             x_sq[:] = x_calc
@@ -944,8 +940,10 @@ class float64(FlareValue):
             atan_val /= denom
 
             pi_half = type(x)(1.57079632)
-            ScoreIfMatches(invert, 1).then([lambda: atan_val.__ineg__(),
-                                            lambda: atan_val.__iadd__(pi_half)])
+            ScoreIfMatches(invert, 1).then(lambda: [
+                atan_val.__ineg__(),
+                atan_val.__iadd__(pi_half)
+            ])
 
             res[:] = atan_val
             ScoreIfMatches(is_neg, 1).then(lambda: res.__ineg__())
@@ -979,12 +977,14 @@ class float64(FlareValue):
 
             res[:] = atan_val
 
-            ScoreIfMatches(x_in._sign, -1) & ScoreIfMatches(y_in._sign, 1).then([lambda: res.__iadd__(pi)])
-            ScoreIfMatches(x_in._sign, -1) & ScoreIfMatches(y_in._sign, -1).then([lambda: res.__isub__(pi)])
+            ScoreIfMatches(x_in._sign, -1) & ScoreIfMatches(y_in._sign, 1).then(lambda: res.__iadd__(pi))
+            ScoreIfMatches(x_in._sign, -1) & ScoreIfMatches(y_in._sign, -1).then(lambda: res.__isub__(pi))
 
-            ScoreIfMatches(x_is_zero, 1) & ScoreIfMatches(y_in._sign, 1).then([lambda: res.__iset__(pi_half)])
-            ScoreIfMatches(x_is_zero, 1) & ScoreIfMatches(y_in._sign, -1).then([lambda: res.__iset__(pi_half),
-                                                                                lambda: res.__ineg__()])
+            ScoreIfMatches(x_is_zero, 1) & ScoreIfMatches(y_in._sign, 1).then(lambda: res.__iset__(pi_half))
+            ScoreIfMatches(x_is_zero, 1) & ScoreIfMatches(y_in._sign, -1).then(lambda: [
+                res.__iset__(pi_half),
+                res.__ineg__()
+            ])
 
         _res = type(self)(addr=f"!f64_atan2_{next_temp_id()}")
         _invoke_stdlib("__flare_stdlib__:__float64_atan2", gen, {"y": self, "x": x}, {"res": _res})
@@ -1123,6 +1123,7 @@ class float64(FlareValue):
 
     def __print__(self):
         from ..print import _to_print_component
+
         self._check_addr()
         tid = next_temp_id()
 

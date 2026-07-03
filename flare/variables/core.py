@@ -1,29 +1,176 @@
 from __future__ import annotations
 
-import json
+import inspect
+from abc import ABC
 
 
-class FlareValue:
+def nostack(func):
+    return func
+
+
+def lazify(temp="!temp", datatype=None, self=True, copy=None):
+    from .. import context as ctx
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            if self is True:
+                if not args:
+                    raise TypeError(
+                        f"{func.__name__}() missing 1 required positional argument: 'self'"
+                    )
+                obj_or_arg = args[0]
+
+                def eval_func(dest, **eval_kwargs):
+                    merged_kwargs = {**kwargs, **eval_kwargs}
+                    return func(*args, dest=dest, **merged_kwargs)
+
+                def alloc_temp():
+                    if callable(temp):
+                        if len(inspect.signature(temp).parameters) == 1:
+                            dest = temp(obj_or_arg)
+                        else:
+                            dest = temp()
+                    else:
+                        dest = obj_or_arg._alloc_temp(prefix=temp)
+
+                    if datatype is not None and hasattr(dest, "_type"):
+                        dest._type = datatype
+                    return dest
+
+                def make_copy(varid):
+                    if copy is not None:
+                        return copy(obj_or_arg, varid)
+                    if hasattr(obj_or_arg, "__icopy__"):
+                        if (
+                                datatype is None
+                                or getattr(obj_or_arg, "_type", None) == datatype
+                        ):
+                            return obj_or_arg.__icopy__(varid)
+                    t = alloc_temp()
+                    if hasattr(t, "_parse_addr"):
+                        t._parse_addr(f"storage {ctx._current_namespace}:vars {varid}")
+                    else:
+                        t._addr = f"storage {ctx._current_namespace}:vars {varid}"
+                    return t
+
+                return obj_or_arg._lazify(
+                    eval_func,
+                    alloc_temp,
+                    make_copy,
+                    op_name=func.__name__,
+                    op_args=(args, kwargs),
+                )
+            else:
+                def eval_func(dest, **eval_kwargs):
+                    merged_kwargs = {**kwargs, **eval_kwargs}
+                    return func(*args, dest=dest, **merged_kwargs)
+
+                def alloc_temp():
+                    nonlocal ctx
+
+                    if callable(temp):
+                        dest = temp()
+                    else:
+                        if isinstance(self, type) and issubclass(self, FlareValue):
+                            dest = self(
+                                addr=f"storage flare:temp {temp}_{ctx.next_temp_id()}"
+                            )
+                        else:
+                            dest = nbt(
+                                addr=f"storage flare:temp {temp}_{ctx.next_temp_id()}"
+                            )
+                    if datatype is not None and hasattr(dest, "_type"):
+                        dest._type = datatype
+                    return dest
+
+                def make_copy(varid):
+                    if copy is not None:
+                        return copy(varid)
+                    t = alloc_temp()
+                    if hasattr(t, "_parse_addr"):
+                        t._parse_addr(f"storage {ctx._current_namespace}:vars {varid}")
+                    else:
+                        t._addr = f"storage {ctx._current_namespace}:vars {varid}"
+                    return t
+
+                return LazyOp(
+                    None,
+                    eval_func,
+                    alloc_temp,
+                    make_copy,
+                    op_name=func.__name__,
+                    op_args=(args, kwargs),
+                )
+
+        return wrapper
+
+    return decorator
+
+
+class FlareValue(ABC):
     def __iset__(self, other):
         raise NotImplementedError()
 
     def __setitem__(self, key, value):
-        if isinstance(key, slice) and key.start is None and key.stop is None and key.step is None:
+        if (
+                isinstance(key, slice)
+                and key.start is None
+                and key.stop is None
+                and key.step is None
+        ):
             self.__iset__(value)
             return
-        raise TypeError(f"'{type(self).__name__}' object does not support item assignment")
+        raise TypeError(
+            f"'{type(self).__name__}' object does not support item assignment"
+        )
 
-    def _alloc_temp(self):
-        raise NotImplementedError(f"'{type(self).__name__}' does not implement _alloc_temp()")
+    def _alloc_temp(self, prefix="!temp"):
+        raise NotImplementedError(
+            f"'{type(self).__name__}' does not implement _alloc_temp()"
+        )
 
-    def _eval_into(self, dest):
+    def _compile_into(self, dest):
         raise NotImplementedError()
+
+    def _lazify(
+            self, eval_fn, alloc_temp_fn=None, make_copy_fn=None, op_name=None, op_args=None
+    ):
+        return LazyOp(
+            self, eval_fn, alloc_temp_fn, make_copy_fn, op_name=op_name, op_args=op_args
+        )
 
     def _best_leaf(self):
         return self._alloc_temp()
 
     def __branch__(self, invert=False):
         raise NotImplementedError()
+
+    def __rin__(self, container):
+        from .score import score
+        from .. import context as ctx
+        from ..context import _runcmd
+        from ..compiler import _flatten_and
+
+        if isinstance(container, (list, tuple, set)):
+            if not container:
+                return False
+
+            dest = score(addr=f"!in_{ctx.next_temp_id()}")
+            _runcmd(f"scoreboard players set {addr(dest)} 0")
+
+            for item in container:
+                cond = (self == item)
+                if isinstance(cond, bool):
+                    if cond:
+                        _runcmd(f"scoreboard players set {addr(dest)} 1")
+                        break
+                    continue
+
+                conds = _flatten_and(cond)
+                _runcmd(
+                    f"execute if score {addr(dest)} matches 0 {' '.join(conds)} run scoreboard players set {addr(dest)} 1")
+
+            return dest == 1
+        return NotImplemented
 
     def __add__(self, other):
         return BinaryOp(self, other, "add")
@@ -114,19 +261,40 @@ class FlareValue:
 
     def __bool__(self):
         raise TypeError(
-            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
+            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?"
+        )
 
-    def __irset__(self, target_types):
+    def __implicit__(self, target_types):
         raise NotImplementedError()
 
-    def _try_math(self, fn, op, other, possibilities=None):
+    def _try_binary(self, fn, op, other, possibilities=None):
+        from .. import context as ctx
+
         if possibilities is None:
             possibilities = (type(self),)
-        if type(other) not in possibilities:
+
+        if isinstance(other, LazyOp):
+            t = type(self)(addr=f"!lazy{ctx.next_temp_id()}")
+            other._compile_into(t)
+            other = t
+
+        if not isinstance(other, possibilities):
             if type(other) in getattr(type(self), "_implements_set", tuple()):
                 return getattr(self, fn)(type(self)(other))
-            if hasattr(other, "__irset__"):
-                return getattr(self, fn)(other.__irset__(possibilities))
+
+            if fn == "__iset__":
+                if hasattr(other, "__implicit__"):
+                    return getattr(self, fn)(other.__implicit__(possibilities))
+            elif fn.startswith("__i"):
+                r_fn = f"__ri{fn[3:]}"
+                if hasattr(other, r_fn):
+                    res = getattr(other, r_fn)(self)
+                    if res is not NotImplemented:
+                        return getattr(self, "__iset__")(res)
+
+            if hasattr(other, "__implicit__"):
+                return getattr(self, fn)(other.__implicit__(possibilities))
+
         raise UnsupportedOperandError(self, op, other)
 
 
@@ -142,6 +310,103 @@ class BinaryOp(FlareValue):
         def get_priority(leaf):
             if hasattr(leaf, "_type_priority"):
                 return leaf._type_priority()
+            if isinstance(leaf, FlareValue):
+                return 0
+            return -999999
+
+        def traverse(node):
+            if isinstance(node, BinaryOp):
+                left_leaf = traverse(node.left)
+                right_leaf = traverse(node.right)
+                if get_priority(left_leaf) >= get_priority(right_leaf):
+                    return left_leaf
+                else:
+                    return right_leaf
+            elif isinstance(node, UnaryOp):
+                return traverse(node.operand)
+            elif isinstance(node, LazyOp):
+                return traverse(node._best_leaf())
+            else:
+                return node
+
+        return traverse(self)
+
+    def _alloc_temp(self, prefix="!temp", like=None):
+        if like is not None:
+            return like._alloc_temp(prefix=prefix)
+        return self._best_leaf()._alloc_temp(prefix=prefix)
+
+    def _compile_into(self, dest):
+        if self.op in ("eq", "ne", "lt", "le", "gt", "ge", "and", "or", "not"):
+            raise TypeError("Logical/Relational operators cannot be assigned directly.")
+        iop = f"__i{self.op}__"
+
+        left_node = self.left
+        right_node = self.right
+
+        if self.op in ("add", "mul"):
+
+            def get_priority(node):
+                if hasattr(node, "_best_leaf"):
+                    node = node._best_leaf()
+                if hasattr(node, "_type_priority"):
+                    return node._type_priority()
+                if isinstance(node, FlareValue):
+                    return 0
+                return -999999
+
+            if get_priority(right_node) > get_priority(left_node):
+                left_node, right_node = right_node, left_node
+
+        if isinstance(left_node, (BinaryOp, UnaryOp, LazyOp, MathOp)):
+            left_node._compile_into(dest)
+        else:
+            dest[:] = left_node
+        if isinstance(right_node, (BinaryOp, UnaryOp, LazyOp, MathOp)):
+            temp = self._alloc_temp(dest)
+            right_node._compile_into(temp)
+            getattr(dest, iop)(temp)
+        else:
+            getattr(dest, iop)(right_node)
+        return dest
+
+    def __icopy__(self, varid: str, is_recursive: bool = False):
+        leaf = self._best_leaf()
+        dest = leaf._create_var(varid)
+        self._compile_into(dest)
+        return dest
+
+    def __branch__(self, invert=False):
+        from ..compiler import _flatten_and, _compile_relational, _eval_to_bool_score
+
+        if self.op == "and" and not invert:
+            return _flatten_and(self.left, invert) + _flatten_and(self.right, invert)
+        if self.op == "or" and invert:
+            return _flatten_and(self.left, invert) + _flatten_and(self.right, invert)
+        if self.op in ("eq", "ne", "lt", "le", "gt", "ge"):
+            return [_compile_relational(self, invert)]
+
+        dest = _eval_to_bool_score(self)
+        keyword = "unless" if invert else "if"
+        return [f"{keyword} score {addr(dest)} matches 1"]
+
+    def __bool__(self):
+        raise TypeError(
+            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?"
+        )
+
+
+class UnaryOp(FlareValue):
+    def __init__(self, operand, op: str):
+        self.operand = operand
+        self.op = op
+
+    def _best_leaf(self):
+        def get_priority(leaf):
+            if hasattr(leaf, "_type_priority"):
+                return leaf._type_priority()
+            if isinstance(leaf, FlareValue):
+                return 0
             return -999999
 
         def traverse(node):
@@ -159,99 +424,15 @@ class BinaryOp(FlareValue):
 
         return traverse(self)
 
-    def _alloc_temp(self, like):
-        return like._alloc_temp()
+    def _alloc_temp(self, prefix="!temp", like=None):
+        return like._alloc_temp(prefix=prefix)
 
-    def _eval_into(self, dest):
-        if self.op in ("eq", "ne", "lt", "le", "gt", "ge", "and", "or", "not"):
-            raise TypeError("Logical/Relational operators cannot be assigned directly.")
-        iop = f"__i{self.op}__"
-
-        left_node = self.left
-        right_node = self.right
-
-        if self.op in ("add", "mul"):
-            def get_priority(node):
-                if hasattr(node, "_best_leaf"):
-                    node = node._best_leaf()
-                if hasattr(node, "_type_priority"):
-                    return node._type_priority()
-                return 0
-
-            if get_priority(right_node) > get_priority(left_node):
-                left_node, right_node = right_node, left_node
-
-        if isinstance(left_node, (BinaryOp, UnaryOp)):
-            left_node._eval_into(dest)
-        else:
-            dest[:] = left_node
-        if isinstance(right_node, (BinaryOp, UnaryOp)):
-            temp = self._alloc_temp(dest)
-            right_node._eval_into(temp)
-            getattr(dest, iop)(temp)
-        else:
-            getattr(dest, iop)(right_node)
-        return dest
-
-    def __icopy__(self, varid: str, is_recursive: bool = False):
-        leaf = self._best_leaf()
-        dest = leaf._create_var(varid)
-        self._eval_into(dest)
-        return dest
-
-    def __branch__(self, invert=False):
-        from ..compiler import _flatten_and, _compile_relational, _eval_to_bool_score
-        if self.op == "and" and not invert:
-            return _flatten_and(self.left, invert) + _flatten_and(self.right, invert)
-        if self.op == "or" and invert:
-            return _flatten_and(self.left, invert) + _flatten_and(self.right, invert)
-        if self.op in ("eq", "ne", "lt", "le", "gt", "ge"):
-            return [_compile_relational(self, invert)]
-
-        dest = _eval_to_bool_score(self)
-        keyword = "unless" if invert else "if"
-        return [f"{keyword} score {addr(dest)} matches 1"]
-
-    def __bool__(self):
-        raise TypeError(
-            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
-
-
-class UnaryOp(FlareValue):
-    def __init__(self, operand, op: str):
-        self.operand = operand
-        self.op = op
-
-    def _best_leaf(self):
-        def get_priority(leaf):
-            if hasattr(leaf, "_type_priority"):
-                return leaf._type_priority()
-            return 0
-
-        def traverse(node):
-            if isinstance(node, BinaryOp):
-                left_leaf = traverse(node.left)
-                right_leaf = traverse(node.right)
-                if get_priority(left_leaf) >= get_priority(right_leaf):
-                    return left_leaf
-                else:
-                    return right_leaf
-            elif isinstance(node, UnaryOp):
-                return traverse(node.operand)
-            else:
-                return node
-
-        return traverse(self)
-
-    def _alloc_temp(self, like):
-        return like._alloc_temp()
-
-    def _eval_into(self, dest):
+    def _compile_into(self, dest):
         if self.op in ("not",):
             raise TypeError("Logical operators cannot be assigned directly.")
         iop = f"__i{self.op}__"
         if isinstance(self.operand, (BinaryOp, UnaryOp)):
-            self.operand._eval_into(dest)
+            self.operand._compile_into(dest)
         else:
             dest[:] = self.operand
         if hasattr(dest, iop):
@@ -265,11 +446,12 @@ class UnaryOp(FlareValue):
     def __icopy__(self, varid: str, is_recursive: bool = False):
         leaf = self._best_leaf()
         dest = leaf._create_var(varid)
-        self._eval_into(dest)
+        self._compile_into(dest)
         return dest
 
     def __branch__(self, invert=False):
         from ..compiler import _flatten_and, _eval_to_bool_score
+
         if self.op == "not":
             return _flatten_and(self.operand, not invert)
         if self.op == "neg":
@@ -286,259 +468,91 @@ class UnaryOp(FlareValue):
 
     def __bool__(self):
         raise TypeError(
-            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
+            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?"
+        )
 
 
-class NBTSliceOp(FlareValue):
-    def __init__(self, operand, start, stop):
-        from ..types import NBTType
-        self.operand = operand
-        self.start = start
-        self.stop = stop
-        self._type = NBTType.String
-        self._schema_node = {"type": NBTType.String}
-        self._is_nbt_op = True
+class MathOp(FlareValue):
+    def __init__(self, name: str, *args):
+        self.name = name
+        self.args = args
 
     def _best_leaf(self):
-        return self.operand
+        for arg in self.args:
+            if hasattr(arg, "_best_leaf"):
+                return arg._best_leaf()
+        return self.args[0]
 
-    def _eval_into(self, dest):
-        from ..context import _runcmd
-        start_str = str(self.start) if self.start is not None else "0"
-        stop_str = f" {self.stop}" if self.stop is not None else ""
-        _runcmd(f"data modify {addr(dest)} set string {addr(self.operand)} {start_str}{stop_str}")
-        return dest
+    def _alloc_temp(self, prefix="!temp", like=None):
+        if like is not None:
+            return like._alloc_temp(prefix=prefix)
+        leaf = self._best_leaf()
+        if hasattr(leaf, "_alloc_temp"):
+            return leaf._alloc_temp(prefix=prefix)
+        raise TypeError(f"Cannot determine temp allocation for MathOp {self.name}")
 
-    def __branch__(self, invert=False):
-        return BinaryOp(self, 0, "ne").__branch__(invert)
+    def _compile_into(self, dest):
+        from ..math import _dispatch_eval
 
-    def _alloc_temp(self):
-        return self.operand._alloc_temp()
+        return _dispatch_eval(self.name, dest, *self.args)
 
 
-class NBTLengthOp(FlareValue):
-    def __init__(self, operand):
+class LazyOp(FlareValue):
+    @property
+    def _type(self):
+        leaf = self._best_leaf()
+        return getattr(leaf, "_type", None)
+
+    def is_sequence(self):
+        leaf = self._best_leaf()
+        return getattr(leaf, "is_sequence", lambda: False)()
+
+    def __init__(
+            self,
+            operand,
+            eval_fn,
+            alloc_temp_fn=None,
+            make_copy_fn=None,
+            op_name=None,
+            op_args=None,
+    ):
         self.operand = operand
-        self._is_macro_param = False
+        self.eval_fn = eval_fn
+        self.alloc_temp_fn = alloc_temp_fn
+        self._make_copy_fn = make_copy_fn
+        self.op_name = op_name
+        self.op_args = op_args
 
-    def _best_leaf(self):
-        from .score import score
-        return score(addr="!dummy dummy")
-
-    def _eval_into(self, dest):
+    def __icopy__(self, varid: str):
         from .. import context as ctx
-        from ..context import _runcmd
-        from .score import score
-        if isinstance(dest, score):
-            _runcmd(f"execute store result score {addr(dest)} run data get {addr(self.operand)}")
+
+        if self._make_copy_fn is not None:
+            t = self._make_copy_fn(varid)
         else:
-            temp = ctx.next_temp_score("len")
-            self._eval_into(temp)
-            dest[:] = temp
-        return dest
+            t = self._alloc_temp()
+            t._addr = f"{ctx._current_namespace}:vars {varid}"
+        self._compile_into(t)
+        return t
 
-    def __branch__(self, invert=False):
-        return BinaryOp(self, 0, "ne").__branch__(invert)
-
-
-class NBTSplitOp(FlareValue):
-    def __init__(self, operand, delim=","):
-        from ..types import NBTType
-        self.operand = operand
-        self.delim = delim
-        self._type = NBTType.List
-        self._schema_node = {"type": NBTType.List}
-        self._is_nbt_op = True
+    def __getitem__(self, item):
+        temp = self._alloc_temp()
+        self._compile_into(temp)
+        return temp[item]
 
     def _best_leaf(self):
-        return self._alloc_temp()
+        if self.alloc_temp_fn is not None:
+            return self._alloc_temp()
+        return self.operand._best_leaf()
 
-    def _alloc_temp(self):
-        from .nbt import nbt
-        from ..types import NBTType
-        from .. import context as ctx
-        return nbt(addr=f"!split{ctx.next_temp_id()} {ctx.temp_obj}", datatype=NBTType.List)
+    def _alloc_temp(self, prefix="!temp", like=None):
+        if self.alloc_temp_fn is not None:
+            return self.alloc_temp_fn()
+        if like is not None:
+            return like._alloc_temp(prefix=prefix)
+        return self.operand._alloc_temp(prefix=prefix)
 
-    def _eval_into(self, dest):
-        from .. import context as ctx
-        from ..context import _runcmd
-        from .nbt import nbt
-        from .score import score
-        from ..types import NBTType
-
-        dest[:] = []
-        _id = ctx.next_temp_id()
-
-        if isinstance(self.delim, str) and len(self.delim) == 0:
-            temp_str = nbt(addr=f"flare:temp !split_str_{_id}", datatype=NBTType.String)
-            temp_str[:] = self.operand
-            temp_len = score(addr=f"!split_len_{_id} {ctx.temp_obj}")
-            temp_len[:] = temp_str.length()
-
-            func_name = f"{ctx._current_namespace}:split_char_{ctx.next_func_id()}"
-
-            def char_loop():
-                _runcmd(f"data modify {addr(dest)} append string {addr(temp_str)} 0 1")
-                _runcmd(f"data modify {addr(temp_str)} set string {addr(temp_str)} 1")
-                temp_len[:] = temp_str.length()
-                _runcmd(f"execute if score {addr(temp_len)} matches 1.. run function {func_name}")
-
-            with ctx.push_context(func_name):
-                char_loop()
-
-            _runcmd(f"execute if score {addr(temp_len)} matches 1.. run function {func_name}")
-            return dest
-
-        temp_str = nbt(addr=f"flare:temp !split_str_{_id}", datatype=NBTType.String)
-        temp_str[:] = self.operand
-        current_word = nbt(addr=f"flare:temp !split_word_{_id}", datatype=NBTType.String)
-        current_word[:] = ""
-        temp_len = score(addr=f"!split_len_{_id} {ctx.temp_obj}")
-        temp_len[:] = temp_str.length()
-
-        split_slice = nbt(addr=f"flare:temp !split_slice_{_id}", datatype=NBTType.String)
-        is_match = score(addr=f"!split_match_{_id} {ctx.temp_obj}")
-
-        if isinstance(self.delim, str):
-            delim_len = len(self.delim)
-            func_name = f"{ctx._current_namespace}:split_{ctx.next_func_id()}"
-
-            def strcat_macro(_, __):
-                _runcmd(
-                    f"$execute if score $(__is_match) matches 0 run data modify $(__addr) set value \"$(__input1)$(__input2)\"")
-
-            def split_loop():
-                _runcmd(f"data modify {addr(split_slice)} set string {addr(temp_str)} 0 {delim_len}")
-
-                _runcmd(f"data modify storage flare:temp !split_eq_{_id} set from {addr(split_slice)}")
-                _runcmd(
-                    f"execute store success score {addr(is_match)} run data modify storage flare:temp !split_eq_{_id} set value {json.dumps(self.delim)}")
-                _runcmd(f"execute if score {addr(is_match)} matches 0 run scoreboard players set {addr(is_match)} 2")
-                _runcmd(f"execute if score {addr(is_match)} matches 1 run scoreboard players set {addr(is_match)} 0")
-                _runcmd(f"execute if score {addr(is_match)} matches 2 run scoreboard players set {addr(is_match)} 1")
-
-                _runcmd(
-                    f"execute if score {addr(is_match)} matches 1 run data modify {addr(dest)} append from {addr(current_word)}")
-                _runcmd(
-                    f"execute if score {addr(is_match)} matches 1 run data modify {addr(current_word)} set value \"\"")
-                _runcmd(
-                    f"execute if score {addr(is_match)} matches 1 run data modify {addr(temp_str)} set string {addr(temp_str)} {delim_len}")
-
-                char_temp = nbt(addr=f"flare:temp !split_char_{_id}", datatype=NBTType.String)
-                _runcmd(
-                    f"execute if score {addr(is_match)} matches 0 run data modify {addr(char_temp)} set string {addr(temp_str)} 0 1")
-
-                with_ = nbt(addr=f"{ctx.temp_storage} __strcat_{_id}")[dict[str, str]]({
-                    "__addr": addr(current_word),
-                    "__input1": current_word,
-                    "__input2": char_temp,
-                    "__is_match": addr(is_match)
-                })
-                ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_strcat_{_id}", strcat_macro, with_=with_)
-
-                _runcmd(
-                    f"execute if score {addr(is_match)} matches 0 run data modify {addr(temp_str)} set string {addr(temp_str)} 1")
-
-                temp_len[:] = temp_str.length()
-                _runcmd(f"execute if score {addr(temp_len)} matches {delim_len}.. run function {func_name}")
-
-            with ctx.push_context(func_name):
-                split_loop()
-
-            _runcmd(f"execute if score {addr(temp_len)} matches {delim_len}.. run function {func_name}")
-
-            def strcat_macro_rem(_, __):
-                _runcmd(f"$data modify $(__addr) set value \"$(__input1)$(__input2)\"")
-
-            with_rem = nbt(addr=f"{ctx.temp_storage} __strcat_rem_{_id}")[dict[str, str]]({
-                "__addr": addr(current_word),
-                "__input1": current_word,
-                "__input2": temp_str
-            })
-            ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_strcat_rem_{_id}", strcat_macro_rem, with_=with_rem)
-
-            _runcmd(f"data modify {addr(dest)} append from {addr(current_word)}")
-            return dest
-
-        else:
-            delim_len = score(addr=f"!split_dlen_{_id} {ctx.temp_obj}")
-            delim_len[:] = self.delim.length()
-
-            func_name = f"{ctx._current_namespace}:split_{ctx.next_func_id()}"
-
-            def check_match_macro(_, __):
-                _runcmd(f"$data modify $(__split_slice_addr) set string $(__temp_str_addr) 0 $(__delim_len)")
-
-            def strcat_macro(_, __):
-                _runcmd(
-                    f"$execute if score $(__is_match) matches 0 run data modify $(__addr) set value \"$(__input1)$(__input2)\"")
-
-            def split_loop():
-                with_check = nbt(addr=f"{ctx.temp_storage} __split_check_{_id}")[dict[str, str]]({
-                    "__split_slice_addr": addr(split_slice),
-                    "__temp_str_addr": addr(temp_str),
-                    "__delim_len": delim_len
-                })
-                ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_check_{_id}", check_match_macro, with_=with_check)
-
-                _runcmd(f"data modify storage flare:temp !split_eq_{_id} set from {addr(split_slice)}")
-                _runcmd(
-                    f"execute store success score {addr(is_match)} run data modify storage flare:temp !split_eq_{_id} set from {addr(self.delim)}")
-                _runcmd(f"execute if score {addr(is_match)} matches 0 run scoreboard players set {addr(is_match)} 2")
-                _runcmd(f"execute if score {addr(is_match)} matches 1 run scoreboard players set {addr(is_match)} 0")
-                _runcmd(f"execute if score {addr(is_match)} matches 2 run scoreboard players set {addr(is_match)} 1")
-
-                _runcmd(
-                    f"execute if score {addr(is_match)} matches 1 run data modify {addr(dest)} append from {addr(current_word)}")
-                _runcmd(
-                    f"execute if score {addr(is_match)} matches 1 run data modify {addr(current_word)} set value \"\"")
-
-                def advance_macro(_, __):
-                    _runcmd(
-                        f"$execute if score $(__is_match) matches 1 run data modify $(__temp_str_addr) set string $(__temp_str_addr) $(__delim_len)")
-
-                with_adv = nbt(addr=f"{ctx.temp_storage} __split_adv_{_id}")[dict[str, str]]({
-                    "__temp_str_addr": addr(temp_str),
-                    "__delim_len": delim_len,
-                    "__is_match": addr(is_match)
-                })
-                ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_adv_{_id}", advance_macro, with_=with_adv)
-
-                char_temp = nbt(addr=f"flare:temp !split_char_{_id}", datatype=NBTType.String)
-                _runcmd(
-                    f"execute if score {addr(is_match)} matches 0 run data modify {addr(char_temp)} set string {addr(temp_str)} 0 1")
-
-                with_ = nbt(addr=f"{ctx.temp_storage} __strcat_{_id}")[dict[str, str]]({
-                    "__addr": addr(current_word),
-                    "__input1": current_word,
-                    "__input2": char_temp,
-                    "__is_match": addr(is_match)
-                })
-                ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_strcat_{_id}", strcat_macro, with_=with_)
-
-                _runcmd(
-                    f"execute if score {addr(is_match)} matches 0 run data modify {addr(temp_str)} set string {addr(temp_str)} 1")
-
-                temp_len[:] = temp_str.length()
-                _runcmd(f"execute if score {addr(temp_len)} >= {addr(delim_len)} run function {func_name}")
-
-            with ctx.push_context(func_name):
-                split_loop()
-
-            _runcmd(f"execute if score {addr(temp_len)} >= {addr(delim_len)} run function {func_name}")
-
-            def strcat_macro_rem(_, __):
-                _runcmd(f"$data modify $(__addr) set value \"$(__input1)$(__input2)\"")
-
-            with_rem = nbt(addr=f"{ctx.temp_storage} __strcat_rem_{_id}")[dict[str, str]]({
-                "__addr": addr(current_word),
-                "__input1": current_word,
-                "__input2": temp_str
-            })
-            ctx._invoke_stdlib(f"__flare_stdlib__:__flare_split_strcat_rem_{_id}", strcat_macro_rem, with_=with_rem)
-
-            _runcmd(f"data modify {addr(dest)} append from {addr(current_word)}")
-            return dest
+    def _compile_into(self, dest):
+        return self.eval_fn(dest)
 
     def __branch__(self, invert=False):
         return BinaryOp(self, 0, "ne").__branch__(invert)
@@ -546,7 +560,9 @@ class NBTSplitOp(FlareValue):
 
 class UnsupportedOperandError(Exception):
     def __init__(self, a, op, b):
-        super().__init__(f"Unsupported operand type(s) for {op}: '{type(a).__name__}' and '{type(b).__name__}'")
+        super().__init__(
+            f"Unsupported operand type(s) for {op}: '{type(a).__name__}' and '{type(b).__name__}'"
+        )
 
 
 def addr(var):
@@ -578,4 +594,20 @@ class macro:
 
 
 def is_lazy(obj):
-    return hasattr(type(obj), "_eval_into") and getattr(type(obj), "_eval_into") is not FlareValue._eval_into
+    return (
+            hasattr(type(obj), "_compile_into")
+            and getattr(type(obj), "_compile_into") is not FlareValue._compile_into
+    )
+
+
+class ref:
+    def __init__(self, target):
+        self._target = target
+
+    def __icopy__(self, varid: str):
+        return self._target
+
+
+from .string import NBTStringMethods
+
+LazyOp.__bases__ = (FlareValue, NBTStringMethods)

@@ -6,11 +6,6 @@ import sys
 from . import command_parser as _cp
 from .command_parser import interpolate_command
 
-
-def addr(var):
-    return var._addr
-
-
 files = {"main": []}
 current_file = "main"
 _current_namespace: str = "flare"
@@ -18,6 +13,7 @@ functions = {}
 constants = {}
 return_targets = {}
 recursive_locals = {}
+_scope_stacks = []
 
 
 class DynamicVar:
@@ -55,10 +51,15 @@ _temp_id = 0
 _func_id = 0
 _objective_offset = 0
 _constant_offset = 0
-_recursive_functions = set()
-_in_recursive_context = False
-return_types = {}
 has_returns = {}
+return_types = {}
+
+tick_funcs = set()
+load_funcs = set()
+objectives = set()
+_recursive_functions = set()
+
+_in_recursive_context = False
 _logical_func = None
 memoized_math = {}
 
@@ -76,7 +77,7 @@ def next_temp_id():
 
 def next_temp_score(prefix: str = "t", **kwargs):
     from .variables.score import score
-    return score(addr=f"!{prefix}_{next_temp_id()} {temp_obj}", **kwargs)
+    return score(addr=f"!{prefix}_{next_temp_id()}", **kwargs)
 
 
 def next_func_id():
@@ -94,6 +95,9 @@ def reset_context():
     _current_namespace = "flare"
     functions.clear()
     constants.clear()
+    objectives.clear()
+    tick_funcs.clear()
+    load_funcs.clear()
     _temp_id = 0
     _func_id = 0
     _objective_offset = 0
@@ -109,7 +113,7 @@ def reset_context():
 
 def ensure_objective(obj: str):
     global _objective_offset, _constant_offset
-    if not obj:
+    if not obj or obj in objectives:
         return
 
     load_file = f"{_current_namespace}:load"
@@ -121,6 +125,7 @@ def ensure_objective(obj: str):
         files[load_file].insert(_objective_offset, cmd)
         _objective_offset += 1
         _constant_offset += 1
+        objectives.add(obj)
 
 
 def ensure_constant(name: str, obj: str, val: int):
@@ -335,7 +340,7 @@ def export(func=None, *, name=None, append=False, returns=None):
                         global _temp_id
                         temp = nbt(addr=f"storage {temp_storage} !t{_temp_id}", datatype=target._type)
                         _temp_id += 1
-                        arg_val._eval_into(temp)
+                        arg_val._compile_into(temp)
                         _runcmd(f"data modify {base_addr} append from {addr(temp)}")
                 else:
                     target.__iset__(arg_val)
@@ -466,7 +471,22 @@ def export(func=None, *, name=None, append=False, returns=None):
 def _flare_in(item, container):
     if hasattr(container, "__in__"):
         return container.__in__(item)
+    if hasattr(item, "__rin__"):
+        res = item.__rin__(container)
+        if res is not NotImplemented:
+            return res
     return item in container
+
+
+def _flare_enter_scope():
+    _scope_stacks.append([])
+
+
+def _flare_exit_scope():
+    if _scope_stacks:
+        for var in reversed(_scope_stacks.pop()):
+            if hasattr(var, "__scope_exit__"):
+                var.__scope_exit__()
 
 
 def _flare_notin(item, container):
@@ -474,10 +494,16 @@ def _flare_notin(item, container):
         return container.__notin__(item)
     if hasattr(container, "__in__"):
         return ~container.__in__(item)
+    if hasattr(item, "__rin__"):
+        res = item.__rin__(container)
+        if res is not NotImplemented:
+            return ~res
     return item not in container
 
 
 def _flare_assign(var_name, value, local_env, global_env, is_local=False):
+    from .variables.nbt import nbt
+
     target = None
     if is_local:
         target = local_env.get(var_name)
@@ -503,13 +529,18 @@ def _flare_assign(var_name, value, local_env, global_env, is_local=False):
         if "is_recursive" in inspect.signature(value.__icopy__).parameters:
             result = value.__icopy__(varid=f"{_current_namespace}_{var_name}", is_recursive=_in_recursive_context)
             if _in_recursive_context and _logical_func:
-                from .variables.nbt import nbt
                 if isinstance(result, nbt):
                     if _logical_func not in recursive_locals:
                         recursive_locals[_logical_func] = set()
                     recursive_locals[_logical_func].add(f"{_current_namespace}_{var_name}")
+            if getattr(result, "_stack", False) and _scope_stacks:
+                _scope_stacks[-1].append(result)
             return result
-        return value.__icopy__(varid=f"{_current_namespace}_{var_name}")
+
+        result = value.__icopy__(varid=f"{_current_namespace}_{var_name}")
+        if getattr(result, "_stack", False) and _scope_stacks:
+            _scope_stacks[-1].append(result)
+        return result
 
     return value
 
@@ -559,6 +590,11 @@ def _flare_return(value):
         has_returns[func_name] = True
         return
 
+    from .variables.builtins import _FailType
+    if isinstance(value, _FailType):
+        _runcmd("return fail")
+        return
+
     ret_anno = return_types.get(func_name, None)
 
     if ret_anno == "UNKNOWN":
@@ -602,14 +638,25 @@ def _flare_return(value):
     _runcmd("return 1")
 
 
-def tick(func=None):
+def tick(func=None, **kwargs):
     if func is None:
         def wrapper(f):
-            return tick(f)
+            return tick(f, **kwargs)
 
         return wrapper
 
-    func_name = f"{_current_namespace}:tick"
-    with push_context(func_name):
-        func()
-    return func
+    exported = export(**kwargs)(func)
+    tick_funcs.add(f"{namespace()}:{kwargs.get('name', func.__name__)}")
+    return exported
+
+
+def load(func=None, **kwargs):
+    if func is None:
+        def wrapper(f):
+            return load(f, **kwargs)
+
+        return wrapper
+
+    exported = export(**kwargs)(func)
+    load_funcs.add(f"{namespace()}:{kwargs.get('name', func.__name__)}")
+    return exported

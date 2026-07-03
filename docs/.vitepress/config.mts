@@ -70,8 +70,11 @@ export default defineConfig({
                     items: [
                         {text: "Native Commands", link: "/guide/native-commands"},
                         {text: "Debugging", link: "/guide/debugging"},
+                        {text: "Entity Selectors", link: "/guide/selectors"},
                         {text: "Scores", link: "/guide/scores"},
                         {text: "NBT Variables", link: "/guide/nbt"},
+                        {text: "String Manipulation", link: "/guide/string"},
+                        {text: "Regex Engine", link: "/guide/regex"},
                         {text: "Execute Modifiers", link: "/guide/execute"},
                         {text: "Control Flow", link: "/guide/control-flow"},
                         {text: "Exported Functions", link: "/guide/functions"}
@@ -81,7 +84,6 @@ export default defineConfig({
                     text: "Advanced",
                     items: [
                         {text: "Advanced Math", link: "/guide/math"},
-                        {text: "Entity Selectors", link: "/guide/selectors"},
                         {text: "Beet Integration", link: "/guide/beet"},
                         {text: "Internals", link: "/guide/internals"}
                     ]

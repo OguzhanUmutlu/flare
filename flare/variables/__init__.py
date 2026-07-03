@@ -1,13 +1,15 @@
 from .bigscore import bigscore, bigfixed
+from .builtins import fail
 from .complex import complex
-from .core import UnsupportedOperandError, BinaryOp, UnaryOp, macro
+from .core import UnsupportedOperandError, BinaryOp, UnaryOp, macro, ref
 from .float32 import float32
 from .float64 import float64
 from .nbt import nbt, struct
+from .objective import Objective
 from .score import score, fixed, getscore, INT32_LIMIT
-from .selector import selector, tagged, ref
+from .selector import selector, tagged
 from .storage import _Storage
-from ..types import byte, boolean, short, long, double
+from ..types import byte, boolean, short, long, double, array, compound
 
 storage = _Storage()
 
@@ -20,7 +22,7 @@ nbtfloat = nbt[float]
 nbtdouble = nbt[double]
 nbtstr = nbt[str]
 nbtlist = nbt[list]
-nbtdict = nbt[dict]
-nbtbytearray = nbt[list[byte]]
-nbtintarray = nbt[list[int]]
-nbtlongarray = nbt[list[long]]
+nbtcompound = nbt[compound]
+nbtbytearray = nbt[array[byte]]
+nbtintarray = nbt[array[int]]
+nbtlongarray = nbt[array[long]]

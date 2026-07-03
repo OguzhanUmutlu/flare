@@ -22,7 +22,11 @@ except ImportError:
     HAS_WATCHDOG = False
 
 from . import context
-from .preprocessor import FlareTransformer, CallGraphAnalyzer, preprocess_minecraft_commands
+from .preprocessor import (
+    FlareTransformer,
+    CallGraphAnalyzer,
+    preprocess_minecraft_commands,
+)
 
 build_lock = threading.RLock()
 
@@ -40,12 +44,19 @@ def init_project(path: str):
     try:
         namespace = input("Namespace [flare]: ").strip() or "flare"
         pack_format = input("Pack format [15]: ").strip() or "15"
-        description = input("Description [A Flare datapack]: ").strip() or "A Flare datapack"
+        description = (
+                input("Description [A Flare datapack]: ").strip() or "A Flare datapack"
+        )
     except (KeyboardInterrupt, EOFError):
         print("\nInitialization cancelled.")
         return
 
-    config = {"namespace": namespace, "pack_format": int(pack_format), "description": description, "build_dir": "dist"}
+    config = {
+        "namespace": namespace,
+        "pack_format": int(pack_format),
+        "description": description,
+        "build_dir": "dist",
+    }
 
     with open(json_path, "w") as f:
         json.dump(config, f, indent=4)
@@ -60,16 +71,41 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         with open(json_path, "r") as f:
             config = json.load(f)
     else:
-        config = {"namespace": "flare", "pack_format": 15, "description": "A Flare datapack", "build_dir": "dist",
-                  "validation_level": "strict", "minecraft_version": "1.20.4"}
+        config = {
+            "namespace": "flare",
+            "pack_format": 15,
+            "description": "A Flare datapack",
+            "build_dir": "dist",
+            "validation_level": "strict",
+            "minecraft_version": "1.20.4",
+        }
 
     if cli_overrides:
         config.update(cli_overrides)
 
     namespace = config.get("namespace", "flare")
-    build_dir = Path(str(config.get("build_dir", "dist")))
-    if not build_dir.is_absolute():
-        build_dir = p / build_dir
+    build_dirs_raw = config.get("build_dir", "dist")
+    from .utils import resolve_build_targets
+
+    resolved_build_dirs = resolve_build_targets(build_dirs_raw, p)
+
+    if not resolved_build_dirs:
+        print("\033[91mNo valid output directories found. Defaulting to 'dist'.\033[0m")
+        resolved_build_dirs = [p / "dist"]
+
+    build_dir = None
+    for d in resolved_build_dirs:
+        try:
+            if d.is_relative_to(p) and str(d) != str(p):
+                build_dir = d
+                break
+        except AttributeError:
+            if str(p) in str(d):
+                build_dir = d
+                break
+
+    if build_dir is None:
+        build_dir = p / "dist"
 
     context.validation_level = config.get("validation_level", "strict")
     context.minecraft_version = config.get("minecraft_version", "1.20.4")
@@ -103,15 +139,26 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
         global_env = {"__name__": "__main__", "__file__": abs_path}
         exec(
-            "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_with, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin\n"
+            "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_and, _flare_or, _flare_with, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin, _flare_enter_scope, _flare_exit_scope\n"
             "from flare import context as ctx\n"
             "from flare.command_parser import interpolate_command\n"
             "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
-            "from flare import nbt, score, fixed, tagged, ref, getscore, storage, array, byte, boolean, short, long, double\n"
-            "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtdict, nbtbytearray, nbtintarray, nbtlongarray\n"
+            "from flare import fail, nbt, score, fixed, tagged, ref, getscore, storage, array, byte, boolean, short, long, double, compound, Objective\n"
+            "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray\n"
             "from flare import round_, floor, ceil\n"
             "from flare.math import *\n"
-            "from flare import dbg, export, namespace, tick", global_env)
+            "from flare import dbg, export, namespace, tick, load, nostack",
+            global_env,
+        )
+
+        from .variables.builtins import flare_range, flare_ord, flare_bin, flare_len
+        from .variables.regex import re_patch
+
+        global_env["range"] = flare_range
+        global_env["ord"] = flare_ord
+        global_env["bin"] = flare_bin
+        global_env["len"] = flare_len
+        global_env["re"] = re_patch
 
         exec(compile(tree, abs_path, "exec"), global_env)
         sys.path.pop(0)
@@ -130,8 +177,11 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         mod = sys.modules.get(mod_name)
         if mod and getattr(mod, "__file__", None):
             mod_file = os.path.abspath(str(mod.__file__))
-            if (mod_file.endswith(".fl") or mod_file.endswith(
-                    ".py")) and "site-packages" not in mod_file and "lib/python" not in mod_file:
+            if (
+                    (mod_file.endswith(".fl") or mod_file.endswith(".py"))
+                    and "site-packages" not in mod_file
+                    and "lib/python" not in mod_file
+            ):
                 watch_files.add(mod_file)
 
     if build_dir.exists():
@@ -140,8 +190,16 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
     build_dir.mkdir(parents=True, exist_ok=True)
 
     with open(build_dir / "pack.mcmeta", "w") as f:
-        json.dump({"pack": {"pack_format": config.get("pack_format", 15),
-                            "description": config.get("description", "A Flare datapack")}}, f, indent=4)
+        json.dump(
+            {
+                "pack": {
+                    "pack_format": config.get("pack_format", 15),
+                    "description": config.get("description", "A Flare datapack"),
+                }
+            },
+            f,
+            indent=4,
+        )
 
     tags = {"tick": [], "load": []}
 
@@ -162,12 +220,25 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
         if ":" in filename:
             ns, name = filename.split(":", 1)
-            file_p = build_dir / "data" / ns / "functions" / f"{name}.mcfunction"
-            is_top_level = "generated_" not in name and "while_" not in name and name not in ("main", "load")
+            file_p = build_dir / "data" / ns / "function" / f"{name}.mcfunction"
+            is_top_level = (
+                    "generated_" not in name
+                    and "while_" not in name
+                    and name not in ("main", "load")
+            )
         else:
-            file_p = build_dir / "data" / str(context._current_namespace) / "functions" / f"{filename}.mcfunction"
-            is_top_level = "generated_" not in filename and "while_" not in filename and filename not in ("main",
-                                                                                                          "load")
+            file_p = (
+                    build_dir
+                    / "data"
+                    / str(context._current_namespace)
+                    / "function"
+                    / f"{filename}.mcfunction"
+            )
+            is_top_level = (
+                    "generated_" not in filename
+                    and "while_" not in filename
+                    and filename not in ("main", "load")
+            )
 
         if is_top_level and lines and lines[-1] in ("return 1", "return 0"):
             lines.pop()
@@ -177,7 +248,14 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             for line in lines:
                 f.write(f"{line}\n")
 
-    tag_dir = build_dir / "data" / "minecraft" / "tags" / "functions"
+    for tick_f in context.tick_funcs:
+        if tick_f not in tags["tick"]:
+            tags["tick"].append(tick_f)
+    for load_f in context.load_funcs:
+        if load_f not in tags["load"]:
+            tags["load"].append(load_f)
+
+    tag_dir = build_dir / "data" / "minecraft" / "tags" / "function"
     for tag_name, tag_funcs in tags.items():
         if tag_funcs:
             if tag_name == "load":
@@ -186,6 +264,15 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             tag_path = tag_dir / f"{tag_name}.json"
             with open(tag_path, "w") as f:
                 json.dump({"values": tag_funcs}, f, indent=4)
+
+    for target_dir in resolved_build_dirs:
+        if target_dir.resolve() != build_dir.resolve():
+            try:
+                target_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(build_dir, target_dir, dirs_exist_ok=True)
+                print(f"Copied datapack to {target_dir.absolute()}")
+            except Exception as e:
+                print(f"\033[93mFailed to copy to {target_dir}: {e}\033[0m")
 
     print(f"Successfully built datapack to {build_dir.absolute()}")
     return True, watch_files, build_dir
@@ -233,7 +320,11 @@ class EmulatorRunner:
         self.running = True
         self.emu_thread = None
         try:
-            self.timeout = float(timeout_val) if timeout_val != "-1" and timeout_val is not None else None
+            self.timeout = (
+                float(timeout_val)
+                if timeout_val != "-1" and timeout_val is not None
+                else None
+            )
         except ValueError:
             self.timeout = None
 
@@ -276,21 +367,63 @@ class EmulatorRunner:
 
 def main():
     parser = argparse.ArgumentParser(description="Flare CLI Datapack Compiler")
-    parser.add_argument("target", nargs="?", default=".",
-                        help="File to build or directory to init. Use 'init' to initialize in current directory.")
-    parser.add_argument("--watch", action="store_true", help="Watch for file changes and rebuild")
-    parser.add_argument("--run", nargs="?", const="-1", default=None,
-                        help="Run the compiled datapack in mcemu. Optionally specify a timeout in seconds.")
-    parser.add_argument("--nbt-schema-missing", choices=["error", "warning", "ignore"], default="error",
-                        help="Action when indexing an NBT path that does not exist in the attached schema.")
-    parser.add_argument("--namespace", type=str, default=None, help="Override the namespace for the datapack.")
-    parser.add_argument("--pack-format", type=int, default=None, help="Override the pack_format for the datapack.")
-    parser.add_argument("--description", type=str, default=None, help="Override the description for the datapack.")
-    parser.add_argument("--out-dir", type=str, default=None,
-                        help="Override the output directory for the compiled datapack.")
-    parser.add_argument("--validation", type=str, help="Set the validation level of the compiled datapack.")
-    parser.add_argument("--version", type=str, default=None,
-                        help="Specify the version of Minecraft to use for building.")
+    parser.add_argument(
+        "target",
+        nargs="?",
+        default=".",
+        help="File to build or directory to init. Use 'init' to initialize in current directory.",
+    )
+    parser.add_argument(
+        "--watch", action="store_true", help="Watch for file changes and rebuild"
+    )
+    parser.add_argument(
+        "--run",
+        nargs="?",
+        const="-1",
+        default=None,
+        help="Run the compiled datapack in mcemu. Optionally specify a timeout in seconds.",
+    )
+    parser.add_argument(
+        "--nbt-schema-missing",
+        choices=["error", "warning", "ignore"],
+        default="error",
+        help="Action when indexing an NBT path that does not exist in the attached schema.",
+    )
+    parser.add_argument(
+        "--namespace",
+        type=str,
+        default=None,
+        help="Override the namespace for the datapack.",
+    )
+    parser.add_argument(
+        "--pack-format",
+        type=int,
+        default=None,
+        help="Override the pack_format for the datapack.",
+    )
+    parser.add_argument(
+        "--description",
+        type=str,
+        default=None,
+        help="Override the description for the datapack.",
+    )
+    parser.add_argument(
+        "--out-dir",
+        type=str,
+        default=None,
+        help="Override the output directory for the compiled datapack.",
+    )
+    parser.add_argument(
+        "--validation",
+        type=str,
+        help="Set the validation level of the compiled datapack.",
+    )
+    parser.add_argument(
+        "--version",
+        type=str,
+        default=None,
+        help="Specify the version of Minecraft to use for building.",
+    )
 
     args, unknown_args = parser.parse_known_args()
 
@@ -311,7 +444,8 @@ def main():
         cli_overrides["validation_level"] = args.validation
         if args.validation not in ("none", "warning", "strict"):
             print(
-                f"\033[91mInvalid validation level: {args.validation}. Must be one of 'none', 'warning', or 'strict'.\033[0m")
+                f"\033[91mInvalid validation level: {args.validation}. Must be one of 'none', 'warning', or 'strict'.\033[0m"
+            )
             sys.exit(1)
     i = 0
     while i < len(unknown_args):
@@ -335,7 +469,9 @@ def main():
 
     if os.path.isdir(args.target):
         file_path = os.path.join(args.target, "main.fl")
-        if not os.path.exists(file_path) and os.path.exists(os.path.join(args.target, "main.py")):
+        if not os.path.exists(file_path) and os.path.exists(
+                os.path.join(args.target, "main.py")
+        ):
             file_path = os.path.join(args.target, "main.py")
     else:
         if args.target.endswith(".fl") or args.target.endswith(".py"):
@@ -348,6 +484,8 @@ def main():
     if not os.path.exists(file_path) and not is_init:
         print(f"\033[91mError: Target file {file_path} not found.\033[0m")
         return
+    if args.watch:
+        os.system("cls" if os.name == "nt" else "clear")
 
     success, watch_files, build_dir = build_datapack(file_path, cli_overrides)
 
@@ -358,7 +496,9 @@ def main():
 
     if args.watch:
         if not HAS_WATCHDOG:
-            print("\033[91mError: The 'watchdog' module is required for the --watch flag.\033[0m")
+            print(
+                "\033[91mError: The 'watchdog' module is required for the --watch flag.\033[0m"
+            )
             print("\033[93mInstall it with: pip install flaremc[cli]\033[0m")
             return
 
@@ -376,13 +516,17 @@ def main():
             while True:
                 time.sleep(0.5)
                 if handler.rebuild_pending:
+                    os.system("cls" if os.name == "nt" else "clear")
+
                     print("\nChange detected. Rebuilding...")
                     handler.rebuild_pending = False
 
                     if runner:
                         runner.stop()
 
-                    success, new_watch_files, build_dir = build_datapack(file_path, cli_overrides)
+                    success, new_watch_files, build_dir = build_datapack(
+                        file_path, cli_overrides
+                    )
 
                     if success and new_watch_files != watch_files:
                         observer.unschedule_all()
