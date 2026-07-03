@@ -267,10 +267,10 @@ with schedule("5t", append=True) as s:
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `time` | `str` | *(required)* | The delay, a Minecraft time value like `"5t"`, `"2s"`, `"1d"` |
-| `append` | `bool` | `False` | `True` → `append` mode (stacks with existing schedule). `False` → `replace` mode (cancels any existing schedule for that function) |
+| Parameter | Type   | Default      | Description                                                                                                                        |
+|-----------|--------|--------------|------------------------------------------------------------------------------------------------------------------------------------|
+| `time`    | `str`  | *(required)* | The delay, a Minecraft time value like `"5t"`, `"2s"`, `"1d"`                                                                      |
+| `append`  | `bool` | `False`      | `True` → `append` mode (stacks with existing schedule). `False` → `replace` mode (cancels any existing schedule for that function) |
 
 ### The `as` Variable & `.clear()`
 
@@ -332,12 +332,12 @@ x = typed_standalone_op()
 
 ### Parameters
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `temp` | `str\|callable` | `"!temp"` | The prefix for the temporary variable. Can also be a callable that returns a `FlareValue`. |
-| `datatype` | `NBTType` | `None` | The specific NBT type (e.g. `NBTType.String`) to enforce on the temporary output object. |
-| `self` | `bool\|type` | `True` | If `True`, expects the first argument to be `self`. If `False`, treats as a standalone function. If a `FlareValue` subclass, uses that class to construct temporary variables. |
-| `copy` | `callable` | `None` | Optional custom copy handler `lambda varid: ...` for duplicating the variable. |
+| Parameter  | Type            | Default   | Description                                                                                                                                                                    |
+|------------|-----------------|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `temp`     | `str\|callable` | `"!temp"` | The prefix for the temporary variable. Can also be a callable that returns a `FlareValue`.                                                                                     |
+| `datatype` | `NBTType`       | `None`    | The specific NBT type (e.g. `NBTType.String`) to enforce on the temporary output object.                                                                                       |
+| `self`     | `bool\|type`    | `True`    | If `True`, expects the first argument to be `self`. If `False`, treats as a standalone function. If a `FlareValue` subclass, uses that class to construct temporary variables. |
+| `copy`     | `callable`      | `None`    | Optional custom copy handler `lambda varid: ...` for duplicating the variable.                                                                                                 |
 
 ### Signature Requirements
 

@@ -46,16 +46,16 @@ pow_val = math.pow(x, 3)
 
 ### Supported Functions
 
-| Category | Functions |
-|----------|-----------|
-| **Rounding & Bounds** | `floor(x)`, `ceil(x)`, `round(x, ndigits)`, `min(*args)`, `max(*args)` |
-| **Roots & Exponents** | `sqrt(x)`, `exp(x)`, `pow(x, y)` |
-| **Logarithms** | `log(x, base)` |
-| **Trigonometry** | `sin(x)`, `cos(x)`, `tan(x)` |
-| **Inverse Trig** | `asin(x)`, `acos(x)`, `atan(x)`, `atan2(y, x)` |
-| **Reciprocal Trig** | `csc(x)`, `sec(x)`, `cot(x)`, `acsc(x)`, `asec(x)`, `acot(x)` |
-| **Hyperbolic** | `sinh(x)`, `cosh(x)`, `tanh(x)`, `asinh(x)`, `acosh(x)`, `atanh(x)` |
-| **Reciprocal Hyperbolic** | `csch(x)`, `sech(x)`, `coth(x)`, `acsch(x)`, `asech(x)`, `acoth(x)` |
+| Category                  | Functions                                                              |
+|---------------------------|------------------------------------------------------------------------|
+| **Rounding & Bounds**     | `floor(x)`, `ceil(x)`, `round(x, ndigits)`, `min(*args)`, `max(*args)` |
+| **Roots & Exponents**     | `sqrt(x)`, `exp(x)`, `pow(x, y)`                                       |
+| **Logarithms**            | `log(x, base)`                                                         |
+| **Trigonometry**          | `sin(x)`, `cos(x)`, `tan(x)`                                           |
+| **Inverse Trig**          | `asin(x)`, `acos(x)`, `atan(x)`, `atan2(y, x)`                         |
+| **Reciprocal Trig**       | `csc(x)`, `sec(x)`, `cot(x)`, `acsc(x)`, `asec(x)`, `acot(x)`          |
+| **Hyperbolic**            | `sinh(x)`, `cosh(x)`, `tanh(x)`, `asinh(x)`, `acosh(x)`, `atanh(x)`    |
+| **Reciprocal Hyperbolic** | `csch(x)`, `sech(x)`, `coth(x)`, `acsch(x)`, `asech(x)`, `acoth(x)`    |
 
 > [!NOTE]
 > **Dynamic Fallbacks**: Flare's math functions are designed to use specialized dunder methods (e.g., `__tan__`) if the target variable implements them. If a specific function is not implemented natively for that type, the math library dynamically falls back to established mathematical identities. For example, `tan(x)` seamlessly defaults to `sin(x) / cos(x)`, and `sinh(x)` defaults to `(exp(x) - exp(-x)) / 2`.
@@ -83,3 +83,29 @@ a = fixed[5](1.5)   # Stored as 150000 on the scoreboard
 b = fixed[5](2.0)
 c = a * b           # Scaling is handled automatically
 ```
+
+## Random Generation (`flrand`)
+
+Flare provides a module for generating random numbers and selecting random elements natively in Minecraft, mirroring Python's standard `random` module.
+
+```python
+from flare import flrand
+from flare.variables import score, nbtlist
+
+# Generate a random integer score between 1 and 10
+lucky_number = flrand.randint(1, 10)
+
+# The bounds can also be dynamic scores!
+min_val = score(5)
+max_val = score(50)
+dynamic_rand = flrand.randint(min_val, max_val)
+
+# Choose a random element from an NBT sequence
+my_list = nbtlist(["apple", "banana", "cherry"])
+random_fruit = flrand.choice(my_list)
+
+# Generate a random fixed-point decimal between 0.0 and 1.0
+chance = flrand.random()
+```
+
+> **Note**: For advanced users, `flrand.random(type=MyClass)` provides custom hooks to generate complex random structures via `__random__` and `__rrandom__` dunder methods. See the [Internals](internals.md#__random__-and-__rrandom__--custom-random-generation) guide for details.
