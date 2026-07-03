@@ -49,6 +49,15 @@ flare main.py --run
 flare main.py --run=5
 ```
 
+## Path Resolution (URIs)
+
+When specifying output directories (like with the `--out-dir` flag or the `out` property in `flare.json`), Flare supports special URI prefixes to automatically resolve to your Minecraft folders, regardless of your operating system!
+
+- **`world://_last`**: Resolves to the `datapacks` folder of the most recently modified world in your singleplayer saves. This is extremely useful for rapid testing!
+- **`world://<world_name>`**: Resolves to the `datapacks` folder of a specific world (e.g., `--out-dir=world://MyAwesomeWorld`).
+- **`minecraft://<path>`**: Resolves directly to your local `.minecraft` installation directory (e.g., `--out-dir=minecraft://saves/MyWorld/datapacks`).
+- **Relative Paths**: Normal paths without a URI prefix are simply evaluated relative to your project directory (e.g., `--out-dir=dist` places the output in `<project_dir>/dist`).
+
 ## The `mcemu` Emulator
 
 The built-in `mcemu` emulator lets you test your datapack without a running Minecraft server. It supports most core commands including `scoreboard`, `execute`, `data`, `tellraw`, and more.
