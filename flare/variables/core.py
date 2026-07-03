@@ -576,6 +576,8 @@ class macro:
         self.name = name
 
     def __str__(self):
+        from .. import context as ctx
+        ctx._macro_substituted_raw = True
         return f"$({self.name})"
 
     def __format__(self, format_spec):

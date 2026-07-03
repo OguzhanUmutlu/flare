@@ -36,54 +36,12 @@ temp_start = score(addr="!regex_temp_start")
 temp_prev_idx = score(addr="!regex_temp_prev_idx")
 prev_idx = score(addr="!regex_prev_idx")
 regex_stack = nbtlist(addr="flare:regex stack")
-regex_groups = nbtlist(addr="flare:regex groups")
 
+def _get_group_start(group_num):
+    return score(addr=f"!regex_group_{group_num}_start")
 
-class FlareRegexPattern:
-    def __init__(self, pattern, flags, start_func, start_func_search):
-        self.pattern = pattern
-        self.flags = flags
-        self.start_func = start_func
-        self.start_func_search = start_func_search
-
-    def match(self, target: nbt):
-        if target._type != NBTType.String:
-            raise TypeError("Regex target must be an NBT String.")
-
-        def eval_match(dest):
-            temp_byte_array = nbt(addr=f"flare:temp regex_bytes_{ctx.next_temp_id()}", datatype=NBTType.ByteArray)
-            temp_byte_array[:] = target.to_ascii()
-            regex_matched[:] = 0
-            regex_index[:] = 0
-            regex_target[:] = temp_byte_array
-            _runcmd(f"function {self.start_func}")
-            dest[:] = regex_matched
-            return dest
-
-        def alloc_temp():
-            return score(addr=f"!regex_out_{ctx.next_temp_id()}")
-
-        return BinaryOp(LazyOp(self, eval_match, alloc_temp), 1, "eq")
-
-    def search(self, target: nbt):
-        if target._type != NBTType.String:
-            raise TypeError("Regex target must be an NBT String.")
-
-        def eval_search(dest):
-            temp_byte_array = nbt(addr=f"flare:temp regex_bytes_{ctx.next_temp_id()}", datatype=NBTType.ByteArray)
-            temp_byte_array[:] = target.to_ascii()
-            regex_matched[:] = 0
-            regex_index[:] = 0
-            regex_target[:] = temp_byte_array
-            _runcmd(f"function {self.start_func_search}")
-            dest[:] = regex_matched
-            return dest
-
-        def alloc_temp():
-            return score(addr=f"!regex_out_{ctx.next_temp_id()}")
-
-        return BinaryOp(LazyOp(self, eval_search, alloc_temp), 1, "eq")
-
+def _get_group_end(group_num):
+    return score(addr=f"!regex_group_{group_num}_end")
 
 _read_char_emitted = False
 
@@ -94,8 +52,7 @@ def _emit_read_char():
     if not _read_char_emitted:
         _read_char_emitted = True
         with ctx.push_context(func_name):
-            current_char[:] = regex_target[macro("idx")]
-            ScoreIfMatches(current_char, (-128, 127)).then(lambda: char_valid.__iset__(1))
+            _runcmd(f"$execute store success score {addr(char_valid)} store result score {addr(current_char)} run data get {addr(regex_target)}[$(idx)]")
     return func_name
 
 
@@ -404,7 +361,7 @@ def _compile_node(node: tuple, next_func: str | None, base_name: str, needs_capt
                 char_valid[:] = 0
                 macro_args.idx = regex_index
                 _runcmd(f"function {_emit_read_char()} with storage flare:regex macro_args")
-                ScoreIfMatches(char_valid, 1).then(lambda: _runcmd("return 0"))
+                ScoreIfMatches(char_valid, 0).invert().then(lambda: _runcmd("return 0"))
                 if next_func:
                     _runcmd(f"function {next_func}")
                 else:
@@ -418,26 +375,26 @@ def _compile_node(node: tuple, next_func: str | None, base_name: str, needs_capt
                 macro_args.idx = prev_idx
                 _runcmd(f"function {_emit_read_char()} with storage flare:regex macro_args")
                 prev_is_word[:] = 0
-                (ScoreIfMatches(char_valid, 1) & ScoreIfMatches(current_char, (97, 122))).then(
+                (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, (97, 122))).then(
                     lambda: prev_is_word.__iset__(1))
-                (ScoreIfMatches(char_valid, 1) & ScoreIfMatches(current_char, (65, 90))).then(
+                (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, (65, 90))).then(
                     lambda: prev_is_word.__iset__(1))
-                (ScoreIfMatches(char_valid, 1) & ScoreIfMatches(current_char, (48, 57))).then(
+                (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, (48, 57))).then(
                     lambda: prev_is_word.__iset__(1))
-                (ScoreIfMatches(char_valid, 1) & ScoreIfMatches(current_char, 95)).then(
+                (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, 95)).then(
                     lambda: prev_is_word.__iset__(1))
 
                 char_valid[:] = 0
                 macro_args.idx = regex_index
                 _runcmd(f"function {_emit_read_char()} with storage flare:regex macro_args")
                 curr_is_word[:] = 0
-                (ScoreIfMatches(char_valid, 1) & ScoreIfMatches(current_char, (97, 122))).then(
+                (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, (97, 122))).then(
                     lambda: curr_is_word.__iset__(1))
-                (ScoreIfMatches(char_valid, 1) & ScoreIfMatches(current_char, (65, 90))).then(
+                (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, (65, 90))).then(
                     lambda: curr_is_word.__iset__(1))
-                (ScoreIfMatches(char_valid, 1) & ScoreIfMatches(current_char, (48, 57))).then(
+                (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, (48, 57))).then(
                     lambda: curr_is_word.__iset__(1))
-                (ScoreIfMatches(char_valid, 1) & ScoreIfMatches(current_char, 95)).then(
+                (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, 95)).then(
                     lambda: curr_is_word.__iset__(1))
 
                 if is_boundary:
@@ -457,14 +414,14 @@ def _compile_node(node: tuple, next_func: str | None, base_name: str, needs_capt
                     prev_idx.__isub__(1)
                     macro_args.idx = prev_idx
                     _runcmd(f"function {_emit_read_char()} with storage flare:regex macro_args")
-                    ScoreIfMatches(char_valid, 1) & ScoreIfMatches(current_char, 10).then(lambda: is_bol.__iset__(1))
+                    (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, 10)).then(lambda: is_bol.__iset__(1))
                     ScoreIfMatches(is_bol, 0).then(lambda: _runcmd("return 0"))
                 else:
                     is_eol[:] = 0
                     macro_args.idx = regex_index
                     char_valid[:] = 0
                     _runcmd(f"function {_emit_read_char()} with storage flare:regex macro_args")
-                    (ScoreIfMatches(char_valid, 1) & ScoreIfMatches(current_char, 10)).then(lambda: is_eol.__iset__(1))
+                    (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, 10)).then(lambda: is_eol.__iset__(1))
                     ScoreIfMatches(is_eol, 0).then(lambda: _runcmd("return 0"))
 
                 if next_func:
@@ -489,8 +446,8 @@ def _compile_node(node: tuple, next_func: str | None, base_name: str, needs_capt
             node_id = ctx.next_func_id()
             loop_func = f"{base_name}_groupref_loop_{node_id}"
 
-            ref_start[:] = regex_groups[group_num].start
-            ref_end[:] = regex_groups[group_num].end
+            ref_start[:] = _get_group_start(group_num)
+            ref_end[:] = _get_group_end(group_num)
 
             ref_match[:] = 1
 
@@ -592,7 +549,7 @@ def _compile_sequence(nodes, final_continuation: str, base_name: str, needs_capt
 
             sub_end_func = f"{base_name}_subend_{node_id}"
             with ctx.push_context(sub_end_func):
-                regex_groups[group_num].end = regex_index
+                _get_group_end(group_num)[:] = regex_index
                 if current_cont:
                     _runcmd(f"function {current_cont}")
                 else:
@@ -605,24 +562,21 @@ def _compile_sequence(nodes, final_continuation: str, base_name: str, needs_capt
                 ScoreIfMatches(regex_matched, 1).then(lambda: _runcmd("return 1"))
 
                 regex_stack.append(-1)
-                regex_stack[-1] = regex_groups[group_num].start
+                regex_stack[-1] = _get_group_start(group_num)
                 regex_stack.append(-1)
-                regex_stack[-1] = regex_groups[group_num].end
+                regex_stack[-1] = _get_group_end(group_num)
 
-                regex_groups[group_num].start = regex_index
+                _get_group_start(group_num)[:] = regex_index
 
                 _runcmd(f"function {inner_start}")
                 ScoreIfMatches(regex_matched, 1).then(lambda: _runcmd("return 1"))
 
                 temp_end[:] = regex_stack[-1]
-                ScoreIfMatches(temp_end, -1).then(lambda: regex_groups[group_num].end.remove())
-                ScoreIfMatches(temp_end, -1).invert().then(lambda: regex_groups[group_num].end.__iset__(temp_end))
+                _get_group_end(group_num).__iset__(temp_end)
                 regex_stack[-1].remove()
 
                 temp_start[:] = regex_stack[-1]
-                ScoreIfMatches(temp_start, -1).then(lambda: regex_groups[group_num].start.remove())
-                ScoreIfMatches(temp_start, -1).invert().then(
-                    lambda: regex_groups[group_num].start.__iset__(temp_start))
+                _get_group_start(group_num).__iset__(temp_start)
                 regex_stack[-1].remove()
 
             current_cont = sub_start_func
@@ -678,13 +632,85 @@ def compile_regex(pattern, flags=0, capture=False):
         macro_args.idx = regex_index
         _runcmd(f"function {_emit_read_char()} with storage flare:regex macro_args")
 
-        ScoreIfMatches(char_valid, 1).then(lambda: regex_index.__iadd__(1))
-        ScoreIfMatches(char_valid, 1).then(lambda: _runcmd(f"function {search_func}"))
+        ScoreIfMatches(char_valid, 0).invert().then(lambda: regex_index.__iadd__(1))
+        ScoreIfMatches(char_valid, 0).invert().then(lambda: _runcmd(f"function {search_func}"))
 
     pat = FlareRegexPattern(pattern, flags, start_func, search_func)
     _regex_cache[cache_key] = pat
     return pat
 
+
+import re as _std_re
+_orig_match = _std_re.match
+_orig_search = _std_re.search
+_orig_compile = _std_re.compile
+
+class FlareRegexPattern:
+    def __init__(self, pattern, flags, start_func, start_func_search):
+        self.pattern = pattern
+        self.flags = flags
+        self.start_func = start_func
+        self.start_func_search = start_func_search
+        self._std_pat = _orig_compile(pattern, flags)
+
+    def __getattr__(self, item):
+        return getattr(self._std_pat, item)
+
+    def match(self, target):
+        from .core import FlareValue
+        if not isinstance(target, FlareValue):
+            return self._std_pat.match(target)
+        
+        if target._type != NBTType.String:
+            raise TypeError("Regex target must be an NBT String.")
+
+        def eval_match(dest):
+            temp_byte_array = nbt(addr=f"flare:temp regex_bytes_{ctx.next_temp_id()}", datatype=NBTType.ByteArray)
+            temp_byte_array[:] = target.to_ascii()
+            regex_matched[:] = 0
+            regex_index[:] = 0
+            regex_target[:] = temp_byte_array
+            _runcmd(f"function {self.start_func}")
+            dest[:] = regex_matched
+            return dest
+
+        return LazyOp(target, eval_match, lambda: score(addr=f"!regex_out_{ctx.next_temp_id()}"))
+
+    def search(self, target):
+        from .core import FlareValue
+        if not isinstance(target, FlareValue):
+            return self._std_pat.search(target)
+
+        if target._type != NBTType.String:
+            raise TypeError("Regex target must be an NBT String.")
+
+        def eval_search(dest):
+            temp_byte_array = nbt(addr=f"flare:temp regex_bytes_{ctx.next_temp_id()}", datatype=NBTType.ByteArray)
+            temp_byte_array[:] = target.to_ascii()
+            regex_matched[:] = 0
+            regex_index[:] = 0
+            regex_target[:] = temp_byte_array
+            _runcmd(f"function {self.start_func_search}")
+            dest[:] = regex_matched
+            return dest
+
+        return LazyOp(target, eval_search, lambda: score(addr=f"!regex_out_{ctx.next_temp_id()}"))
+
+
+def _flare_match(pattern, string, flags=0):
+    from .core import FlareValue
+    if isinstance(string, FlareValue):
+        return compile_regex(pattern, flags).match(string)
+    return _orig_match(pattern, string, flags)
+
+def _flare_search(pattern, string, flags=0):
+    from .core import FlareValue
+    if isinstance(string, FlareValue):
+        return compile_regex(pattern, flags).search(string)
+    return _orig_search(pattern, string, flags)
+
+_std_re.match = _flare_match
+_std_re.search = _flare_search
 
 class re_patch:
     @staticmethod
@@ -693,8 +719,8 @@ class re_patch:
 
     @staticmethod
     def match(pattern, string, flags=0):
-        return compile_regex(pattern, flags).match(string)
+        return _flare_match(pattern, string, flags)
 
     @staticmethod
     def search(pattern, string, flags=0):
-        return compile_regex(pattern, flags).search(string)
+        return _flare_search(pattern, string, flags)

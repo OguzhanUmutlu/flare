@@ -55,7 +55,7 @@ def init_project(path: str):
         "namespace": namespace,
         "pack_format": int(pack_format),
         "description": description,
-        "build_dir": "dist",
+        "build_dir": ["dist"],
     }
 
     with open(json_path, "w") as f:
@@ -75,7 +75,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             "namespace": "flare",
             "pack_format": 15,
             "description": "A Flare datapack",
-            "build_dir": "dist",
+            "build_dir": ["dist"],
             "validation_level": "strict",
             "minecraft_version": "1.20.4",
         }
@@ -84,7 +84,19 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         config.update(cli_overrides)
 
     namespace = config.get("namespace", "flare")
-    build_dirs_raw = config.get("build_dir", "dist")
+    
+    build_dirs_raw = config.get("build_dir", ["dist"])
+    if isinstance(build_dirs_raw, str):
+        build_dirs_raw = [build_dirs_raw]
+    else:
+        build_dirs_raw = list(build_dirs_raw)
+
+    if "out_dir" in config:
+        if isinstance(config["out_dir"], list):
+            build_dirs_raw.extend(config["out_dir"])
+        else:
+            build_dirs_raw.append(config["out_dir"])
+
     from .utils import resolve_build_targets
 
     resolved_build_dirs = resolve_build_targets(build_dirs_raw, p)

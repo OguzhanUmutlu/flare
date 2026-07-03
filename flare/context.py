@@ -197,7 +197,13 @@ def runcommand(command: str, local_vars=None, global_vars=None, validation: str 
     files[current_file].append(command)
 
 
+_macro_substituted_raw = False
+
 def _runcmd(command: str):
+    global _macro_substituted_raw
+    if _macro_substituted_raw and not command.startswith("$"):
+        command = "$" + command
+    _macro_substituted_raw = False
     runcommand(command, validation="none")
 
 

@@ -76,7 +76,7 @@ def flare(ctx: Context, opts: FlareOptions) -> None:
             cli_overrides[key] = value
 
     output_dir: Path = ctx.cache["flare"].directory / "dist"
-    cli_overrides["build_dir"] = str(output_dir)
+    cli_overrides["out_dir"] = str(output_dir)
 
     success, _watch_files, build_dir = build_datapack(str(entry), cli_overrides)
 
