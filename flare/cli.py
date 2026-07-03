@@ -69,7 +69,12 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
     if json_path.exists():
         with open(json_path, "r") as f:
-            config = json.load(f)
+            try:
+                config = json.load(f)
+            except json.JSONDecodeError as e:
+                print(f"\033[91mError: Invalid flare.json file.\033[0m")
+                print(f"\033[91m{e.msg} at line {e.lineno}, column {e.colno}\033[0m")
+                sys.exit(1)
     else:
         config = {
             "namespace": "flare",
@@ -84,7 +89,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         config.update(cli_overrides)
 
     namespace = config.get("namespace", "flare")
-    
+
     build_dirs_raw = config.get("build_dir", ["dist"])
     if isinstance(build_dirs_raw, str):
         build_dirs_raw = [build_dirs_raw]

@@ -62,8 +62,7 @@ def resolve_uri(uri: str, project_dir: str | Path, namespace: str = None) -> Pat
 
     if uri.startswith("world://"):
         world_param = uri[len("world://"):]
-        
-        target_world = None
+
         if world_param == "_last":
             last_world = _get_last_edited_world(minecraft_dir)
             if last_world is None:
@@ -109,6 +108,12 @@ def resolve_uri(uri: str, project_dir: str | Path, namespace: str = None) -> Pat
     p = Path(uri)
     if not p.is_absolute():
         p = Path(project_dir) / uri
+
+    if (p / "level.dat").exists() and "datapacks" not in p.parts:
+        p = p / "datapacks"
+        if namespace:
+            p = p / namespace
+
     return p
 
 

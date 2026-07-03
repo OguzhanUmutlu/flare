@@ -1,9 +1,9 @@
 {
-  "namespace": "flare",
+  "namespace": "flaretest",
   "pack_format": 48,
   "description": "A Flare datapack",
   "build_dir": [
     "dist",
-    "world://New World/datapacks/flaretest"
+    "world://New World"
   ]
 }
