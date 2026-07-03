@@ -212,8 +212,21 @@ def generate_module(registry_name, output_file, symbols, valid_classes, undefine
 
     module_body = []
 
-    imports = ast.parse(
-        "from flare.variables.nbt import struct\nfrom flare.types import byte, short, long, double\nfrom flare.basesymbols import *\nfrom typing import Any, Union").body
+    imports_str = """
+from flare.variables.nbt import struct
+from flare.types import byte, short, long, double
+from flare.basesymbols import *
+import typing
+from typing import Any
+if typing.TYPE_CHECKING:
+    from typing import Union
+else:
+    class _DummyUnion:
+        def __getitem__(self, items):
+            return typing.Any
+    Union = _DummyUnion()
+"""
+    imports = ast.parse(imports_str).body
     module_body.extend(imports)
 
     generated_classes = set()
