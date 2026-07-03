@@ -659,6 +659,12 @@ def preprocess_minecraft_commands(source: str) -> str:
                 i += 1
                 continue
 
+        if tok.type == tokenize.NAME and tok.string == "if":
+            if i > 0 and tokens[i - 1].type == tokenize.OP and tokens[i - 1].string == ".":
+                out_tokens.append((tokenize.NAME, f"{tok.string}_"))
+                i += 1
+                continue
+
         if tok.type == tokenize.OP and tok.string == "@":
             prev_tok = None
             for j in range(i - 1, -1, -1):

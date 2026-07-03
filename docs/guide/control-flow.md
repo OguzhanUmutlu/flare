@@ -67,6 +67,26 @@ if my_str in ("apple", "flare", "banana"):
     print("String found!")
 ```
 
+## Block Checking
+
+Flare provides intuitive syntax to check block states both in standard `if` statements and directly inside `execute` chains!
+
+```python
+from flare import block, at
+
+# Standard conditional checking
+if block("~ ~-1 ~") == "stone":
+    print("Standing on stone!")
+
+# Block checking inside an execute chain using .if() or .unless()
+with at("@a").if(block("~ ~-1 ~") == "diamond_block"):
+    print("Player is rich!")
+
+# You can even chain multiple conditions together
+with at("@e[type=pig]").if(block("~ ~ ~") == "mud").unless(block("~ ~1 ~") == "water"):
+    print("Muddy pig!")
+```
+
 ## Compile-Time Optimization
 
 Flare is highly optimized and checks conditions **at compile-time**.

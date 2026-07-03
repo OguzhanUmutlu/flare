@@ -140,25 +140,77 @@ class selector(Generic[T]):
 
         return _as(self)
 
-    def at(self):
-        from ..execute_modifiers import at
+    def at(self, target=None):
+        from ..execute_modifiers import _as, at
 
+        if target is not None:
+            return _as(self).at(target)
         return at(self)
 
-    def positioned(self):
-        from ..execute_modifiers import positioned
+    def positioned(self, *args):
+        from ..execute_modifiers import _as, positioned
 
+        if args:
+            return _as(self).positioned(*args)
         return positioned(self)
 
     def facing(self, *args):
-        from ..execute_modifiers import facing
+        from ..execute_modifiers import _as, facing
 
-        return facing(self, *args)
+        if args:
+            return _as(self).facing(*args)
+        return facing(self)
 
-    def rotated(self):
-        from ..execute_modifiers import rotated
+    def rotated(self, *args):
+        from ..execute_modifiers import _as, rotated
 
+        if args:
+            return _as(self).rotated(*args)
         return rotated(self)
+
+    def if_(self, condition):
+        from ..execute_modifiers import _as
+        return _as(self).if_(condition)
+
+    def unless(self, condition):
+        from ..execute_modifiers import _as
+        return _as(self).unless(condition)
+
+    def store(self, target):
+        from ..execute_modifiers import _as
+        return _as(self).store(target)
+
+    def store_success(self, target):
+        from ..execute_modifiers import _as
+        return _as(self).store_success(target)
+
+    def if_block(self, pos, target):
+        from ..execute_modifiers import _as
+        return _as(self).if_block(pos, target)
+
+    def unless_block(self, pos, target):
+        from ..execute_modifiers import _as
+        return _as(self).unless_block(pos, target)
+
+    def aligned(self, axes):
+        from ..execute_modifiers import _as
+        return _as(self).aligned(axes)
+
+    def anchor(self, anchor_name):
+        from ..execute_modifiers import _as
+        return _as(self).anchor(anchor_name)
+
+    def dimension(self, dim):
+        from ..execute_modifiers import _as
+        return _as(self).dimension(dim)
+
+    def on(self, relation):
+        from ..execute_modifiers import _as
+        return _as(self).on(relation)
+
+    def summon(self, entity):
+        from ..execute_modifiers import _as
+        return _as(self).summon(entity)
 
     def attacker(self):
         return self._as().applyon("attacker")

@@ -63,6 +63,44 @@ class ExecuteChain:
     def summon(self, entity: str) -> ExecuteChain:
         return self._add(f"summon {entity}")
 
+    def if_(self, condition: Any) -> ExecuteChain:
+        if hasattr(condition, "__branch__"):
+            for frag in condition.__branch__():
+                self._add(frag)
+        elif condition is True:
+            pass
+        elif condition is False:
+            self._add("if score 0 __flare__constant__ matches 1")
+        else:
+            from .compiler import _eval_to_bool_score
+            dest = _eval_to_bool_score(condition)
+            self._add(f"if score {addr(dest)} matches 1")
+        return self
+
+    def unless(self, condition: Any) -> ExecuteChain:
+        if hasattr(condition, "__branch__"):
+            for frag in condition.__branch__(invert=True):
+                self._add(frag)
+        elif condition is False:
+            pass
+        elif condition is True:
+            self._add("if score 0 __flare__constant__ matches 1")
+        else:
+            from .compiler import _eval_to_bool_score
+            dest = _eval_to_bool_score(condition)
+            self._add(f"unless score {addr(dest)} matches 1")
+        return self
+
+    def if_block(self, pos: Union[str, tuple, list, "selector"], target: str) -> ExecuteChain:
+        if isinstance(pos, (tuple, list)):
+            pos = " ".join(str(p) for p in pos)
+        return self._add(f"if block {pos} {target}")
+
+    def unless_block(self, pos: Union[str, tuple, list, "selector"], target: str) -> ExecuteChain:
+        if isinstance(pos, (tuple, list)):
+            pos = " ".join(str(p) for p in pos)
+        return self._add(f"unless block {pos} {target}")
+
     def store(self, target: Union["flare.variables.score", "flare.variables.nbt", str]) -> ExecuteChain:
         from .variables.nbt import nbt
         from .variables.score import score
@@ -223,6 +261,22 @@ def on(relation: str) -> ExecuteChain:
 
 def summon(entity: str) -> ExecuteChain:
     return ExecuteChain().summon(entity)
+
+
+def if_(condition: Any) -> ExecuteChain:
+    return ExecuteChain().if_(condition)
+
+
+def unless(condition: Any) -> ExecuteChain:
+    return ExecuteChain().unless(condition)
+
+
+def if_block(pos: Union[str, tuple, list, "selector"], target: str) -> ExecuteChain:
+    return ExecuteChain().if_block(pos, target)
+
+
+def unless_block(pos: Union[str, tuple, list, "selector"], target: str) -> ExecuteChain:
+    return ExecuteChain().unless_block(pos, target)
 
 
 def store(target: Union["flare.variables.score", "flare.variables.nbt", str]) -> ExecuteChain:

@@ -454,3 +454,39 @@ def _flare_or(*args):
     if current_flare is not None:
         return current_flare
     return False
+
+
+class BlockIfMatches(ScoreIf):
+    def __init__(self, pos: str, target: str):
+        super().__init__([])
+        self.pos = pos
+        self.target = target
+
+    def __str__(self):
+        return f"execute if block {self.pos} {self.target} run "
+
+    def invert(self):
+        return BlockUnlessMatches(self.pos, self.target)
+
+    def __branch__(self, invert=False):
+        if invert:
+            return [f"unless block {self.pos} {self.target}"]
+        return [f"if block {self.pos} {self.target}"]
+
+
+class BlockUnlessMatches(ScoreIf):
+    def __init__(self, pos: str, target: str):
+        super().__init__([])
+        self.pos = pos
+        self.target = target
+
+    def __str__(self):
+        return f"execute unless block {self.pos} {self.target} run "
+
+    def invert(self):
+        return BlockIfMatches(self.pos, self.target)
+
+    def __branch__(self, invert=False):
+        if invert:
+            return [f"if block {self.pos} {self.target}"]
+        return [f"unless block {self.pos} {self.target}"]

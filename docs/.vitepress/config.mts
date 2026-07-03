@@ -71,6 +71,7 @@ export default defineConfig({
                         {text: "Native Commands", link: "/guide/native-commands"},
                         {text: "Debugging", link: "/guide/debugging"},
                         {text: "Entity Selectors", link: "/guide/selectors"},
+                        {text: "Blocks", link: "/guide/block"},
                         {text: "Scores", link: "/guide/scores"},
                         {text: "NBT Variables", link: "/guide/nbt"},
                         {text: "String Manipulation", link: "/guide/string"},

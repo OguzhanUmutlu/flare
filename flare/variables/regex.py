@@ -12,30 +12,35 @@ from ..context import _runcmd
 from ..control_flow import ScoreIfMatches, _flare_if
 from ..types import NBTType
 
-_regex_cache = {}
 
-regex_matched = score(addr="!regex_matched")
-current_char = score(addr="!regex_current_char")
-char_valid = score(addr="!regex_char_valid")
-regex_index = score(addr="!regex_index")
-regex_target = nbtbytearray(addr="flare:regex target")
-macro_args = nbtcompound(addr="flare:regex macro_args")
-in_match = score(addr="!regex_in_match")
-category_match = score(addr="!regex_category_match")
-prev_is_word = score(addr="!regex_prev_is_word")
-curr_is_word = score(addr="!regex_curr_is_word")
-is_bol = score(addr="!regex_is_bol")
-is_eol = score(addr="!regex_is_eol")
-ref_start = score(addr="!regex_ref_start")
-ref_end = score(addr="!regex_ref_end")
-ref_match = score(addr="!regex_ref_match")
-target_char = score(addr="!regex_target_char")
-assert_not_failed = score(addr="!regex_assert_not_failed")
-temp_end = score(addr="!regex_temp_end")
-temp_start = score(addr="!regex_temp_start")
-temp_prev_idx = score(addr="!regex_temp_prev_idx")
-prev_idx = score(addr="!regex_prev_idx")
-regex_stack = nbtlist(addr="flare:regex stack")
+def _init_globals():
+    global regex_matched, current_char, char_valid, regex_index, regex_target, macro_args
+    global in_match, category_match, prev_is_word, curr_is_word, is_bol, is_eol
+    global ref_start, ref_end, ref_match, target_char, assert_not_failed, temp_end
+    global temp_start, temp_prev_idx, prev_idx, regex_stack
+
+    regex_matched = score(addr="!regex_matched")
+    current_char = score(addr="!regex_current_char")
+    char_valid = score(addr="!regex_char_valid")
+    regex_index = score(addr="!regex_index")
+    regex_target = nbtbytearray(addr="flare:regex target")
+    macro_args = nbtcompound(addr="flare:regex macro_args")
+    in_match = score(addr="!regex_in_match")
+    category_match = score(addr="!regex_category_match")
+    prev_is_word = score(addr="!regex_prev_is_word")
+    curr_is_word = score(addr="!regex_curr_is_word")
+    is_bol = score(addr="!regex_is_bol")
+    is_eol = score(addr="!regex_is_eol")
+    ref_start = score(addr="!regex_ref_start")
+    ref_end = score(addr="!regex_ref_end")
+    ref_match = score(addr="!regex_ref_match")
+    target_char = score(addr="!regex_target_char")
+    assert_not_failed = score(addr="!regex_assert_not_failed")
+    temp_end = score(addr="!regex_temp_end")
+    temp_start = score(addr="!regex_temp_start")
+    temp_prev_idx = score(addr="!regex_temp_prev_idx")
+    prev_idx = score(addr="!regex_prev_idx")
+    regex_stack = nbtlist(addr="flare:regex stack")
 
 
 def _get_group_start(group_num):
@@ -612,9 +617,10 @@ def _needs_capture(ast):
 
 
 def compile_regex(pattern, flags=0, capture=False):
+    _init_globals()
     cache_key = (pattern, flags)
-    if cache_key in _regex_cache:
-        return _regex_cache[cache_key]
+    if cache_key in ctx._regex_cache:
+        return ctx._regex_cache[cache_key]
 
     ast = sre_parse.parse(pattern, flags)
 
@@ -646,7 +652,7 @@ def compile_regex(pattern, flags=0, capture=False):
         ScoreIfMatches(char_valid, 0).invert().then(lambda: _runcmd(f"function {search_func}"))
 
     pat = FlareRegexPattern(pattern, flags, start_func, search_func)
-    _regex_cache[cache_key] = pat
+    ctx._regex_cache[cache_key] = pat
     return pat
 
 
@@ -694,6 +700,7 @@ class FlareRegexPattern:
             raise TypeError("Regex target must be an NBT String.")
 
         def eval_match(dest):
+            _init_globals()
             temp_byte_array = nbt(addr=f"flare:temp regex_bytes_{ctx.next_temp_id()}", datatype=NBTType.ByteArray)
             temp_byte_array[:] = target.to_ascii()
             regex_matched[:] = 0
@@ -716,6 +723,7 @@ class FlareRegexPattern:
             raise TypeError("Regex target must be an NBT String.")
 
         def eval_search(dest):
+            _init_globals()
             temp_byte_array = nbt(addr=f"flare:temp regex_bytes_{ctx.next_temp_id()}", datatype=NBTType.ByteArray)
             temp_byte_array[:] = target.to_ascii()
             regex_matched[:] = 0

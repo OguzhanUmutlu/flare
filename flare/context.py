@@ -14,6 +14,7 @@ constants = {}
 return_targets = {}
 recursive_locals = {}
 _scope_stacks = []
+_regex_cache = {}
 
 
 class DynamicVar:
@@ -109,6 +110,7 @@ def reset_context():
     return_targets.clear()
     _logical_func = None
     memoized_math.clear()
+    _regex_cache.clear()
 
 
 def ensure_objective(obj: str):
@@ -198,6 +200,7 @@ def runcommand(command: str, local_vars=None, global_vars=None, validation: str 
 
 
 _macro_substituted_raw = False
+
 
 def _runcmd(command: str):
     global _macro_substituted_raw
