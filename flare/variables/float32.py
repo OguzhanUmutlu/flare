@@ -48,7 +48,7 @@ class float32(FlareValue):
         return float32(addr=f"{varid} {vars_obj}")
 
     def _alloc_temp(self, prefix="!temp"):
-        return type(self)(addr=f"flare:temp {prefix}_{ctx.next_temp_id()}")
+        return type(self)(addr=f"{prefix}_{ctx.next_temp_id()}")
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
         if self._addr is None:

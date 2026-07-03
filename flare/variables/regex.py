@@ -4,7 +4,7 @@ from math import inf
 import re._constants as sre_constants  # noqa
 import re._parser as sre_parse  # noqa
 
-from .core import BinaryOp, LazyOp, macro, addr
+from .core import LazyOp, addr
 from .nbt import nbt
 from .score import score
 from .. import context as ctx, nbtbytearray, nbtcompound, nbtlist
@@ -37,11 +37,14 @@ temp_prev_idx = score(addr="!regex_temp_prev_idx")
 prev_idx = score(addr="!regex_prev_idx")
 regex_stack = nbtlist(addr="flare:regex stack")
 
+
 def _get_group_start(group_num):
     return score(addr=f"!regex_group_{group_num}_start")
 
+
 def _get_group_end(group_num):
     return score(addr=f"!regex_group_{group_num}_end")
+
 
 _read_char_emitted = False
 
@@ -52,7 +55,8 @@ def _emit_read_char():
     if not _read_char_emitted:
         _read_char_emitted = True
         with ctx.push_context(func_name):
-            _runcmd(f"$execute store success score {addr(char_valid)} store result score {addr(current_char)} run data get {addr(regex_target)}[$(idx)]")
+            _runcmd(
+                f"$execute store success score {addr(char_valid)} store result score {addr(current_char)} run data get {addr(regex_target)}[$(idx)]")
     return func_name
 
 
@@ -414,14 +418,16 @@ def _compile_node(node: tuple, next_func: str | None, base_name: str, needs_capt
                     prev_idx.__isub__(1)
                     macro_args.idx = prev_idx
                     _runcmd(f"function {_emit_read_char()} with storage flare:regex macro_args")
-                    (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, 10)).then(lambda: is_bol.__iset__(1))
+                    (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, 10)).then(
+                        lambda: is_bol.__iset__(1))
                     ScoreIfMatches(is_bol, 0).then(lambda: _runcmd("return 0"))
                 else:
                     is_eol[:] = 0
                     macro_args.idx = regex_index
                     char_valid[:] = 0
                     _runcmd(f"function {_emit_read_char()} with storage flare:regex macro_args")
-                    (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, 10)).then(lambda: is_eol.__iset__(1))
+                    (ScoreIfMatches(char_valid, 0).invert() & ScoreIfMatches(current_char, 10)).then(
+                        lambda: is_eol.__iset__(1))
                     ScoreIfMatches(is_eol, 0).then(lambda: _runcmd("return 0"))
 
                 if next_func:
@@ -594,6 +600,8 @@ def _needs_capture(ast):
         elif op in (sre_constants.SUBPATTERN, sre_constants.BRANCH, sre_constants.MAX_REPEAT, sre_constants.MIN_REPEAT,
                     sre_constants.ASSERT, sre_constants.ASSERT_NOT):
             if op == sre_constants.SUBPATTERN:
+                if val[0] is not None:
+                    return True
                 if _needs_capture(val[3]): return True
             elif op == sre_constants.BRANCH:
                 for b in val[1]:
@@ -618,12 +626,14 @@ def compile_regex(pattern, flags=0, capture=False):
     terminal_func = f"{base_name}_terminal"
     with ctx.push_context(terminal_func):
         regex_matched[:] = 1
+        _get_group_end(0)[:] = regex_index
 
     start_func = _compile_sequence(ast, terminal_func, base_name, needs_capture)
 
     search_func = f"{base_name}_search"
     with ctx.push_context(search_func):
         ScoreIfMatches(regex_matched, 1).then(lambda: _runcmd("return 1"))
+        _get_group_start(0)[:] = regex_index
         _runcmd(f"function {start_func}")
         ScoreIfMatches(regex_matched, 1).then(lambda: _runcmd("return 1"))
 
@@ -641,9 +651,28 @@ def compile_regex(pattern, flags=0, capture=False):
 
 
 import re as _std_re
+
 _orig_match = _std_re.match
 _orig_search = _std_re.search
 _orig_compile = _std_re.compile
+
+
+class RegexMatch(LazyOp):
+    def __init__(self, target, eval_fn, alloc_temp_fn=None, make_copy_fn=None):
+        super().__init__(target, eval_fn, alloc_temp_fn, make_copy_fn)
+        self.target = target
+
+    def group(self, index=0):
+        start = _get_group_start(index)
+        end = _get_group_end(index)
+        return self.target[start:end]
+
+    def __icopy__(self, varid: str, is_recursive: bool = False):
+        t = super().__icopy__(varid)
+        t.group = self.group
+        t.target = self.target
+        return t
+
 
 class FlareRegexPattern:
     def __init__(self, pattern, flags, start_func, start_func_search):
@@ -660,7 +689,7 @@ class FlareRegexPattern:
         from .core import FlareValue
         if not isinstance(target, FlareValue):
             return self._std_pat.match(target)
-        
+
         if target._type != NBTType.String:
             raise TypeError("Regex target must be an NBT String.")
 
@@ -669,12 +698,14 @@ class FlareRegexPattern:
             temp_byte_array[:] = target.to_ascii()
             regex_matched[:] = 0
             regex_index[:] = 0
+            _get_group_start(0)[:] = 0
             regex_target[:] = temp_byte_array
             _runcmd(f"function {self.start_func}")
             dest[:] = regex_matched
             return dest
 
-        return LazyOp(target, eval_match, lambda: score(addr=f"!regex_out_{ctx.next_temp_id()}"))
+        return RegexMatch(target, eval_match, lambda: score(addr=f"!regex_out_{ctx.next_temp_id()}"),
+                          lambda varid: score(addr=f"{varid} {ctx.vars_obj}"))
 
     def search(self, target):
         from .core import FlareValue
@@ -694,7 +725,8 @@ class FlareRegexPattern:
             dest[:] = regex_matched
             return dest
 
-        return LazyOp(target, eval_search, lambda: score(addr=f"!regex_out_{ctx.next_temp_id()}"))
+        return RegexMatch(target, eval_search, lambda: score(addr=f"!regex_out_{ctx.next_temp_id()}"),
+                          lambda varid: score(addr=f"{varid} {ctx.vars_obj}"))
 
 
 def _flare_match(pattern, string, flags=0):
@@ -703,14 +735,17 @@ def _flare_match(pattern, string, flags=0):
         return compile_regex(pattern, flags).match(string)
     return _orig_match(pattern, string, flags)
 
+
 def _flare_search(pattern, string, flags=0):
     from .core import FlareValue
     if isinstance(string, FlareValue):
         return compile_regex(pattern, flags).search(string)
     return _orig_search(pattern, string, flags)
 
+
 _std_re.match = _flare_match
 _std_re.search = _flare_search
+
 
 class re_patch:
     @staticmethod

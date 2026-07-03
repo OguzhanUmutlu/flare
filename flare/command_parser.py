@@ -115,44 +115,70 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
             if _resolved_val is None:
                 _resolved_val = global_vars.get(ident)
 
-            if _resolved_val is not None and getattr(_resolved_val, "_is_macro_param", False):
+            if _resolved_val is not None and getattr(_resolved_val, "_is_macro_param", False) is True:
                 output.append(f"$({_resolved_val.name})")
                 _macro_substituted = True
                 _any_var_resolved = True
             elif ident in local_vars:
                 val = local_vars[ident]
                 _any_var_resolved = True
-                if hasattr(val, "addr"):
+                if output and output[-1].endswith("**"):
+                    if isinstance(val, dict) or (hasattr(val, "_value_to_set") and isinstance(val._value_to_set, dict)):
+                        output[-1] = output[-1][:-2]
+                        
+                        val_dict = val if isinstance(val, dict) else val._value_to_set
+                        
+                        items = []
+                        for k, v in val_dict.items():
+                            if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):
+                                k = json.dumps(k)
+                            v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
+                            items.append(f"{k}: {v_str}")
+                        output.append(", ".join(items))
+                    elif isinstance(val, str) and val.startswith("{") and val.endswith("}"):
+                        output[-1] = output[-1][:-2]
+                        output.append(val[1:-1])
+                    elif hasattr(val, "addr") and type(val).__name__ != "_Storage":
+                        output.append(val._addr)
+                    elif hasattr(val, "target") and type(val).__name__ != "_Storage":
+                        output.append(val.target)
+                    else:
+                        output.append(str(val))
+                elif hasattr(val, "addr") and type(val).__name__ != "_Storage":
                     output.append(val._addr)
-                elif hasattr(val, "target"):
+                elif hasattr(val, "target") and type(val).__name__ != "_Storage":
                     output.append(val.target)
-                elif isinstance(val, dict) and output and output[-1].endswith("**"):
-                    output[-1] = output[-1][:-2]
-                    items = []
-                    for k, v in val.items():
-                        if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):
-                            k = json.dumps(k)
-                        v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
-                        items.append(f"{k}: {v_str}")
-                    output.append(", ".join(items))
                 else:
-                    output.append(str(val))
+                        output.append(str(val))
             elif ident in global_vars:
                 val = global_vars[ident]
                 _any_var_resolved = True
-                if hasattr(val, "addr"):
+                if output and output[-1].endswith("**"):
+                    if isinstance(val, dict) or (hasattr(val, "_value_to_set") and isinstance(val._value_to_set, dict)):
+                        output[-1] = output[-1][:-2]
+                        
+                        val_dict = val if isinstance(val, dict) else val._value_to_set
+                        
+                        items = []
+                        for k, v in val_dict.items():
+                            if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):
+                                k = json.dumps(k)
+                            v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
+                            items.append(f"{k}: {v_str}")
+                        output.append(", ".join(items))
+                    elif isinstance(val, str) and val.startswith("{") and val.endswith("}"):
+                        output[-1] = output[-1][:-2]
+                        output.append(val[1:-1])
+                    elif hasattr(val, "addr") and type(val).__name__ != "_Storage":
+                        output.append(val._addr)
+                    elif hasattr(val, "target") and type(val).__name__ != "_Storage":
+                        output.append(val.target)
+                    else:
+                        output.append(str(val))
+                elif hasattr(val, "addr") and type(val).__name__ != "_Storage":
                     output.append(val._addr)
-                elif hasattr(val, "target"):
+                elif hasattr(val, "target") and type(val).__name__ != "_Storage":
                     output.append(val.target)
-                elif isinstance(val, dict) and output and output[-1].endswith("**"):
-                    output[-1] = output[-1][:-2]
-                    items = []
-                    for k, v in val.items():
-                        if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):
-                            k = json.dumps(k)
-                        v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
-                        items.append(f"{k}: {v_str}")
-                    output.append(", ".join(items))
                 else:
                     output.append(str(val))
             else:

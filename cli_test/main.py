@@ -52,7 +52,7 @@ print(e * d)
 print(d * e)
 
 custom_model_data = nbt{CustomModelData: 7}
-give @s bow{**custom_model_data}
+data modify storage flare:temp test_unpack set value {**custom_model_data}
 
 kill @s[type=minecraft:zombie]
 tp @s 1 2 3

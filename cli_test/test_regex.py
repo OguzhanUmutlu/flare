@@ -13,6 +13,15 @@ def assert_false(cond, name):
     else:
         pass
 
+def assert_eq(actual, expected, name):
+    print(name)
+    if expand(actual != expected):
+        print(style(f"ASSERT FAILED [{name}]:", color="red"))
+        print(style("  Expected: ", color="yellow"), expected)
+        print(style("  Actual:   ", color="yellow"), actual)
+    else:
+        pass
+
 s = nbtstr("hello world")
 
 assert_true(re.match(r"hello", s), "match literal")
@@ -58,3 +67,9 @@ assert_true(re.search(r"\bcat\b", nbtstr("a cat sat")), "word boundary full")
 assert_false(re.search(r"\bcat\b", nbtstr("category")), "word boundary mismatch front")
 assert_false(re.search(r"\bcat\b", nbtstr("tomcat")), "word boundary mismatch back")
 assert_true(re.search(r"\Bcat\B", nbtstr("unscathed")), "non-word boundary")
+
+res = re.search(r"([a-z]+)@([a-z]+)\.com", nbtstr("my_email@gmail.com"))
+assert_true(res, "group test match")
+assert_eq(res.group(0), "email@gmail.com", "group 0 match")
+assert_eq(res.group(1), "email", "group 1 match")
+assert_eq(res.group(2), "gmail", "group 2 match")

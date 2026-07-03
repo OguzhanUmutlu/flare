@@ -99,7 +99,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
     from .utils import resolve_build_targets
 
-    resolved_build_dirs = resolve_build_targets(build_dirs_raw, p)
+    resolved_build_dirs = resolve_build_targets(build_dirs_raw, p, namespace)
 
     if not resolved_build_dirs:
         print("\033[91mNo valid output directories found. Defaulting to 'dist'.\033[0m")
@@ -232,18 +232,20 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
         if ":" in filename:
             ns, name = filename.split(":", 1)
-            file_p = build_dir / "data" / ns / "function" / f"{name}.mcfunction"
+            func_dir_name = "function" if config.get("pack_format", 15) >= 45 else "functions"
+            file_p = build_dir / "data" / ns / func_dir_name / f"{name}.mcfunction"
             is_top_level = (
                     "generated_" not in name
                     and "while_" not in name
                     and name not in ("main", "load")
             )
         else:
+            func_dir_name = "function" if config.get("pack_format", 15) >= 45 else "functions"
             file_p = (
                     build_dir
                     / "data"
                     / str(context._current_namespace)
-                    / "function"
+                    / func_dir_name
                     / f"{filename}.mcfunction"
             )
             is_top_level = (
@@ -267,7 +269,8 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         if load_f not in tags["load"]:
             tags["load"].append(load_f)
 
-    tag_dir = build_dir / "data" / "minecraft" / "tags" / "function"
+    tag_dir_name = "function" if config.get("pack_format", 15) >= 45 else "functions"
+    tag_dir = build_dir / "data" / "minecraft" / "tags" / tag_dir_name
     for tag_name, tag_funcs in tags.items():
         if tag_funcs:
             if tag_name == "load":

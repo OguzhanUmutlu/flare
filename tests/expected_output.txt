@@ -18,7 +18,6 @@ mynbt is in tuple
 248.4
 248.4
 No entity was found for selector s
-No entity was found for selector s
 Killed 0 entities
 No entity was found for selector s
 --- Big Types ---

@@ -4,6 +4,9 @@ from .nbt import nbt
 
 
 class _Storage:
+    def __str__(self):
+        return "storage"
+        
     def __getattr__(self, name):
         if name.startswith("__") and name.endswith("__"):
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")

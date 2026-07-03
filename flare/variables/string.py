@@ -84,7 +84,7 @@ class NBTStringSlice(FlareValue):
         if not start_is_dynamic and not stop_is_dynamic:
             start_str = str(item_start) if item_start is not None else ""
             if item_start is not None and item_stop is None:
-                stop_str = " 2147483647"
+                stop_str = ""
             else:
                 stop_str = f" {item_stop}" if item_stop is not None else ""
 
@@ -97,7 +97,15 @@ class NBTStringSlice(FlareValue):
                 start_str = f" {start_str}"
 
             op_str = "append string" if append else "set string"
-            _runcmd(f"data modify {addr(dest)} {op_str} {addr(string_obj)}{start_str}{stop_str}")
+            
+            if not append and addr(dest) == addr(string_obj):
+                _runcmd(f"data modify storage {ctx.temp_storage} __flare_slice_tmp set value \"\"")
+                _runcmd(f"data modify storage {ctx.temp_storage} __flare_slice_tmp {op_str} {addr(string_obj)}{start_str}{stop_str}")
+                _runcmd(f"data modify {addr(dest)} set from storage {ctx.temp_storage} __flare_slice_tmp")
+            else:
+                if not append:
+                    _runcmd(f"data modify {addr(dest)} set value \"\"")
+                _runcmd(f"data modify {addr(dest)} {op_str} {addr(string_obj)}{start_str}{stop_str}")
             return dest
 
         _id = ctx.next_temp_id()
@@ -110,13 +118,23 @@ class NBTStringSlice(FlareValue):
 
         def macro_generator(*_):
             op_str = "append string" if append else "set string"
-            macro_body = f"$data modify {addr(dest)} {op_str} {addr(string_obj)} "
-            macro_body += "$(start)" if item_start is not None else "0"
-            if item_stop is not None:
-                macro_body += " $(stop)"
+            macro_body = ""
+            if not append and addr(dest) == addr(string_obj):
+                _runcmd(f"data modify storage {ctx.temp_storage} __flare_slice_tmp set value \"\"")
+                macro_body = f"$data modify storage {ctx.temp_storage} __flare_slice_tmp {op_str} {addr(string_obj)} "
+                macro_body += "$(start)" if item_start is not None else "0"
+                if item_stop is not None:
+                    macro_body += " $(stop)"
+                _runcmd(macro_body)
+                _runcmd(f"data modify {addr(dest)} set from storage {ctx.temp_storage} __flare_slice_tmp")
             else:
-                macro_body += " 2147483647"
-            _runcmd(macro_body)
+                if not append:
+                    _runcmd(f"data modify {addr(dest)} set value \"\"")
+                macro_body = f"$data modify {addr(dest)} {op_str} {addr(string_obj)} "
+                macro_body += "$(start)" if item_start is not None else "0"
+                if item_stop is not None:
+                    macro_body += " $(stop)"
+                _runcmd(macro_body)
 
         ctx._invoke_stdlib(f"__flare_stdlib__:__flare_slice_{_id}", macro_generator, with_=macro_args)
         return dest

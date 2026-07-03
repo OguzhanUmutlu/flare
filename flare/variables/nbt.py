@@ -378,8 +378,9 @@ def _string_add(self: nbt, other):
     from .string import NBTStringSlice
 
     if isinstance(other, NBTStringSlice):
-        other._compile_into(dest=self, append=True)
-        return self
+        t = other._alloc_temp()
+        other._compile_into(t)
+        return self.__iadd__(t)
 
     self._check_addr()
     if hasattr(other, "_is_macro_param") and other._is_macro_param:
@@ -394,10 +395,6 @@ def _string_add(self: nbt, other):
     if isinstance(other, str) or (isinstance(other, nbt) and other._type == NBTType.String) or isinstance(other,
                                                                                                           LazyOp):
         if isinstance(other, LazyOp):
-            if other.op_name == "_slice_string":
-                other.eval_fn(dest=self, append=True)
-                return self
-
             t = other._alloc_temp()
             other._compile_into(t)
             other = t

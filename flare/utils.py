@@ -52,7 +52,7 @@ def _prompt_user_for_world(world_name: str) -> bool:
             return False
 
 
-def resolve_uri(uri: str, project_dir: str | Path) -> Path:
+def resolve_uri(uri: str, project_dir: str | Path, namespace: str = None) -> Path:
     uri = str(uri)
     project_dir = str(Path(project_dir).resolve())
     minecraft_dir = get_minecraft_dir()
@@ -62,6 +62,8 @@ def resolve_uri(uri: str, project_dir: str | Path) -> Path:
 
     if uri.startswith("world://"):
         world_param = uri[len("world://"):]
+        
+        target_world = None
         if world_param == "_last":
             last_world = _get_last_edited_world(minecraft_dir)
             if last_world is None:
@@ -92,9 +94,17 @@ def resolve_uri(uri: str, project_dir: str | Path) -> Path:
                 except Exception as e:
                     print(f"\033[93mWarning: Failed to save world cache: {e}\033[0m")
 
-            return last_world / "datapacks"
+            target_world = last_world
         else:
-            return minecraft_dir / "saves" / world_param / "datapacks"
+            target_world = minecraft_dir / "saves" / world_param
+
+        if "datapacks" in target_world.parts:
+            return target_world
+
+        datapacks_dir = target_world / "datapacks"
+        if namespace:
+            return datapacks_dir / namespace
+        return datapacks_dir
 
     p = Path(uri)
     if not p.is_absolute():
@@ -102,14 +112,14 @@ def resolve_uri(uri: str, project_dir: str | Path) -> Path:
     return p
 
 
-def resolve_build_targets(build_dirs: str | List[str], project_dir: str | Path) -> List[Path]:
+def resolve_build_targets(build_dirs: str | List[str], project_dir: str | Path, namespace: str = None) -> List[Path]:
     if isinstance(build_dirs, str):
         build_dirs = [build_dirs]
 
     resolved = []
     for d in build_dirs:
         try:
-            p = resolve_uri(d, project_dir)
+            p = resolve_uri(d, project_dir, namespace)
             resolved.append(p)
         except Exception as e:
             print(f"\033[91mFailed to resolve build target '{d}': {e}\033[0m")

@@ -48,7 +48,7 @@ Since Flare runs atop Python's internal AST, a significant portion of Python's r
 * **Greedy Quantifiers**: `+`, `*`, `?`
 * **Anchors**: `^` (Start of string) and `$` (End of string)
 * **Union (Branching)**: `r"foo|bar"`
-* **Capture Groups**: `( )` *(Currently evaluates the group, but capture slicing logic is ignored in `v1`.)*
+* **Capture Groups**: `( )` (Includes support for `match.group(x)` string slicing)
 
 ## Usage Details
 
@@ -70,5 +70,40 @@ re.match(r"world", s)
 re.search(r"world", s) 
 ```
 
+### Extracting Capture Groups
+
+When a regex evaluates successfully, the returned match object supports extracting captured substrings using the `.group(x)` method. 
+
+* **`group(0)`** always returns the entire matched substring, regardless of whether you defined any explicit capture groups in your regex.
+* **`group(1)` through `group(N)`** correspond directly to your explicitly defined capture groups `(...)`.
+
+Group tracking is **completely automatic**. If the transpiler detects a standard capture group like `(...)` in your pattern, it automatically injects index tracking logic into the compiled regex NFA.
+
+```python
+s = nbtstr("my_email@gmail.com")
+
+res = re.search(r"([a-z_]+)@([a-z]+)\.com", s)
+if res:
+    username = res.group(1) # Extracts "my_email"
+    domain = res.group(2)   # Extracts "gmail"
+    print("User:", username, "Domain:", domain)
+```
+
+> [!NOTE]
+> `.group(x)` returns an `NBTStringSlice` object which can be assigned to a new variable or printed directly. Under the hood, Flare compiles this into a dynamic substring operation (`data modify ... set string ... $(start) $(end)`).
+
+#### Performance Tip: Non-Capturing Groups
+Because Flare executes within Minecraft, capturing subgroups `(...)` incurs a slight performance penalty. To accurately track capture bounds during complex backtracking, Flare must dynamically push and pop group boundary indices to a global Minecraft NBT list (`flare:regex stack`).
+
+If you are using parentheses simply to group operations (e.g., branching or repetition) and **do not** care about extracting the matched substring later, you should **always use a non-capturing group** `(?:...)`. 
+
+```python
+# Slower: Pushes to NBT stack to track bounds
+re.search(r"(a|b)+c", target)
+
+# Faster: Completely bypasses stack tracking
+re.search(r"(?:a|b)+c", target)
+```
+Flare automatically optimizes away all stack tracking for non-capturing groups, resulting in significantly faster and cheaper execution!
 > [!WARNING]
-> While Flare's regex is incredibly fast compared to manual NBT string parsing, highly complex recursive backtracking patterns (like `r"(a+)*b"`) running against very long strings can quickly hit Minecraft's `maxCommandChainLength` limit. Use efficient, well-designed patterns.
+> While Flare's regex is incredibly fast compared to manual NBT string parsing, highly complex recursive backtracking patterns (like `r"(a+)*b"`) running against very long strings can quickly hit Minecraft's `max_command_sequence_length` limit. Use efficient, well-designed patterns.
