@@ -82,6 +82,17 @@ export default defineConfig({
                     ]
                 },
                 {
+                    text: "Data Driven",
+                    items: [
+                        {text: "Overview", link: "/guide/data-driven/overview"},
+                        {text: "Gameplay Features", link: "/guide/data-driven/gameplay"},
+                        {text: "Tags", link: "/guide/data-driven/tags"},
+                        {text: "World Generation", link: "/guide/data-driven/worldgen"},
+                        {text: "Cosmetics & Visuals", link: "/guide/data-driven/cosmetics"},
+                        {text: "Entities & Spawners", link: "/guide/data-driven/entities"}
+                    ]
+                },
+                {
                     text: "Advanced",
                     items: [
                         {text: "Advanced Math", link: "/guide/math"},

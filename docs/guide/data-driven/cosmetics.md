@@ -1,0 +1,44 @@
+# Cosmetics & Visuals
+
+Minecraft allows datapacks to modify various cosmetic elements such as trims, banner patterns, paintings, and chat formats.
+
+Flare supports dynamically generating these JSON files using the `data_driven` object.
+
+## Supported Generators
+
+- `add_banner_pattern()`
+- `add_chat_type()`
+- `add_painting_variant()`
+- `add_trim_material()`
+- `add_trim_pattern()`
+
+## Example: Banner Patterns
+
+You can define custom banner patterns by linking an identifier to a texture name.
+
+```python
+from flare import *
+
+add_banner_pattern("flare_logo", {
+    "asset_id": "my_namespace:flare_logo",
+    "translation_key": "block.minecraft.banner.flare_logo"
+})
+```
+
+## Example: Trim Materials
+
+Armor trims can also be customized by adding a new trim material.
+
+```python
+from flare import *
+
+add_trim_material("ruby", {
+    "asset_name": "ruby",
+    "ingredient": "my_namespace:ruby",
+    "item_model_index": 0.5,
+    "description": {
+        "translate": "trim_material.my_namespace.ruby",
+        "color": "#FF0000"
+    }
+})
+```
