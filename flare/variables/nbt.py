@@ -657,7 +657,7 @@ class nbt(FlareValue, NBTStringMethods):
         nbt._generate_get_type_stdlib()
         temp = self._alloc_temp("!type_in")
         temp[:] = self
-        _runcmd(f"data modify storage __flare_stdlib__:nbt_get_type input set from {temp._addr}")
+        _runcmd(f"data modify storage __flare_stdlib__:nbt_get_type input set from {addr(temp)}")
         _runcmd("function __flare_stdlib__:nbt/get_type/init")
         dest[:] = nbt(addr="storage __flare_stdlib__:nbt_get_type output")
 

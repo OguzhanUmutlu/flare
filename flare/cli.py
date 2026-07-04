@@ -38,6 +38,7 @@ build_lock = threading.RLock()
 
 
 def init_project(path: str):
+    from flare.utils import minecraft_version_to_pack_format
     p = Path(path)
     p.mkdir(parents=True, exist_ok=True)
     json_path = p / "flare.json"
@@ -53,13 +54,26 @@ def init_project(path: str):
         description = (
                 input("Description [A Flare datapack]: ").strip() or "A Flare datapack"
         )
+        from flare.utils import minecraft_version_to_pack_format
+        pack_format_val = pack_format
+        ver = minecraft_version_to_pack_format(pack_format)
+        if ver is not None:
+            pack_format_val = ver
+        else:
+            try:
+                pack_format_val = float(pack_format)
+                if pack_format_val.is_integer():
+                    pack_format_val = int(pack_format_val)
+            except ValueError:
+                pack_format_val = 15
+
     except (KeyboardInterrupt, EOFError):
         print("\nInitialization cancelled.")
         return
 
     config = {
         "namespace": namespace,
-        "pack_format": int(pack_format),
+        "pack_format": pack_format_val,
         "description": description,
         "build_dir": ["dist"],
     }
@@ -70,6 +84,8 @@ def init_project(path: str):
 
 
 def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
+    from flare.utils import minecraft_version_to_pack_format
+
     p = Path(file_path).parent
     json_path = p / "flare.json"
 
@@ -87,12 +103,24 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             "pack_format": 15,
             "description": "A Flare datapack",
             "build_dir": ["dist"],
-            "validation_level": "strict",
-            "minecraft_version": "1.20.4",
+            "validation_level": "strict"
         }
 
     if cli_overrides:
         config.update(cli_overrides)
+
+    pack_format = config.get("pack_format", 15)
+    if isinstance(pack_format, str):
+        ver = minecraft_version_to_pack_format(pack_format)
+        if ver is not None:
+            pack_format = ver
+        else:
+            try:
+                pack_format = float(pack_format)
+                if pack_format.is_integer(): pack_format = int(pack_format)
+            except ValueError:
+                pack_format = 15
+        config["pack_format"] = pack_format
 
     namespace = config.get("namespace", "flare")
 
@@ -128,9 +156,11 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
     if build_dir is None:
         build_dir = p / "dist"
 
+    from flare.utils import pack_format_to_minecraft_version
     context.validation_level = config.get("validation_level", "strict")
-    context.minecraft_version = config.get("minecraft_version", "1.20.4")
+    context.minecraft_version = pack_format_to_minecraft_version(pack_format)
     context.nbt_schema_missing = config.get("nbt_schema_missing", "error")
+    context.config = config
 
     context.reset_context()
     context._current_namespace = namespace
@@ -377,7 +407,10 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             tgt_path = os.path.abspath(os.path.join(t, rel_path))
             try:
                 os.unlink(tgt_path)
-                stale_dirs.add(os.path.dirname(tgt_path))
+                p = os.path.dirname(tgt_path)
+                while p != t and p.startswith(t):
+                    stale_dirs.add(p)
+                    p = os.path.dirname(p)
             except OSError:
                 pass
 
@@ -428,7 +461,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             datapacks_dir = resolve_uri(autoreload_val, p)
             pack_format = config.get("pack_format", 15)
             setup_autoreload(datapacks_dir, pack_format)
-            print(f"  Triggered autoreload in {datapacks_dir.absolute()}")
+            print(f"\033[90m  Triggered autoreload in {simplify_path(str(datapacks_dir.absolute()))}\033[0m")
         except Exception as e:
             print(f"\033[93m  Failed to setup autoreload: {e}\033[0m")
     else:
@@ -564,7 +597,7 @@ def main():
     )
     parser.add_argument(
         "--pack-format",
-        type=int,
+        type=str,
         default=None,
         help="Override the pack_format for the datapack.",
     )
@@ -584,12 +617,6 @@ def main():
         "--validation",
         type=str,
         help="Set the validation level of the compiled datapack.",
-    )
-    parser.add_argument(
-        "--version",
-        type=str,
-        default=None,
-        help="Specify the version of Minecraft to use for building.",
     )
     parser.add_argument(
         "--no-cache",
@@ -627,7 +654,8 @@ def main():
                         args.run = next_arg
                         i += 1
                     except ValueError:
-                        if args.target == "." and (next_arg.endswith(".py") or next_arg.endswith(".fl") or os.path.exists(next_arg)):
+                        if args.target == "." and (
+                                next_arg.endswith(".py") or next_arg.endswith(".fl") or os.path.exists(next_arg)):
                             args.target = next_arg
                             i += 1
         elif arg == "autoreload":
@@ -635,7 +663,8 @@ def main():
             if i + 1 < len(unknown_args):
                 next_arg = unknown_args[i + 1]
                 if not next_arg.startswith("-") and next_arg not in ("watch", "autoreload", "run"):
-                    if args.target == "." and (next_arg.endswith(".py") or next_arg.endswith(".fl") or os.path.exists(next_arg)):
+                    if args.target == "." and (
+                            next_arg.endswith(".py") or next_arg.endswith(".fl") or os.path.exists(next_arg)):
                         args.target = next_arg
                     else:
                         args.autoreload = next_arg
@@ -659,8 +688,7 @@ def main():
         cli_overrides["description"] = args.description
     if hasattr(args, "out_dir") and args.out_dir is not None:
         cli_overrides["out_dir"] = args.out_dir
-    if hasattr(args, "version") and args.version is not None:
-        cli_overrides["version"] = args.version
+
     if getattr(args, "no_cache", False):
         cli_overrides["no_cache"] = True
     if hasattr(args, "autoreload") and args.autoreload is not None:
@@ -727,7 +755,7 @@ def main():
             print("\033[93mInstall it with: pip install flaremc[cli]\033[0m")
             return
 
-        print(f"Watching for changes in {len(watch_files)} files...")
+        print(f"\033[93mWatching for changes in {len(watch_files)} files...\033[0m")
         handler = WatcherHandler(args, watch_files)
         observer = Observer()
 
@@ -769,7 +797,7 @@ def main():
             observer.stop()
             if runner:
                 runner.stop()
-            print("\nStopped watching.")
+            print("\n\033[91mStopped watching.\033[0m")
         observer.join()
     else:
         if runner:

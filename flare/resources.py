@@ -72,7 +72,9 @@ def add_tag(registry: str, name: str, data: dict):
 
 
 def add_advancement(name: str, data: dict):
-    _write_json("advancement", name, data)
+    pack_format = getattr(context, "config", {}).get("pack_format", 15)
+    adv_dir = "advancement" if pack_format >= 45 else "advancements"
+    _write_json(adv_dir, name, data)
 
 
 def add_banner_pattern(name: str, data: dict):

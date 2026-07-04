@@ -78,7 +78,8 @@ export default defineConfig({
                         {text: "Regex Engine", link: "/guide/regex"},
                         {text: "Execute Modifiers", link: "/guide/execute"},
                         {text: "Control Flow", link: "/guide/control-flow"},
-                        {text: "Exported Functions", link: "/guide/functions"}
+                        {text: "Exported Functions", link: "/guide/functions"},
+                        {text: "Events", link: "/guide/events"}
                     ]
                 },
                 {

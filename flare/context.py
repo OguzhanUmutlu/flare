@@ -522,6 +522,41 @@ def export(func=None, *, name=None, append=False, returns=None):
     return proxy
 
 
+def event(trigger: str, conditions: dict = None, *, name=None, append=False, returns=None):
+    from .resources import add_advancement
+
+    if conditions is None:
+        conditions = {}
+
+    def wrapper(func):
+        actual_name = name if name is not None else func.__name__
+        func_name = f"{_current_namespace}:{actual_name}"
+        adv_name = f"{_current_namespace}:events/{actual_name}"
+
+        adv_json = {
+            "criteria": {
+                "requirement": {
+                    "trigger": f"minecraft:{trigger}" if ":" not in trigger else trigger,
+                    "conditions": conditions
+                }
+            },
+            "rewards": {
+                "function": func_name
+            }
+        }
+
+        add_advancement(f"events/{actual_name}", adv_json)
+
+        exported_func = export(name=actual_name, append=append, returns=returns)(func)
+
+        if func_name in files:
+            files[func_name].insert(0, f"advancement revoke @s only {adv_name}")
+
+        return exported_func
+
+    return wrapper
+
+
 def _flare_in(item, container):
     if hasattr(container, "__in__"):
         return container.__in__(item)

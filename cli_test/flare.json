@@ -1,6 +1,6 @@
 {
   "namespace": "flaretest",
-  "pack_format": 48,
+  "pack_format": "26.2",
   "description": "A Flare datapack",
   "build_dir": [
     "dist",
