@@ -63,17 +63,19 @@ class block(FlareValue, Generic[T]):
             is_a1 = not is_d1 and not is_r1
             is_a2 = not is_d2 and not is_r2
 
-            def format_num(v):
-                return str(int(v)) if v.is_integer() else str(v)
+            def format_num(v, prefix=""):
+                if v == 0 and prefix:
+                    return prefix
+                return prefix + (str(int(v)) if v.is_integer() else str(v))
 
             if is_d1 or is_d2:
                 raise TypeError(f"Directional coordinates (^) cannot be used in arithmetic operations on axis {i}.")
             elif is_a1 and is_a2:
                 val = a1[i] + a2[i]
-                new_parts.append(f"{format_num(val)}")
+                new_parts.append(format_num(val))
             elif is_r1 and is_a2:
                 val = r1[i] + a2[i]
-                new_parts.append(f"~{format_num(val)}")
+                new_parts.append(format_num(val, "~"))
             elif is_a1 and is_r2:
                 raise TypeError(f"Cannot add a relative coordinate to an absolute coordinate on axis {i}.")
             else:
@@ -102,17 +104,19 @@ class block(FlareValue, Generic[T]):
             is_a1 = not is_d1 and not is_r1
             is_a2 = not is_d2 and not is_r2
 
-            def format_num(v):
-                return str(int(v)) if v.is_integer() else str(v)
+            def format_num(v, prefix=""):
+                if v == 0 and prefix:
+                    return prefix
+                return prefix + (str(int(v)) if v.is_integer() else str(v))
 
             if is_d1 or is_d2:
                 raise TypeError(f"Directional coordinates (^) cannot be used in arithmetic operations on axis {i}.")
             elif is_a1 and is_a2:
                 val = a1[i] - a2[i]
-                new_parts.append(f"{format_num(val)}")
+                new_parts.append(format_num(val))
             elif is_r1 and is_r2:
                 val = r1[i] - r2[i]
-                new_parts.append(f"{format_num(val)}")
+                new_parts.append(format_num(val))
             else:
                 raise TypeError(f"Cannot subtract relative and absolute coordinates from each other on axis {i}.")
 
