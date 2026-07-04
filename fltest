@@ -29,7 +29,7 @@ python tests/scraper.py
 echo "Scraping complete! Generated structures are located in flare/generated/"
 
 echo "Running unit tests..."
-for test_file in cli_test/test_*.py; do
+for test_file in examples/cli_test/test_*.py; do
     echo "Running $test_file..."
     output=$(flare "$test_file" --run=0 2>&1)
     if echo "$output" | grep -qi "assert"; then
@@ -40,7 +40,7 @@ for test_file in cli_test/test_*.py; do
 done
 
 echo "Running end-to-end tests..."
-flare cli_test/main.py --run=1 2>/dev/null > tests/actual_output.raw.txt
+flare examples/cli_test --run=1 2>/dev/null > tests/actual_output.raw.txt
 
 cat tests/actual_output.raw.txt | sed -E 's/\x1b\[[0-9;]*m//g' | grep -v "Copied datapack to" | grep -v "Error parsing" | grep -v "Objective" | grep -v "Scoreboard division" | grep -v "Scoreboard modulo" | grep -v "Float(exp" | grep -v "^'$" | grep -v "Compiling" | grep -v "\[Score " | grep -v "Successfully built" | grep -v "Preprocessed in" | grep -v "Compiled in" | grep -v "Wrote .* files" | grep -v "\-\-\- Starting mcemu \-\-\-" | grep -v "Command not found:" | grep -v "Available commands:" | grep -v "^  - " | sed -E 's/!print_[0-9]+/!print_X/g' | sed '/^$/d' > tests/actual_output.txt
 

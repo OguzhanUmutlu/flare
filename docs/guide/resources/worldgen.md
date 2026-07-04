@@ -6,6 +6,9 @@ Flare natively supports all World Generation generators out of the box using the
 
 ## Supported Generators
 
+> [!TIP]
+> **Typed Structs Supported:** You can use strongly-typed classes from `flare.generated.resource` instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
+
 - `add_dimension()`
 - `add_dimension_type()`
 - `add_worldgen_biome()`

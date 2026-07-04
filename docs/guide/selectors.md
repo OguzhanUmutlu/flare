@@ -53,11 +53,11 @@ For precision, you can cast your selector to a specific entity struct using Pyth
 from flare.nbt import Player, Zombie
 
 # Strictly typed to the Player struct
-sp = Player("@a")
+sp = Player(@a)
 sp.foodLevel = 20
 
 # Strictly typed to the Zombie struct
-sz = Zombie("@e[type=zombie]")
+sz = Zombie(@e[type=zombie])
 sz.IsBaby = True
 ```
 

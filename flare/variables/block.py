@@ -421,3 +421,21 @@ class block(FlareValue, Generic[T]):
             datatype = NBTType.String
 
         dest[:] = nbt(addr="storage __flare_stdlib__:block_states target", datatype=datatype)
+
+    def is_biome(self, biome: str) -> "InlineCondition":
+        from ..execute_modifiers import InlineCondition
+        return InlineCondition(f"if biome {self.pos} {biome}")
+
+    def is_cloned(self, to, source, mode="all") -> "InlineCondition":
+        from ..execute_modifiers import InlineCondition
+        if hasattr(to, "pos"): to = to.pos
+        if hasattr(source, "pos"): source = source.pos
+        return InlineCondition(f"if blocks {self.pos} {to} {source} {mode}")
+
+    def has_item(self, at: str, item: str) -> "InlineCondition":
+        from ..execute_modifiers import InlineCondition
+        return InlineCondition(f"if items block {self.pos} {at} {item}")
+
+    def is_loaded(self) -> "InlineCondition":
+        from ..execute_modifiers import InlineCondition
+        return InlineCondition(f"if loaded {self.pos}")

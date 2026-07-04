@@ -262,3 +262,18 @@ class selector(Generic[T]):
                 _runcmd(f"advancement revoke {self._target_str} only {advancement}")
         else:
             _runcmd(f"advancement revoke {self._target_str} {mode} {advancement}")
+
+    def __branch__(self, invert=False):
+        keyword = "unless" if invert else "if"
+        return [f"{keyword} entity {self._target_str}"]
+
+    def has_item(self, at: str, item: str) -> "InlineCondition":
+        from ..execute_modifiers import InlineCondition
+
+        return InlineCondition(f"if items entity {self._target_str} {at} {item}")
+
+    def give_item(self, item, count: int = 1):
+        if count == 1:
+            _runcmd(f"give {self._target_str} {item}")
+        else:
+            _runcmd(f"give {self._target_str} {item} {count}")

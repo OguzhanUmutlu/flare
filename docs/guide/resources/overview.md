@@ -25,6 +25,28 @@ add_advancement("my_advancement", {
 
 When you run your Flare script, this will automatically generate a valid JSON file at `data/<namespace>/advancement/my_advancement.json`.
 
+## Typed Structs
+
+Instead of using raw dictionaries, Flare provides strongly typed Python classes for all 47+ JSON structures. You can import these directly from `flare.generated.resource`!
+
+These **Typed Structs** will provide you with full IDE autocompletion and type-checking, preventing you from writing broken datapacks due to a typo. You can pass them as arguments exactly like dictionaries.
+
+```python
+from flare import *
+from flare.generated.resource import Advancement, AdvancementDisplay
+
+add_advancement("my_typed_advancement", Advancement(
+    display=AdvancementDisplay(
+        title="Typed Advancement!",
+        description="Created with pure IDE autocompletion",
+        icon={"item": "minecraft:emerald"}
+    ),
+    criteria={
+        "req": {"trigger": "minecraft:tick"}
+    }
+))
+```
+
 ## Supported Features
 
 Flare supports 47 different resource features categorized into:

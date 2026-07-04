@@ -1,7 +1,7 @@
 {
-  "namespace": "flaretest",
+  "namespace": "worldedit",
   "pack_format": "26.2",
-  "description": "A Flare datapack",
+  "description": "WorldEdit made with Flare",
   "build_dir": [
     "dist",
     "world://New World"

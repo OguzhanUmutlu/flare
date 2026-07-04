@@ -87,6 +87,46 @@ with at("@e[type=pig]").if(block("~ ~ ~") == "mud").unless(block("~ ~1 ~") == "w
     print("Muddy pig!")
 ```
 
+## Inline Execute Conditions
+
+Flare provides a series of specific condition helpers that cleanly translate to Minecraft's `execute if <sub-command>` structure! You can use these dynamically inside `if` statements or inside `.if()` methods!
+
+```python
+from flare import is_dimension, success, predicate, stopwatch, selector, block
+
+# -> execute if dimension overworld run ...
+if is_dimension("overworld"):
+    pass
+    
+# -> execute if function my_func run ...
+if success(my_func):
+    pass
+    
+# -> execute if predicate namespace:my_pred run ...
+if predicate("namespace:my_pred"):
+    pass
+
+# -> execute if stopwatch my_watch 1..2 run ...
+if stopwatch("my_watch") in (1, 2):
+    pass
+    
+# -> execute if entity @s run ...
+s = selector("@s")  # or just @s
+if s:
+    pass
+
+# Check block states
+b = block("~ ~ ~")
+if b.is_biome("plains"): pass
+if b.is_cloned(to="~ ~1 ~", source="~ ~2 ~", mode="all"): pass
+if b.is_loaded(): pass
+if b.has_item(at="container.0", item="stone"): pass
+
+# Entity specific
+if s.has_item(at="weapon.mainhand", item="diamond_sword"):
+    pass
+```
+
 ## Compile-Time Optimization
 
 Flare is highly optimized and checks conditions **at compile-time**.

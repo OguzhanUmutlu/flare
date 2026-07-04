@@ -14,7 +14,8 @@ from .control_flow import _flare_if, _flare_while, _flare_for, _flare_not, _flar
     _flare_continue, \
     expand, schedule, _flare_and, _flare_or
 from .execute_modifiers import _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, \
-    store, ExecuteChain, StoreExecuteChain, if_, unless, if_block, unless_block
+    store, ExecuteChain, StoreExecuteChain, if_, unless, if_block, unless_block, is_dimension, success, predicate, \
+    stopwatch
 from .math import round_, floor, ceil, sin, cos, tan, asin, acos, atan, atan2, exp, log, ln, pow_, csc, sec, cot, acsc, \
     asec, acot, sinh, cosh, tanh, asinh, acosh, atanh, csch, sech, coth, acsch, asech, acoth, sqrt, fastsin, fastsqrt, \
     rsqrt, min_, max_
@@ -23,7 +24,7 @@ from .resources import *
 from .types import NBTType, byte, boolean, short, long, double, array
 from .variables import score, nbt, fixed, tagged, ref, getscore, storage, nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, \
     nbtfloat, nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray, selector, bigscore, \
-    bigfixed, float64, float32, complex, macro, struct, compound, fail, Objective, block
+    bigfixed, float64, float32, complex, macro, struct, compound, fail, Objective, block, item
 
 __all__ = ["round_", "floor", "ceil", "namespace", "export", "tick", "load", "score", "nbt", "fixed", "tagged", "ref",
            "getscore", "storage", "_flare_print", "dbg", "nbtbyte", "nbtbool", "nbtshort", "nbtint", "nbtlong",
@@ -33,7 +34,8 @@ __all__ = ["round_", "floor", "ceil", "namespace", "export", "tick", "load", "sc
            "array", "bigscore", "bigfixed", "float32", "float64", "complex", "byte", "boolean", "short", "long",
            "double", "expand", "event", "macro", "schedule", "print", "style", "translate", "keybind", "click_event",
            "hover_event", "struct", "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "exp", "log", "ln", "pow_",
-           "csc", "coth", "acsch", "asech", "acoth", "sqrt", "fastsin", "fastsqrt", "rsqrt", "min_", "max_", "block"]
+           "csc", "coth", "acsch", "asech", "acoth", "sqrt", "fastsin", "fastsqrt", "rsqrt", "min_", "max_", "block",
+           "is_dimension", "success", "predicate", "stopwatch", "item"]
 
 from .resources import __all__ as _dd_all
 

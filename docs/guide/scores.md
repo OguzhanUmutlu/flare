@@ -93,7 +93,7 @@ from flare import Objective, selector
 my_obj = Objective("my_obj", type="dummy", display='{"text": "My Obj"}')
 
 # You can access scores on this objective using standard Python indexing:
-my_score = my_obj[selector("@s")]
+my_score = my_obj[@s]
 named_score = my_obj["my_fake_player"]
 
 my_score += 10

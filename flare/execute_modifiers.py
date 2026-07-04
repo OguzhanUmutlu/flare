@@ -8,6 +8,24 @@ from .variables.core import addr
 from .variables.selector import selector
 
 
+class InlineCondition:
+    def __init__(self, cond_str: str, invert_str: str = None):
+        self.fragments = [cond_str]
+        self._invert_str = invert_str
+
+    def __branch__(self, invert=False):
+        if invert:
+            if self._invert_str:
+                return [self._invert_str]
+            cond = self.fragments[0]
+            if cond.startswith("if "):
+                return ["unless " + cond[3:]]
+            elif cond.startswith("unless "):
+                return ["if " + cond[7:]]
+            raise ValueError(f"Cannot invert condition: {cond}")
+        return self.fragments
+
+
 class ExecuteChain:
     def __init__(self, prefix: str = "execute"):
         self.fragments = [prefix] if prefix else []
@@ -289,3 +307,38 @@ def unless_block(pos: Union[str, tuple, list, "selector"], target: str) -> Execu
 
 def store(target: Union["flare.variables.score", "flare.variables.nbt", str]) -> ExecuteChain:
     return ExecuteChain().store(target)
+
+
+def is_dimension(dim: str) -> InlineCondition:
+    return InlineCondition(f"if dimension {dim}")
+
+
+def success(test) -> InlineCondition:
+    if hasattr(test, "__name__"):
+        test = f"{ctx._current_namespace}:{test.__name__}"
+    elif hasattr(test, "name"):
+        test = test.name
+    return InlineCondition(f"if function {test}")
+
+
+def predicate(name: str) -> InlineCondition:
+    return InlineCondition(f"if predicate {name}")
+
+
+class stopwatch:
+    def __init__(self, id: str):
+        self.id = id
+
+    def __rin__(self, container):
+        if isinstance(container, tuple):
+            a, b = container
+            if a is None:
+                rng = f"..{b}"
+            elif b is None:
+                rng = f"{a}.."
+            elif a == b:
+                rng = f"{a}"
+            else:
+                rng = f"{a}..{b}"
+            return InlineCondition(f"if stopwatch {self.id} {rng}")
+        return NotImplemented

@@ -6,6 +6,9 @@ Flare natively generates these JSON definitions using the top-level `add_*` func
 
 ## Supported Generators
 
+> [!TIP]
+> **Typed Structs Supported:** You can use strongly-typed classes from `flare.generated.resource` instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
+
 - `add_cat_variant()`
 - `add_chicken_variant()`
 - `add_cow_variant()`

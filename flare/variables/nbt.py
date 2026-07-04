@@ -195,7 +195,12 @@ def struct(cls):
                 return selector[cls_obj](args[0])
         return object.__new__(cls_obj)
 
+    def __init__(self, *args, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
     cls.__new__ = __new__
+    cls.__init__ = __init__
     return cls
 
 

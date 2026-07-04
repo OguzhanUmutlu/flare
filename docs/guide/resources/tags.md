@@ -1,5 +1,9 @@
 # Tags
 
+> [!TIP]
+> **Typed Structs Supported:** You can use strongly-typed classes from `flare.generated.resource` instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
+
+
 Tags are JSON lists that group together various Minecraft registries (such as blocks, items, or entity types) so that you can refer to them collectively in commands, recipes, and predicates.
 
 Flare supports dynamically generating tag files using `add_tag()`.

@@ -6,6 +6,9 @@ Flare supports dynamically generating these JSON files using the top-level `add_
 
 ## Supported Generators
 
+> [!TIP]
+> **Typed Structs Supported:** You can use strongly-typed classes from `flare.generated.resource` instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
+
 - `add_banner_pattern()`
 - `add_chat_type()`
 - `add_painting_variant()`
