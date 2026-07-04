@@ -64,6 +64,8 @@ class ExecuteChain:
         return self._add(f"summon {entity}")
 
     def if_(self, condition: Any) -> ExecuteChain:
+        from .compiler import _eval_to_bool_score
+
         if hasattr(condition, "__branch__"):
             for frag in condition.__branch__():
                 self._add(frag)
@@ -72,12 +74,13 @@ class ExecuteChain:
         elif condition is False:
             self._add("if score 0 __flare__constant__ matches 1")
         else:
-            from .compiler import _eval_to_bool_score
             dest = _eval_to_bool_score(condition)
             self._add(f"if score {addr(dest)} matches 1")
         return self
 
     def unless(self, condition: Any) -> ExecuteChain:
+        from .compiler import _eval_to_bool_score
+
         if hasattr(condition, "__branch__"):
             for frag in condition.__branch__(invert=True):
                 self._add(frag)
@@ -86,7 +89,6 @@ class ExecuteChain:
         elif condition is True:
             self._add("if score 0 __flare__constant__ matches 1")
         else:
-            from .compiler import _eval_to_bool_score
             dest = _eval_to_bool_score(condition)
             self._add(f"unless score {addr(dest)} matches 1")
         return self

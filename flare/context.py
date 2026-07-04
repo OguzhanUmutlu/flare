@@ -7,6 +7,7 @@ from . import command_parser as _cp
 from .command_parser import interpolate_command
 
 files = {"main": []}
+json_files = {}
 current_file = "main"
 _current_namespace: str = "flare"
 functions = {}
@@ -91,6 +92,7 @@ def next_func_id():
 def reset_context():
     global current_file, _current_namespace, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, minecraft_version, nbt_schema_missing, _in_recursive_context, _logical_func, memoized_math
     files.clear()
+    json_files.clear()
     files["main"] = []
     current_file = "main"
     _current_namespace = "flare"

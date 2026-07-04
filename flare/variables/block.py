@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 from typing import Union, Optional, Generic, TypeVar
 
+import flare.context as context
 from .core import FlareValue
 
 T = TypeVar("T")
@@ -18,6 +19,8 @@ for _name, _obj in inspect.getmembers(gen_block_entities):
 
 
 class block(FlareValue, Generic[T]):
+    _get_name_stdlib_generated = False
+
     def __init__(self, pos: str):
         self.pos = str(pos)
 
@@ -210,3 +213,70 @@ class block(FlareValue, Generic[T]):
             if mode == "replace" and filter_block:
                 cmd += f" {filter_block}"
         _runcmd(cmd)
+
+    @classmethod
+    def _generate_get_name_stdlib(cls):
+        if cls._get_name_stdlib_generated:
+            return
+        cls._get_name_stdlib_generated = True
+
+        from flare.block_list import BLOCK_LIST
+
+        _id_counter = 0
+
+        def get_id():
+            nonlocal _id_counter
+            n = _id_counter
+            _id_counter += 1
+            if n == 0: return "0"
+            res = ""
+            while n:
+                res = "0123456789abcdefghijklmnopqrstuvwxyz"[n % 36] + res
+                n //= 36
+            return res
+
+        def build_node(start_idx, end_idx, my_id):
+            mid = (start_idx + end_idx) // 2
+
+            left_is_leaf = (mid - start_idx == 1)
+            if left_is_leaf:
+                left_val = BLOCK_LIST[start_idx]
+                left_target_func = f"flare_stdlib:block/get/blocks/{my_id}0"
+                context.files[left_target_func] = [
+                    f'data modify storage flare_stdlib:block/get output.block set value "{left_val}"']
+            else:
+                left_child_id = get_id()
+                left_val = f"#flare_stdlib:block/get/blocks/{left_child_id}"
+                left_target_func = f"flare_stdlib:block/get/blocks/{left_child_id}"
+                left_tag_values = build_node(start_idx, mid, left_child_id)
+                context.json_files[f"flare_stdlib:tags/block/get/blocks/{left_child_id}.json"] = {
+                    "values": left_tag_values}
+
+            right_is_leaf = (end_idx - mid == 1)
+            if right_is_leaf:
+                right_val = BLOCK_LIST[mid]
+                right_target_func = f"flare_stdlib:block/get/blocks/{my_id}1"
+                context.files[right_target_func] = [
+                    f'data modify storage flare_stdlib:block/get output.block set value "{right_val}"']
+            else:
+                right_child_id = get_id()
+                right_val = f"#flare_stdlib:block/get/blocks/{right_child_id}"
+                right_target_func = f"flare_stdlib:block/get/blocks/{right_child_id}"
+                right_tag_values = build_node(mid, end_idx, right_child_id)
+                context.json_files[f"flare_stdlib:tags/block/get/blocks/{right_child_id}.json"] = {
+                    "values": right_tag_values}
+
+            context.files[f"flare_stdlib:block/get/blocks/{my_id}"] = [
+                f"execute if block ~ ~ ~ {left_val} run function {left_target_func}",
+                f"execute if block ~ ~ ~ {right_val} run function {right_target_func}"
+            ]
+
+            return [left_val, right_val]
+
+        build_node(0, len(BLOCK_LIST), "root")
+
+    def get_id(self):
+        from flare.variables import nbtstr
+        block._generate_get_name_stdlib()
+        _runcmd(f"execute at {self.pos} run function flare_stdlib:block/get/blocks/root")
+        return nbtstr(addr="flare_stdlib:block/get output.block")

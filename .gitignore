@@ -6,9 +6,11 @@ out
 .cache
 __pycache__
 venv
+.venv
 dist
 build
 flaremc.egg-info
 .flare
 .beet_cache
 vanilla-mcdoc
+.pytest_cache

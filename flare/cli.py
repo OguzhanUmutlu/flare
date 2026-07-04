@@ -1,6 +1,8 @@
 import argparse
 import ast
+import hashlib
 import json
+import marshal
 import os
 import shutil
 import sys
@@ -205,22 +207,52 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             ):
                 watch_files.add(mod_file)
 
-    if build_dir.exists():
-        shutil.rmtree(build_dir)
+    _created_dirs = set()
+    io_start = time.time()
 
-    build_dir.mkdir(parents=True, exist_ok=True)
+    use_cache = not config.get("no_cache", False)
+    io_cache_path = p / ".cache" / "iocache.dat"
+    io_cache = {}
+    if use_cache and io_cache_path.exists():
+        try:
+            with open(io_cache_path, "rb") as f:
+                io_cache = marshal.load(f)
+        except Exception:
+            pass
+    new_io_cache = {}
+    changed_files = []
+    build_dir_str = str(build_dir)
 
-    with open(build_dir / "pack.mcmeta", "w") as f:
-        json.dump(
+    def _ensure_parent(file_path_str):
+        parent = file_path_str[: file_path_str.rfind("/")]
+        if parent not in _created_dirs:
+            os.makedirs(parent, exist_ok=True)
+            _created_dirs.add(parent)
+
+    def write_if_changed(file_path_str, content):
+        content_hash = hashlib.md5(content.encode()).hexdigest()
+        new_io_cache[file_path_str] = content_hash
+        if io_cache.get(file_path_str) == content_hash:
+            return
+        _ensure_parent(file_path_str)
+        with open(file_path_str, "w") as f:
+            f.write(content)
+        changed_files.append(file_path_str)
+
+    os.makedirs(build_dir_str, exist_ok=True)
+
+    write_if_changed(
+        os.path.join(build_dir_str, "pack.mcmeta"),
+        json.dumps(
             {
                 "pack": {
                     "pack_format": config.get("pack_format", 15),
                     "description": config.get("description", "A Flare datapack"),
                 }
             },
-            f,
             indent=4,
-        )
+        ),
+    )
 
     tags = {"tick": [], "load": []}
 
@@ -229,6 +261,9 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         if load_key not in context.files:
             context.files[load_key] = []
         context.files[load_key].extend(context.files.pop("main"))
+
+    func_dir_name = "function" if config.get("pack_format", 15) >= 45 else "functions"
+    ns_str = str(context._current_namespace)
 
     for filename, lines in context.files.items():
         if not lines and filename != "main":
@@ -241,21 +276,17 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
         if ":" in filename:
             ns, name = filename.split(":", 1)
-            func_dir_name = "function" if config.get("pack_format", 15) >= 45 else "functions"
-            file_p = build_dir / "data" / ns / func_dir_name / f"{name}.mcfunction"
+            file_p = os.path.join(
+                build_dir_str, "data", ns, func_dir_name, f"{name}.mcfunction"
+            )
             is_top_level = (
                     "generated_" not in name
                     and "while_" not in name
                     and name not in ("main", "load")
             )
         else:
-            func_dir_name = "function" if config.get("pack_format", 15) >= 45 else "functions"
-            file_p = (
-                    build_dir
-                    / "data"
-                    / str(context._current_namespace)
-                    / func_dir_name
-                    / f"{filename}.mcfunction"
+            file_p = os.path.join(
+                build_dir_str, "data", ns_str, func_dir_name, f"{filename}.mcfunction"
             )
             is_top_level = (
                     "generated_" not in filename
@@ -266,10 +297,16 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         if is_top_level and lines and lines[-1] in ("return 1", "return 0"):
             lines.pop()
 
-        file_p.parent.mkdir(parents=True, exist_ok=True)
-        with open(file_p, "w") as f:
-            for line in lines:
-                f.write(f"{line}\n")
+        write_if_changed(file_p, "\n".join(lines) + "\n")
+
+    for filename, json_content in context.json_files.items():
+        if ":" in filename:
+            ns, path = filename.split(":", 1)
+        else:
+            ns, path = ns_str, filename
+
+        file_p = os.path.join(build_dir_str, "data", ns, path)
+        write_if_changed(file_p, json.dumps(json_content, indent=4))
 
     for tick_f in context.tick_funcs:
         if tick_f not in tags["tick"]:
@@ -279,28 +316,75 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             tags["load"].append(load_f)
 
     tag_dir_name = "function" if config.get("pack_format", 15) >= 45 else "functions"
-    tag_dir = build_dir / "data" / "minecraft" / "tags" / tag_dir_name
+    tag_dir_str = os.path.join(build_dir_str, "data", "minecraft", "tags", tag_dir_name)
     for tag_name, tag_funcs in tags.items():
         if tag_funcs:
             if tag_name == "load":
                 tag_funcs.sort(key=lambda x: (x == load_key, x))
-            tag_dir.mkdir(parents=True, exist_ok=True)
-            tag_path = tag_dir / f"{tag_name}.json"
-            with open(tag_path, "w") as f:
-                json.dump({"values": tag_funcs}, f, indent=4)
+            write_if_changed(
+                os.path.join(tag_dir_str, f"{tag_name}.json"),
+                json.dumps({"values": tag_funcs}, indent=4),
+            )
 
+    prev_files = set(io_cache.get("__files__", []))
+    current_files = set(new_io_cache.keys())
+    stale_files = prev_files - current_files
+    stale_dirs = set()
+    for stale in stale_files:
+        try:
+            os.unlink(stale)
+            stale_dirs.add(os.path.dirname(stale))
+        except OSError:
+            pass
+    for d in sorted(stale_dirs, key=len, reverse=True):
+        try:
+            os.rmdir(d)
+        except OSError:
+            pass
+
+    new_io_cache["__files__"] = list(current_files)
+    os.makedirs(os.path.dirname(str(io_cache_path)), exist_ok=True)
+    with open(str(io_cache_path), "wb") as f:
+        marshal.dump(new_io_cache, f)
+
+    changed_set = set(changed_files)
     for target_dir in resolved_build_dirs:
-        if target_dir.resolve() != build_dir.resolve():
+        target_dir_str = str(target_dir.absolute())
+        if os.path.abspath(target_dir_str) != os.path.abspath(build_dir_str):
             try:
-                target_dir.mkdir(parents=True, exist_ok=True)
-                shutil.copytree(build_dir, target_dir, dirs_exist_ok=True)
+                for src_path in changed_files:
+                    rel = os.path.relpath(src_path, build_dir_str)
+                    tgt_path = os.path.join(target_dir_str, rel)
+                    tgt_parent = os.path.dirname(tgt_path)
+                    if tgt_parent not in _created_dirs:
+                        os.makedirs(tgt_parent, exist_ok=True)
+                        _created_dirs.add(tgt_parent)
+                    shutil.copy2(src_path, tgt_path)
+
+                for stale in stale_files:
+                    rel = os.path.relpath(stale, build_dir_str)
+                    tgt_path = os.path.join(target_dir_str, rel)
+                    try:
+                        os.unlink(tgt_path)
+                    except OSError:
+                        pass
+                    try:
+                        os.rmdir(os.path.dirname(tgt_path))
+                    except OSError:
+                        pass
+
                 print(f"Copied datapack to {target_dir.absolute()}")
             except Exception as e:
                 print(f"\033[93mFailed to copy to {target_dir}: {e}\033[0m")
 
+    io_end = time.time()
     print(f"\033[92mSuccessfully built datapack to {build_dir.absolute()}\033[0m")
     print(f"\033[90m  Preprocessed in {(pre_end - pre_start) * 1000:.2f}ms")
-    print(f"  Compiled in {(comp_end - comp_start) * 1000:.2f}ms\033[0m")
+    print(f"  Compiled in {(comp_end - comp_start) * 1000:.2f}ms")
+    total_files = len(new_io_cache) - 1
+    cached_files = total_files - len(changed_files)
+    print(
+        f"  Wrote {len(changed_files)} files in {(io_end - io_start) * 1000:.2f}ms ({cached_files} cached, {total_files} total)\033[0m")
     return True, watch_files, build_dir
 
 
@@ -450,6 +534,12 @@ def main():
         default=None,
         help="Specify the version of Minecraft to use for building.",
     )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        default=False,
+        help="Disable I/O cache, forcing all files to be rewritten.",
+    )
 
     args, unknown_args = parser.parse_known_args()
 
@@ -466,6 +556,8 @@ def main():
         cli_overrides["out_dir"] = args.out_dir
     if hasattr(args, "version") and args.version is not None:
         cli_overrides["version"] = args.version
+    if getattr(args, "no_cache", False):
+        cli_overrides["no_cache"] = True
     if hasattr(args, "validation") and args.validation is not None:
         cli_overrides["validation_level"] = args.validation
         if args.validation not in ("none", "warning", "strict"):
