@@ -607,6 +607,47 @@ def main():
 
     args, unknown_args = parser.parse_known_args()
 
+    if args.target in ("watch", "run", "autoreload"):
+        unknown_args.insert(0, args.target)
+        args.target = "."
+
+    new_unknown = []
+    i = 0
+    while i < len(unknown_args):
+        arg = unknown_args[i]
+        if arg == "watch":
+            args.watch = True
+        elif arg == "run":
+            args.run = "-1"
+            if i + 1 < len(unknown_args):
+                next_arg = unknown_args[i + 1]
+                if not next_arg.startswith("-") and next_arg not in ("watch", "autoreload", "run"):
+                    try:
+                        float(next_arg)
+                        args.run = next_arg
+                        i += 1
+                    except ValueError:
+                        if args.target == "." and (next_arg.endswith(".py") or next_arg.endswith(".fl") or os.path.exists(next_arg)):
+                            args.target = next_arg
+                            i += 1
+        elif arg == "autoreload":
+            args.autoreload = True
+            if i + 1 < len(unknown_args):
+                next_arg = unknown_args[i + 1]
+                if not next_arg.startswith("-") and next_arg not in ("watch", "autoreload", "run"):
+                    if args.target == "." and (next_arg.endswith(".py") or next_arg.endswith(".fl") or os.path.exists(next_arg)):
+                        args.target = next_arg
+                    else:
+                        args.autoreload = next_arg
+                    i += 1
+        else:
+            if args.target == "." and (arg.endswith(".py") or arg.endswith(".fl") or os.path.exists(arg)):
+                args.target = arg
+            else:
+                new_unknown.append(arg)
+        i += 1
+    unknown_args = new_unknown
+
     cli_overrides = {}
     if hasattr(args, "nbt_schema_missing") and args.nbt_schema_missing is not None:
         cli_overrides["nbt_schema_missing"] = args.nbt_schema_missing
