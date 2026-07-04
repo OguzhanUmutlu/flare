@@ -12,6 +12,8 @@ def lazify(temp="!temp", datatype=None, self=True, copy=None):
     from .. import context as ctx
     def decorator(func):
         def wrapper(*args, **kwargs):
+            from .nbt import nbt
+
             if self is True:
                 if not args:
                     raise TypeError(
