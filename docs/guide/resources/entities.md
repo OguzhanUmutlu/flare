@@ -2,7 +2,7 @@
 
 Datapacks offer deep integrations for entity features, such as defining new pet variants, controlling what villagers trade, or structuring custom Trial Spawner waves.
 
-Flare natively generates these JSON definitions using the `data_driven` namespace.
+Flare natively generates these JSON definitions using the top-level `add_*` functions.
 
 ## Supported Generators
 

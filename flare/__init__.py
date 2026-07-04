@@ -12,7 +12,7 @@ from .context import namespace, export, tick, load, push_context, runcommand, fi
 from .control_flow import _flare_if, _flare_while, _flare_for, _flare_not, _flare_with, _flare_as_var, _flare_break, \
     _flare_continue, \
     expand, schedule, _flare_and, _flare_or
-from .data_driven import *
+from .resources import *
 from .execute_modifiers import _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, \
     store, ExecuteChain, StoreExecuteChain, if_, unless, if_block, unless_block
 from .math import round_, floor, ceil, sin, cos, tan, asin, acos, atan, atan2, exp, log, ln, pow_, csc, sec, cot, acsc, \
@@ -34,7 +34,7 @@ __all__ = ["round_", "floor", "ceil", "namespace", "export", "tick", "load", "sc
            "hover_event", "struct", "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "exp", "log", "ln", "pow_",
            "csc", "coth", "acsch", "asech", "acoth", "sqrt", "fastsin", "fastsqrt", "rsqrt", "min_", "max_", "block"]
 
-from .data_driven import __all__ as _dd_all
+from .resources import __all__ as _dd_all
 
 __all__.extend(_dd_all)
 

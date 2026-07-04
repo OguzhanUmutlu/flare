@@ -1,6 +1,6 @@
-# Data Driven Features
+# Resources
 
-Flare natively supports **every single data-driven JSON feature** available in Minecraft datapacks, without requiring you to manually write `.json` files.
+Flare natively supports **every single resource JSON feature** available in Minecraft datapacks, without requiring you to manually write `.json` files.
 
 By using the top-level `add_*` functions, you can programmatically generate everything from Advancements and Loot Tables to Custom Biomes and Chat Types directly from your Python scripts.
 
@@ -27,7 +27,7 @@ When you run your Flare script, this will automatically generate a valid JSON fi
 
 ## Supported Features
 
-Flare supports 47 different data-driven features categorized into:
+Flare supports 47 different resource features categorized into:
 - [Gameplay Features](./gameplay.md) (Advancements, Recipes, Loot Tables, Predicates, Item Modifiers)
 - [Tags](./tags.md) (Block tags, Item tags, Entity Type tags, etc.)
 - [World Generation](./worldgen.md) (Biomes, Dimensions, Noise, Structures)

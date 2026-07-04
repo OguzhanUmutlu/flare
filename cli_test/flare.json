@@ -3,7 +3,6 @@
   "pack_format": 48,
   "description": "A Flare datapack",
   "build_dir": [
-    "dist",
-    "world://New World"
+    "dist"
   ]
 }

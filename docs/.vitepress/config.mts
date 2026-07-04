@@ -82,14 +82,14 @@ export default defineConfig({
                     ]
                 },
                 {
-                    text: "Data Driven",
+                    text: "Resources",
                     items: [
-                        {text: "Overview", link: "/guide/data-driven/overview"},
-                        {text: "Gameplay Features", link: "/guide/data-driven/gameplay"},
-                        {text: "Tags", link: "/guide/data-driven/tags"},
-                        {text: "World Generation", link: "/guide/data-driven/worldgen"},
-                        {text: "Cosmetics & Visuals", link: "/guide/data-driven/cosmetics"},
-                        {text: "Entities & Spawners", link: "/guide/data-driven/entities"}
+                        {text: "Overview", link: "/guide/resources/overview"},
+                        {text: "Gameplay Features", link: "/guide/resources/gameplay"},
+                        {text: "Tags", link: "/guide/resources/tags"},
+                        {text: "World Generation", link: "/guide/resources/worldgen"},
+                        {text: "Cosmetics & Visuals", link: "/guide/resources/cosmetics"},
+                        {text: "Entities & Spawners", link: "/guide/resources/entities"}
                     ]
                 },
                 {

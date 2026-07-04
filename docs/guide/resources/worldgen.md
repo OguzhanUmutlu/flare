@@ -1,8 +1,8 @@
 # World Generation
 
-Minecraft features a fully data-driven world generation system. By providing JSON files, you can define custom dimensions, biomes, carving algorithms, terrain noise, and structure placement logic.
+Minecraft features a fully resource-based world generation system. By providing JSON files, you can define custom dimensions, biomes, carving algorithms, terrain noise, and structure placement logic.
 
-Flare natively supports all World Generation generators out of the box using the `data_driven` object.
+Flare natively supports all World Generation generators out of the box using the top-level `add_*` functions.
 
 ## Supported Generators
 

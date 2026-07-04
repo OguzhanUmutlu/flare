@@ -2,7 +2,7 @@
 
 Minecraft allows datapacks to modify various cosmetic elements such as trims, banner patterns, paintings, and chat formats.
 
-Flare supports dynamically generating these JSON files using the `data_driven` object.
+Flare supports dynamically generating these JSON files using the top-level `add_*` functions.
 
 ## Supported Generators
 
