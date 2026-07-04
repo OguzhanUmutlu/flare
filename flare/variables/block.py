@@ -67,23 +67,17 @@ class block(FlareValue, Generic[T]):
                 return str(int(v)) if v.is_integer() else str(v)
 
             if is_d1 or is_d2:
-                if is_d1 != is_d2:
-                    raise TypeError(
-                        f"Cannot add directional coordinates (^) with relative/absolute coordinates on axis {i}.")
-                val = d1[i] + d2[i]
-                new_parts.append(f"^{format_num(val)}")
+                raise TypeError(f"Directional coordinates (^) cannot be used in arithmetic operations on axis {i}.")
             elif is_a1 and is_a2:
                 val = a1[i] + a2[i]
                 new_parts.append(f"{format_num(val)}")
-            elif is_a1 and is_r2:
-                val = a1[i] + r2[i]
-                new_parts.append(f"{format_num(val)}")
             elif is_r1 and is_a2:
                 val = r1[i] + a2[i]
-                new_parts.append(f"{format_num(val)}")
-            else:
-                val = r1[i] + r2[i]
                 new_parts.append(f"~{format_num(val)}")
+            elif is_a1 and is_r2:
+                raise TypeError(f"Cannot add a relative coordinate to an absolute coordinate on axis {i}.")
+            else:
+                raise TypeError(f"Cannot add two relative coordinates together on axis {i}.")
 
         return block(" ".join(new_parts))
 
@@ -112,23 +106,15 @@ class block(FlareValue, Generic[T]):
                 return str(int(v)) if v.is_integer() else str(v)
 
             if is_d1 or is_d2:
-                if is_d1 != is_d2:
-                    raise TypeError(
-                        f"Cannot subtract directional coordinates (^) with relative/absolute coordinates on axis {i}.")
-                val = d1[i] - d2[i]
-                new_parts.append(f"^{format_num(val)}")
+                raise TypeError(f"Directional coordinates (^) cannot be used in arithmetic operations on axis {i}.")
             elif is_a1 and is_a2:
                 val = a1[i] - a2[i]
                 new_parts.append(f"{format_num(val)}")
-            elif is_a1 and is_r2:
-                val = a1[i] - r2[i]
-                new_parts.append(f"{format_num(val)}")
-            elif is_r1 and is_a2:
-                val = r1[i] - a2[i]
-                new_parts.append(f"~{format_num(val)}")
-            else:
+            elif is_r1 and is_r2:
                 val = r1[i] - r2[i]
-                new_parts.append(f"~{format_num(val)}")
+                new_parts.append(f"{format_num(val)}")
+            else:
+                raise TypeError(f"Cannot subtract relative and absolute coordinates from each other on axis {i}.")
 
         return block(" ".join(new_parts))
 
