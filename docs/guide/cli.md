@@ -25,6 +25,7 @@ flare main.py
 | `--watch`                       | Compiles and watches for file changes to rebuild automatically.                                                                                                                                                           |
 | `--run`                         | Compiles and runs the datapack using the internal `mcemu` emulator.                                                                                                                                                       |
 | `--run=<N>`                     | Runs in the emulator with an automatic timeout of `N` seconds (e.g. `--run=5`).                                                                                                                                           |
+| `--no-cache`                    | Disables the persistent I/O cache and forces a complete rebuild of the datapack.                                                                                                                                          |
 | `--validation=<level>`          | Sets the validation level (`strict`, `warning`, `none`). **Note:** Using `--validation=none` bypasses the internal Minecraft command schema validator, which can significantly speed up compile times for large projects! |
 | `--namespace=<name>`            | Overrides the datapack namespace defined in `flare.json`.                                                                                                                                                                 |
 | `--pack-format=<num>`           | Overrides the datapack format defined in `flare.json`.                                                                                                                                                                    |
@@ -57,6 +58,12 @@ When specifying output directories (like with the `--out-dir` flag or the `out` 
 - **`world://<world_name>`**: Resolves to the `datapacks` folder of a specific world (e.g., `--out-dir=world://MyAwesomeWorld`).
 - **`minecraft://<path>`**: Resolves directly to your local `.minecraft` installation directory (e.g., `--out-dir=minecraft://saves/MyWorld/datapacks`).
 - **Relative Paths**: Normal paths without a URI prefix are simply evaluated relative to your project directory (e.g., `--out-dir=dist` places the output in `<project_dir>/dist`).
+
+## Binary File Caching
+
+Flare utilizes a high-performance persistent caching system (`iocache.dat`) to drastically reduce compilation times on subsequent runs. By hashing internal files and tracking outputs, Flare avoids rewriting the entire datapack folder and instead only writes files that have changed. This can provide immense performance improvements on large projects. 
+
+You can force a clean build by passing the `--no-cache` flag.
 
 ## The `mcemu` Emulator
 

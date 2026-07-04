@@ -28,8 +28,8 @@ features:
     title: Python-Native
     details: Flare is just Python. Use any library and any logic, and your full dev environment works out of the box.
   - icon: ⚡
-    title: Instant Compilation
-    details: Generate optimized `.mcfunction` datapacks in milliseconds. Watch mode rebuilds on every save.
+    title: Instant Compilation & Caching
+    details: Generate optimized datapacks in milliseconds. Flare uses a persistent binary cache to recompile and write only changed files, offering enormous speedups.
   - icon: 🎯
     title: Scoreboard & NBT
     details: First-class score and NBT types with automatic path-chaining, type inference, and operator overloading.
