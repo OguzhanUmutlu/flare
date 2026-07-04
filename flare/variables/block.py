@@ -19,7 +19,118 @@ for _name, _obj in inspect.getmembers(gen_block_entities):
 
 class block(FlareValue, Generic[T]):
     def __init__(self, pos: str):
-        self.pos = pos
+        self.pos = str(pos)
+
+    def _parse_pos(self):
+        parts = self.pos.strip().split()
+        if len(parts) != 3:
+            raise ValueError(f"Invalid position string: {self.pos}")
+
+        relative = [0.0, 0.0, 0.0]
+        direction = [0.0, 0.0, 0.0]
+        absolute = [0.0, 0.0, 0.0]
+
+        for i, p in enumerate(parts):
+            if p.startswith("~"):
+                val = p[1:]
+                relative[i] = float(val) if val else 0.0
+            elif p.startswith("^"):
+                val = p[1:]
+                direction[i] = float(val) if val else 0.0
+            else:
+                absolute[i] = float(p)
+
+        return tuple(relative), tuple(direction), tuple(absolute)
+
+    def __add__(self, other):
+        if not isinstance(other, block):
+            return NotImplemented
+
+        r1, d1, a1 = self._parse_pos()
+        r2, d2, a2 = other._parse_pos()
+
+        new_parts = []
+        for i in range(3):
+            part1 = self.pos.strip().split()[i]
+            part2 = other.pos.strip().split()[i]
+
+            is_d1 = part1.startswith("^")
+            is_d2 = part2.startswith("^")
+
+            is_r1 = part1.startswith("~")
+            is_r2 = part2.startswith("~")
+
+            is_a1 = not is_d1 and not is_r1
+            is_a2 = not is_d2 and not is_r2
+
+            def format_num(v):
+                return str(int(v)) if v.is_integer() else str(v)
+
+            if is_d1 or is_d2:
+                if is_d1 != is_d2:
+                    raise TypeError(
+                        f"Cannot add directional coordinates (^) with relative/absolute coordinates on axis {i}.")
+                val = d1[i] + d2[i]
+                new_parts.append(f"^{format_num(val)}")
+            elif is_a1 and is_a2:
+                val = a1[i] + a2[i]
+                new_parts.append(f"{format_num(val)}")
+            elif is_a1 and is_r2:
+                val = a1[i] + r2[i]
+                new_parts.append(f"{format_num(val)}")
+            elif is_r1 and is_a2:
+                val = r1[i] + a2[i]
+                new_parts.append(f"{format_num(val)}")
+            else:
+                val = r1[i] + r2[i]
+                new_parts.append(f"~{format_num(val)}")
+
+        return block(" ".join(new_parts))
+
+    def __sub__(self, other):
+        if not isinstance(other, block):
+            return NotImplemented
+
+        r1, d1, a1 = self._parse_pos()
+        r2, d2, a2 = other._parse_pos()
+
+        new_parts = []
+        for i in range(3):
+            part1 = self.pos.strip().split()[i]
+            part2 = other.pos.strip().split()[i]
+
+            is_d1 = part1.startswith("^")
+            is_d2 = part2.startswith("^")
+
+            is_r1 = part1.startswith("~")
+            is_r2 = part2.startswith("~")
+
+            is_a1 = not is_d1 and not is_r1
+            is_a2 = not is_d2 and not is_r2
+
+            def format_num(v):
+                return str(int(v)) if v.is_integer() else str(v)
+
+            if is_d1 or is_d2:
+                if is_d1 != is_d2:
+                    raise TypeError(
+                        f"Cannot subtract directional coordinates (^) with relative/absolute coordinates on axis {i}.")
+                val = d1[i] - d2[i]
+                new_parts.append(f"^{format_num(val)}")
+            elif is_a1 and is_a2:
+                val = a1[i] - a2[i]
+                new_parts.append(f"{format_num(val)}")
+            elif is_a1 and is_r2:
+                val = a1[i] - r2[i]
+                new_parts.append(f"{format_num(val)}")
+            elif is_r1 and is_a2:
+                val = r1[i] - a2[i]
+                new_parts.append(f"~{format_num(val)}")
+            else:
+                val = r1[i] - r2[i]
+                new_parts.append(f"~{format_num(val)}")
+
+        return block(" ".join(new_parts))
 
     def __str__(self):
         return str(self.pos)

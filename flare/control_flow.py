@@ -203,10 +203,7 @@ def _flare_if(*args):
                     if len(ctx.files[func_name]) == 1:
                         cmd = ctx.files[func_name][0]
                         del ctx.files[func_name]
-                        if cmd.startswith("execute "):
-                            _runcmd(f"execute if score {addr(elif_temp)} matches 0 {cmd[8:]}")
-                        else:
-                            _runcmd(f"execute if score {addr(elif_temp)} matches 0 run {cmd}")
+                        ctx._runcmd(ctx.combine_execute(f"execute if score {addr(elif_temp)} matches 0", cmd))
                     else:
                         _invoke_block(func_name, f"if score {addr(elif_temp)} matches 0")
             else:
@@ -239,14 +236,7 @@ def _flare_if(*args):
                         prefix = f"execute if score {addr(elif_temp)} matches 0"
                         for i in range(start_len, len(ctx.files[ctx.current_file])):
                             cmd = ctx.files[ctx.current_file][i]
-                            if cmd.startswith("$execute "):
-                                ctx.files[ctx.current_file][i] = f"${prefix} {cmd[9:]}"
-                            elif cmd.startswith("execute "):
-                                ctx.files[ctx.current_file][i] = f"{prefix} {cmd[8:]}"
-                            elif cmd.startswith("$"):
-                                ctx.files[ctx.current_file][i] = f"${prefix} run {cmd[1:]}"
-                            else:
-                                ctx.files[ctx.current_file][i] = f"{prefix} run {cmd}"
+                            ctx.files[ctx.current_file][i] = ctx.combine_execute(prefix, cmd)
                     else:
                         func_name = f"{namespace()}:generated_{next_func_id()}"
                         with push_context(func_name):
@@ -255,10 +245,7 @@ def _flare_if(*args):
                             if len(ctx.files[func_name]) == 1:
                                 cmd = ctx.files[func_name][0]
                                 del ctx.files[func_name]
-                                if cmd.startswith("execute "):
-                                    _runcmd(f"execute if score {addr(elif_temp)} matches 0 {cmd[8:]}")
-                                else:
-                                    _runcmd(f"execute if score {addr(elif_temp)} matches 0 run {cmd}")
+                                _runcmd(ctx.combine_execute(f"execute if score {addr(elif_temp)} matches 0", cmd))
                             else:
                                 _invoke_block(func_name, f"if score {addr(elif_temp)} matches 0")
                 else:
@@ -281,14 +268,7 @@ def _flare_if(*args):
 
             for i in range(start_len, len(ctx.files[ctx.current_file])):
                 cmd = ctx.files[ctx.current_file][i]
-                if cmd.startswith("$execute "):
-                    ctx.files[ctx.current_file][i] = f"${prefix} {cmd[9:]}"
-                elif cmd.startswith("execute "):
-                    ctx.files[ctx.current_file][i] = f"{prefix} {cmd[8:]}"
-                elif cmd.startswith("$"):
-                    ctx.files[ctx.current_file][i] = f"${prefix} run {cmd[1:]}"
-                else:
-                    ctx.files[ctx.current_file][i] = f"{prefix} run {cmd}"
+                ctx.files[ctx.current_file][i] = ctx.combine_execute(prefix, cmd)
         else:
             func_name = f"{namespace()}:generated_{next_func_id()}"
             with push_context(func_name):
@@ -300,14 +280,7 @@ def _flare_if(*args):
                 if len(ctx.files[func_name]) == 1:
                     cmd = ctx.files[func_name][0]
                     del ctx.files[func_name]
-                    if cmd.startswith("$execute "):
-                        _runcmd(f"${prefix} {cmd[9:]}")
-                    elif cmd.startswith("execute "):
-                        _runcmd(f"{prefix} {cmd[8:]}")
-                    elif cmd.startswith("$"):
-                        _runcmd(f"${prefix} run {cmd[1:]}")
-                    else:
-                        _runcmd(f"{prefix} run {cmd}")
+                    _runcmd(ctx.combine_execute(prefix, cmd))
                 else:
                     _invoke_block(func_name, prefix[8:] if prefix.startswith("execute ") else "")
 
@@ -411,6 +384,12 @@ def _flare_with(*args):
                 raise TypeError(f"Object of type {type(obj).__name__} does not support __with__")
 
     wrap(0)
+
+
+def _flare_as_var(obj):
+    if hasattr(obj, "__as_var__"):
+        return obj.__as_var__()
+    return obj
 
 
 def _flare_not(val):

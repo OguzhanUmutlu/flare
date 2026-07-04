@@ -146,10 +146,7 @@ class ExecuteChain:
             if len(ctx.files[func_name]) == 1:
                 cmd = ctx.files[func_name][0]
                 del ctx.files[func_name]
-                if cmd.startswith("execute "):
-                    ctx._runcmd(f"{prefix} {cmd[8:]}")
-                else:
-                    ctx._runcmd(f"{prefix} run {cmd}")
+                ctx._runcmd(ctx.combine_execute(prefix, cmd))
             else:
                 ctx.files[func_name].append("return 0")
                 ret_temp = ctx.next_temp_score("ret")
@@ -158,6 +155,18 @@ class ExecuteChain:
                 else:
                     ctx._runcmd(f"execute store result score {addr(ret_temp)} run function {func_name}")
                 ctx._runcmd(f"execute if score {addr(ret_temp)} matches 1 run return 1")
+
+    def __as_var__(self):
+        from .variables.block import block
+        from .variables.selector import selector
+
+        for frag in reversed(self.fragments):
+            if frag.startswith("as "):
+                return selector("@s")
+            elif frag.startswith("at "):
+                return block("~ ~ ~")
+
+        return block("~ ~ ~")
 
     def then(self, s):
         commands = []
@@ -175,10 +184,7 @@ class ExecuteChain:
 
         prefix = " ".join(self.fragments)
         for cmd in commands:
-            if cmd.startswith("execute "):
-                ctx._runcmd(f"{prefix} {cmd[8:]}")
-            else:
-                ctx._runcmd(f"{prefix} run {cmd}")
+            ctx._runcmd(ctx.combine_execute(prefix, cmd))
 
 
 class StoreExecuteChain(ExecuteChain):

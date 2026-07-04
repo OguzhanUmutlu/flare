@@ -421,7 +421,14 @@ class FlareTransformer(ast.NodeTransformer):
             assigns.append(ast.Assign(targets=[ast.Name(id=tmp_name, ctx=ast.Store())], value=item.context_expr))
 
             if item.optional_vars:
-                assigns.append(ast.Assign(targets=[item.optional_vars], value=ast.Name(id=tmp_name, ctx=ast.Load())))
+                assigns.append(ast.Assign(
+                    targets=[item.optional_vars],
+                    value=ast.Call(
+                        func=ast.Name(id="_flare_as_var", ctx=ast.Load()),
+                        args=[ast.Name(id=tmp_name, ctx=ast.Load())],
+                        keywords=[]
+                    )
+                ))
 
             call_args.append(ast.Name(id=tmp_name, ctx=ast.Load()))
 
@@ -640,6 +647,56 @@ def preprocess_minecraft_commands(source: str) -> str:
                         out_tokens.append((tokenize.STRING, f"'''{nbt_str}'''"))
                         i = curr
                         continue
+
+        if tok.type == tokenize.NAME and tok.string == "block":
+            if i + 1 < len(tokens) and tokens[i + 1].type == tokenize.OP and tokens[i + 1].string == "(":
+                if i + 2 < len(tokens):
+                    next_tok = tokens[i + 2]
+                    is_pos = False
+                    if next_tok.string in ("~", "^", "+", "-"):
+                        is_pos = True
+                    elif next_tok.type == tokenize.NUMBER:
+                        is_pos = True
+
+                    if is_pos:
+                        temp_i = i + 2
+                        temp_bracket = 1
+                        arg_tokens = []
+                        while temp_i < len(tokens) and temp_bracket > 0:
+                            t = tokens[temp_i]
+                            if t.type == tokenize.OP:
+                                if t.string in ("[", "{", "("):
+                                    temp_bracket += 1
+                                elif t.string in ("]", "}", ")"):
+                                    temp_bracket -= 1
+
+                            if temp_bracket == 1 and t.type == tokenize.OP and t.string == ",":
+                                break
+                            if temp_bracket == 0:
+                                break
+
+                            arg_tokens.append(t)
+                            temp_i += 1
+
+                        if arg_tokens:
+                            start_row, start_col = arg_tokens[0].start
+                            end_row, end_col = arg_tokens[-1].end
+                            lines_arr = intermediate_source.split("\n")
+                            if start_row == end_row:
+                                coord_str = lines_arr[start_row - 1][start_col:end_col]
+                            else:
+                                parts = [lines_arr[start_row - 1][start_col:]]
+                                for r in range(start_row, end_row - 1):
+                                    parts.append(lines_arr[r])
+                                parts.append(lines_arr[end_row - 1][:end_col])
+                                coord_str = " ".join(p.strip() for p in parts if p.strip())
+
+                            out_tokens.append((tokenize.NAME, "block"))
+                            out_tokens.append((tokenize.OP, "("))
+                            escaped = coord_str.replace('"', '\\"')
+                            out_tokens.append((tokenize.STRING, f'"{escaped}"'))
+                            i = temp_i
+                            continue
 
         if tok.type == tokenize.NAME and tok.string == "as":
             is_func_or_attr = False

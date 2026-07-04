@@ -180,11 +180,54 @@ def namespace(name: str | None = None):
 from .validator import validate_command, FlareCommandValidationError
 
 
+def _optimize_execute(cmd: str) -> str:
+    if " run execute " not in cmd:
+        return cmd
+    result = []
+    in_quote = None
+    i = 0
+    while i < len(cmd):
+        if cmd[i] in "\"'":
+            if in_quote == cmd[i]:
+                in_quote = None
+            elif not in_quote:
+                in_quote = cmd[i]
+            result.append(cmd[i])
+        elif not in_quote and cmd[i:i + 13] == " run execute ":
+            result.append(" ")
+            i += 12
+        else:
+            result.append(cmd[i])
+        i += 1
+    return "".join(result)
+
+
+def combine_execute(prefix: str, cmd: str) -> str:
+    is_macro_cmd = cmd.startswith("$")
+    is_macro_prefix = prefix.startswith("$")
+
+    core_cmd = cmd[1:] if is_macro_cmd else cmd
+    core_prefix = prefix[1:] if is_macro_prefix else prefix
+
+    is_macro = is_macro_cmd or is_macro_prefix
+
+    if core_cmd.startswith("execute "):
+        res = f"{core_prefix} {core_cmd[8:]}"
+    else:
+        res = f"{core_prefix} run {core_cmd}"
+
+    if is_macro:
+        return f"${res}"
+    return res
+
+
 def runcommand(command: str, local_vars=None, global_vars=None, validation: str = None):
     if local_vars is not None and global_vars is not None:
         command = interpolate_command(command, local_vars, global_vars)
         if _cp._macro_substituted and not command.startswith("$"):
             command = "$" + command
+
+    command = _optimize_execute(command)
 
     val_level = validation if validation is not None else validation_level
     if val_level != "none":

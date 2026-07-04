@@ -142,8 +142,11 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         with open(abs_path, "r") as f:
             source = f.read()
 
+        pre_start = time.time()
         source = preprocess_minecraft_commands(source)
+        pre_end = time.time()
 
+        comp_start = time.time()
         tree = ast.parse(source, abs_path)
 
         analyzer = CallGraphAnalyzer()
@@ -156,7 +159,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
         global_env = {"__name__": "__main__", "__file__": abs_path}
         exec(
-            "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_and, _flare_or, _flare_with, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin, _flare_enter_scope, _flare_exit_scope\n"
+            "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_and, _flare_or, _flare_with, _flare_as_var, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin, _flare_enter_scope, _flare_exit_scope\n"
             "from flare import context as ctx\n"
             "from flare.command_parser import interpolate_command\n"
             "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
@@ -178,6 +181,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         global_env["re"] = re_patch
 
         exec(compile(tree, abs_path, "exec"), global_env)
+        comp_end = time.time()
         sys.path.pop(0)
     except Exception as e:
         print(f"\033[91mBuild failed: {e}\033[0m")
@@ -294,7 +298,9 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             except Exception as e:
                 print(f"\033[93mFailed to copy to {target_dir}: {e}\033[0m")
 
-    print(f"Successfully built datapack to {build_dir.absolute()}")
+    print(f"\033[92mSuccessfully built datapack to {build_dir.absolute()}\033[0m")
+    print(f"\033[90m  Preprocessed in {(pre_end - pre_start) * 1000:.2f}ms")
+    print(f"  Compiled in {(comp_end - comp_start) * 1000:.2f}ms\033[0m")
     return True, watch_files, build_dir
 
 

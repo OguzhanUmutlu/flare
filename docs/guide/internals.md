@@ -242,3 +242,46 @@ class MyAngle(FlareValue):
 # You can now generate it directly into an angle:
 my_random_angle = flrand.random(type=MyAngle)
 ```
+
+## `__as_var__` Context Resolution
+
+When assigning variables via `with ... as var:`, Flare's preprocessor evaluates the context manager (e.g., `at(@s)`) and needs to resolve it to an appropriate local variable representing that context. By default, it will just assign the raw context manager object to `var`.
+
+However, objects can implement `__as_var__(self)` to provide a context-sensitive value. For instance, `ExecuteChain` objects (like `at(@s)`) implement this to yield a `block("~ ~ ~")`, accurately representing the context's local positional origin!
+
+```python
+for player in @a:
+    with at(@s) as pos:
+        # 'pos' naturally resolves to block("~ ~ ~") instead of a raw ExecuteChain!
+        setblock pos stone
+```
+
+## Preprocessor Syntax Aliases
+
+To maintain a clean and Pythonic syntax while avoiding collisions with Python's reserved keywords, the Flare preprocessor automatically performs syntax aliasing under the hood for certain method calls.
+
+For example, Python forbids `if` from being used as a method name. While Flare internally maps this modifier to `_if()` or `if_()` in the `ExecuteChain` and `selector` classes, the preprocessor lets you write it natively:
+
+```python
+# You write:
+with @a.if(block(~ ~-1 ~) == "water"): ...
+
+# The preprocessor seamlessly converts this to:
+with @a.if_(block("~ ~-1 ~") == "water"): ...
+```
+
+This aliasing allows you to chain `.if()` directly without resorting to awkward underscores in your actual codebase!
+
+### Raw Block Coordinates
+
+Additionally, Flare's preprocessor auto-wraps native coordinate syntaxes in strings. If you provide a raw coordinate sequence (starting with `~`, `^`, `+`, `-`, or a number) into a `block()` call, it's silently wrapped into a string!
+
+```python
+# You write:
+b = block(~ ~-1 ~)
+c = block(^ ^ ^5, mode="keep")
+
+# The preprocessor seamlessly converts this to:
+b = block("~ ~-1 ~")
+c = block("^ ^ ^5", mode="keep")
+```
