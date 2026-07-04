@@ -135,7 +135,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
     context.reset_context()
     context._current_namespace = namespace
 
-    print(f"Compiling {file_path}...")
+    print(f"\033[94mCompiling {file_path}...\033[0m")
 
     old_modules = set(sys.modules.keys())
 
@@ -210,16 +210,6 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
     io_start = time.time()
 
     use_cache = not config.get("no_cache", False)
-    io_cache_path = p / ".cache" / "iocache.dat"
-    io_cache = {}
-    if use_cache and io_cache_path.exists():
-        try:
-            with open(io_cache_path, "rb") as f:
-                io_cache = marshal.load(f)
-        except Exception:
-            pass
-    new_io_cache = {}
-    changed_files = []
     build_dir_str = str(build_dir)
 
     def _ensure_parent(file_path_str):
@@ -228,28 +218,65 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             os.makedirs(parent, exist_ok=True)
             _created_dirs.add(parent)
 
+    unique_targets = []
+    seen_targets = set()
+    for d in [build_dir] + resolved_build_dirs:
+        abs_d = str(d.absolute())
+        if abs_d not in seen_targets:
+            seen_targets.add(abs_d)
+            unique_targets.append(abs_d)
+
+    target_caches = {}
+    for t in unique_targets:
+        cache_path = os.path.join(t, ".flare_iocache.dat")
+        cache = {}
+        if use_cache and os.path.exists(cache_path):
+            try:
+                with open(cache_path, "rb") as f:
+                    cache = marshal.load(f)
+            except Exception:
+                pass
+        target_caches[t] = {
+            "path": cache_path,
+            "old": cache,
+            "new": {},
+            "written": 0,
+            "time": 0.0,
+        }
+
+    if not use_cache:
+        for target_dir_str in unique_targets:
+            try:
+                shutil.rmtree(os.path.join(target_dir_str, "data"))
+            except OSError:
+                pass
+            try:
+                os.unlink(os.path.join(target_dir_str, "pack.mcmeta"))
+            except OSError:
+                pass
+
     def write_if_changed(file_path_str, content):
         content_hash = hashlib.md5(content.encode()).hexdigest()
-        new_io_cache[file_path_str] = content_hash
-        if io_cache.get(file_path_str) == content_hash:
-            return
-        _ensure_parent(file_path_str)
-        with open(file_path_str, "w") as f:
-            f.write(content)
+        rel_path = os.path.relpath(file_path_str, build_dir_str)
 
-        for target_dir in resolved_build_dirs:
-            target_dir_str = str(target_dir.absolute())
-            if os.path.abspath(target_dir_str) != os.path.abspath(build_dir_str):
-                rel = os.path.relpath(file_path_str, build_dir_str)
-                tgt_path = os.path.join(target_dir_str, rel)
-                _ensure_parent(tgt_path)
-                try:
-                    with open(tgt_path, "w") as f:
-                        f.write(content)
-                except Exception:
-                    pass
+        for t in unique_targets:
+            t0 = time.perf_counter()
+            c = target_caches[t]
+            c["new"][rel_path] = content_hash
+            tgt_path = os.path.abspath(os.path.join(t, rel_path))
 
-        changed_files.append(file_path_str)
+            if c["old"].get(rel_path) == content_hash and os.path.exists(tgt_path):
+                c["time"] += time.perf_counter() - t0
+                continue
+
+            _ensure_parent(tgt_path)
+            try:
+                with open(tgt_path, "w") as f:
+                    f.write(content)
+                c["written"] += 1
+            except Exception:
+                pass
+            c["time"] += time.perf_counter() - t0
 
     os.makedirs(build_dir_str, exist_ok=True)
 
@@ -338,71 +365,65 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                 json.dumps({"values": tag_funcs}, indent=4),
             )
 
-    prev_files = set(io_cache.get("__files__", []))
-    current_files = set(new_io_cache.keys())
-    stale_files = prev_files - current_files
-    stale_dirs = set()
-    for stale in stale_files:
-        try:
-            os.unlink(stale)
-            stale_dirs.add(os.path.dirname(stale))
-        except OSError:
-            pass
-    for d in sorted(stale_dirs, key=len, reverse=True):
-        try:
-            os.rmdir(d)
-        except OSError:
-            pass
+    for t in unique_targets:
+        t0 = time.perf_counter()
+        c = target_caches[t]
+        prev_files = set(c["old"].get("__files__", []))
+        current_files = set(c["new"].keys())
+        stale_files = prev_files - current_files
 
-    new_io_cache["__files__"] = list(current_files)
-    os.makedirs(os.path.dirname(str(io_cache_path)), exist_ok=True)
-    with open(str(io_cache_path), "wb") as f:
-        marshal.dump(new_io_cache, f)
-
-    for target_dir in resolved_build_dirs:
-        target_dir_str = str(target_dir.absolute())
-        if os.path.abspath(target_dir_str) != os.path.abspath(build_dir_str):
+        stale_dirs = set()
+        for rel_path in stale_files:
+            tgt_path = os.path.abspath(os.path.join(t, rel_path))
             try:
-                for stale in stale_files:
-                    rel = os.path.relpath(stale, build_dir_str)
-                    tgt_path = os.path.join(target_dir_str, rel)
-                    try:
-                        os.unlink(tgt_path)
-                    except OSError:
-                        pass
-                    try:
-                        os.rmdir(os.path.dirname(tgt_path))
-                    except OSError:
-                        pass
+                os.unlink(tgt_path)
+                stale_dirs.add(os.path.dirname(tgt_path))
+            except OSError:
+                pass
 
-                if not os.path.exists(target_dir_str) or not os.listdir(target_dir_str):
-                    shutil.copytree(build_dir_str, target_dir_str, dirs_exist_ok=True)
-                else:
-                    for changed in changed_files:
-                        rel = os.path.relpath(changed, build_dir_str)
-                        tgt_path = os.path.join(target_dir_str, rel)
-                        os.makedirs(os.path.dirname(tgt_path), exist_ok=True)
-                        shutil.copy2(changed, tgt_path)
+        for d in sorted(stale_dirs, key=len, reverse=True):
+            try:
+                os.rmdir(d)
+            except OSError:
+                pass
 
-                print(f"Copied datapack to {target_dir.absolute()}")
-            except Exception as e:
-                print(f"\033[93mFailed to update target datapack {target_dir}: {e}\033[0m")
+        c["new"]["__files__"] = list(current_files)
+        os.makedirs(os.path.dirname(c["path"]), exist_ok=True)
+        with open(c["path"], "wb") as f:
+            marshal.dump(c["new"], f)
+        c["time"] += time.perf_counter() - t0
 
-    io_end = time.time()
-    print(f"\033[92mSuccessfully built datapack to {build_dir.absolute()}\033[0m")
+    home_dir = str(Path.home())
+    simplify_path = lambda p: (
+        ("~" + p[len(home_dir):]) if p.startswith(home_dir) else p
+    )
+
+    io_time_sum = sum(c["time"] for c in target_caches.values())
+    total_time_ms = ((pre_end - pre_start) + (comp_end - comp_start) + io_time_sum) * 1000
+    print(f"\033[92mSuccessfully built datapack!\033[0m \033[90m({total_time_ms:.2f}ms)\033[0m")
     print(f"\033[90m  Preprocessed in {(pre_end - pre_start) * 1000:.2f}ms")
     print(f"  Compiled in {(comp_end - comp_start) * 1000:.2f}ms")
-    total_files = len(new_io_cache) - 1
-    cached_files = total_files - len(changed_files)
-    print(
-        f"  Wrote {len(changed_files)} files in {(io_end - io_start) * 1000:.2f}ms ({cached_files} cached, {total_files} total)\033[0m")
+    for i, t in enumerate(unique_targets):
+        c = target_caches[t]
+        total_files = max(0, len(c["new"]) - 1)
+        written = c["written"]
+        cached = total_files - written
+        color = "" if i == 0 else "\033[90m"
+        reset = "\033[0m"
+        print(
+            f"{color}  Wrote {written} files in {c['time'] * 1000:.2f}ms ({cached} cached, {total_files} total) ({simplify_path(t)}){reset}"
+        )
 
     if config.get("autoreload"):
         try:
             autoreload_val = config["autoreload"]
             if autoreload_val is True or str(autoreload_val).lower() == "true":
                 autoreload_val = "world://_last"
-            elif not ("://" in autoreload_val or "/" in autoreload_val or "\\" in autoreload_val):
+            elif not (
+                    "://" in autoreload_val
+                    or "/" in autoreload_val
+                    or "\\" in autoreload_val
+            ):
                 autoreload_val = f"world://{autoreload_val}"
             datapacks_dir = resolve_uri(autoreload_val, p)
             pack_format = config.get("pack_format", 15)
@@ -418,7 +439,6 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                 if autoreload_dir.exists():
                     try:
                         shutil.rmtree(autoreload_dir)
-                        print(f"  Removed autoreload from {parent.absolute()}")
                     except OSError:
                         pass
 

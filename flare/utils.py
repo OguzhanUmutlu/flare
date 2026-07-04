@@ -4,9 +4,7 @@ import sys
 from pathlib import Path
 from typing import List
 
-CACHE_FILE = Path(os.path.dirname(__file__)) / "world_cache.json"
-if not os.access(os.path.dirname(__file__), os.W_OK):
-    CACHE_FILE = Path.home() / ".flare" / "world_cache.json"
+CACHE_FILE = Path.home() / ".flare" / "world_cache.json"
 
 
 def get_minecraft_dir() -> Path:
