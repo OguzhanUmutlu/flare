@@ -16,6 +16,7 @@ Below is a list of all available properties you can define in your `flare.json`.
 | `validation_level`   | `string`  | `"strict"`           | Sets the internal Minecraft command schema validation level (`strict`, `warning`, `none`).                         |
 | `minecraft_version`  | `string`  | `"1.20.4"`           | The Minecraft version to use for schema validation.                                                                |
 | `nbt_schema_missing` | `string`  | `"error"`            | Action to take when indexing an NBT path that doesn't exist in the attached schema (`error`, `warning`, `ignore`). |
+| `autoreload`         | `string`/`boolean`| `false`      | World URI (or `true` for `world://_last`) to automatically setup an autoreload background pack to trigger `/reload`.|
 
 ---
 

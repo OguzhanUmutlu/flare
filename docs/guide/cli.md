@@ -23,6 +23,7 @@ flare main.py
 | Flag                            | Description                                                                                                                                                                                                               |
 |---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--watch`                       | Compiles and watches for file changes to rebuild automatically.                                                                                                                                                           |
+| `--autoreload[=<uri>]`          | Works alongside `--watch`. Installs a lightweight auto-reloader datapack in the specified world (e.g. `world://my_world`) to automatically trigger `/reload` in-game on save! Omitting the URI defaults to `world://_last`.|
 | `--run`                         | Compiles and runs the datapack using the internal `mcemu` emulator.                                                                                                                                                       |
 | `--run=<N>`                     | Runs in the emulator with an automatic timeout of `N` seconds (e.g. `--run=5`).                                                                                                                                           |
 | `--no-cache`                    | Disables the persistent I/O cache and forces a complete rebuild of the datapack.                                                                                                                                          |
@@ -58,6 +59,21 @@ When specifying output directories (like with the `--out-dir` flag or the `out` 
 - **`world://<world_name>`**: Resolves to the `datapacks` folder of a specific world (e.g., `--out-dir=world://MyAwesomeWorld`).
 - **`minecraft://<path>`**: Resolves directly to your local `.minecraft` installation directory (e.g., `--out-dir=minecraft://saves/MyWorld/datapacks`).
 - **Relative Paths**: Normal paths without a URI prefix are simply evaluated relative to your project directory (e.g., `--out-dir=dist` places the output in `<project_dir>/dist`).
+
+## Autoreload Feature
+
+Flare features a native `--autoreload` argument that allows your Minecraft world to instantly reload `/reload` the moment you save a file.
+
+By providing a world URI to the flag (e.g. `flare main.py --watch --autoreload MyAwesomeWorld`), Flare will generate a temporary helper datapack called `_flare_autoreload` in the target world. This datapack uses a smart background `check_loop` to monitor for changes in the datapack list. When a change is detected during compilation, Flare triggers a `/reload` instantly!
+
+You can simply pass `--autoreload` without an argument to automatically target the most recently played world (`world://_last`).
+
+This feature can also be configured in your `flare.json`:
+```json
+{
+    "autoreload": true
+}
+```
 
 ## Binary File Caching
 

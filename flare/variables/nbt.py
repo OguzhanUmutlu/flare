@@ -603,53 +603,53 @@ class nbt(FlareValue, NBTStringMethods):
             return
         cls._get_type_stdlib_generated = True
 
-        ctx.files["flare_stdlib:nbt/get_type/setup"] = [
-            "data remove storage flare_stdlib:nbt_get_type target",
-            "data remove storage flare_stdlib:nbt_get_type success",
-            "data modify storage flare_stdlib:nbt_get_type target set from storage flare_stdlib:nbt_get_type input"
+        ctx.files["__flare_stdlib__:nbt/get_type/setup"] = [
+            "data remove storage __flare_stdlib__:nbt_get_type target",
+            "data remove storage __flare_stdlib__:nbt_get_type success",
+            "data modify storage __flare_stdlib__:nbt_get_type target set from storage __flare_stdlib__:nbt_get_type input"
         ]
 
-        ctx.files["flare_stdlib:nbt/get_type/object"] = [
-            "function flare_stdlib:nbt/get_type/setup",
-            "execute store success storage flare_stdlib:nbt_get_type success byte 1 run data modify storage flare_stdlib:nbt_get_type target merge value {__test:true}",
-            "execute if data storage flare_stdlib:nbt_get_type {success:1b} run data modify storage flare_stdlib:nbt_get_type output set value \"object\""
+        ctx.files["__flare_stdlib__:nbt/get_type/object"] = [
+            "function __flare_stdlib__:nbt/get_type/setup",
+            "execute store success storage __flare_stdlib__:nbt_get_type success byte 1 run data modify storage __flare_stdlib__:nbt_get_type target merge value {__test:true}",
+            "execute if data storage __flare_stdlib__:nbt_get_type {success:1b} run data modify storage __flare_stdlib__:nbt_get_type output set value \"object\""
         ]
 
-        ctx.files["flare_stdlib:nbt/get_type/array"] = [
-            "function flare_stdlib:nbt/get_type/setup",
-            "execute store success storage flare_stdlib:nbt_get_type success byte 1 run data modify storage flare_stdlib:nbt_get_type target append value \"__test\"",
-            "execute if data storage flare_stdlib:nbt_get_type {success:1b} run data modify storage flare_stdlib:nbt_get_type output set value \"array\""
+        ctx.files["__flare_stdlib__:nbt/get_type/array"] = [
+            "function __flare_stdlib__:nbt/get_type/setup",
+            "execute store success storage __flare_stdlib__:nbt_get_type success byte 1 run data modify storage __flare_stdlib__:nbt_get_type target append value \"__test\"",
+            "execute if data storage __flare_stdlib__:nbt_get_type {success:1b} run data modify storage __flare_stdlib__:nbt_get_type output set value \"array\""
         ]
 
-        ctx.files["flare_stdlib:nbt/get_type/string"] = [
-            "function flare_stdlib:nbt/get_type/setup",
+        ctx.files["__flare_stdlib__:nbt/get_type/string"] = [
+            "function __flare_stdlib__:nbt/get_type/setup",
             "summon marker ~ ~ ~ {UUID:[I;1968224889,-5743757,436573,-936252],Tags:[\"__test\"]}",
-            "execute store success storage flare_stdlib:nbt_get_type success byte 1 run data modify entity 7550ba79-ffa8-5b73-0006-a95dfff1b6c4 Tags append from storage flare_stdlib:nbt_get_type target",
+            "execute store success storage __flare_stdlib__:nbt_get_type success byte 1 run data modify entity 7550ba79-ffa8-5b73-0006-a95dfff1b6c4 Tags append from storage __flare_stdlib__:nbt_get_type target",
             "kill 7550ba79-ffa8-5b73-0006-a95dfff1b6c4",
-            "execute if data storage flare_stdlib:nbt_get_type {success:1b} run data modify storage flare_stdlib:nbt_get_type output set value \"string\""
+            "execute if data storage __flare_stdlib__:nbt_get_type {success:1b} run data modify storage __flare_stdlib__:nbt_get_type output set value \"string\""
         ]
 
-        ctx.files["flare_stdlib:nbt/get_type/numeric"] = []
+        ctx.files["__flare_stdlib__:nbt/get_type/numeric"] = []
         for ntype, nname in [("byte", "byte"), ("short", "short"), ("int", "integer"), ("long", "long"),
                              ("float", "float"), ("double", "double")]:
-            ctx.files[f"flare_stdlib:nbt/get_type/numeric/{ntype}"] = [
-                "function flare_stdlib:nbt/get_type/setup",
-                "data remove storage flare_stdlib:nbt_get_type compare",
-                f"execute store result storage flare_stdlib:nbt_get_type compare {ntype} 1 run data get storage flare_stdlib:nbt_get_type target",
-                "execute store success storage flare_stdlib:nbt_get_type success byte 1 run data modify storage flare_stdlib:nbt_get_type target set from storage flare_stdlib:nbt_get_type compare",
-                f"execute if data storage flare_stdlib:nbt_get_type {{success:0b}} run data modify storage flare_stdlib:nbt_get_type output set value \"{nname}\""
+            ctx.files[f"__flare_stdlib__:nbt/get_type/numeric/{ntype}"] = [
+                "function __flare_stdlib__:nbt/get_type/setup",
+                "data remove storage __flare_stdlib__:nbt_get_type compare",
+                f"execute store result storage __flare_stdlib__:nbt_get_type compare {ntype} 1 run data get storage __flare_stdlib__:nbt_get_type target",
+                "execute store success storage __flare_stdlib__:nbt_get_type success byte 1 run data modify storage __flare_stdlib__:nbt_get_type target set from storage __flare_stdlib__:nbt_get_type compare",
+                f"execute if data storage __flare_stdlib__:nbt_get_type {{success:0b}} run data modify storage __flare_stdlib__:nbt_get_type output set value \"{nname}\""
             ]
-            ctx.files["flare_stdlib:nbt/get_type/numeric"].append(
-                f"execute unless data storage flare_stdlib:nbt_get_type output run function flare_stdlib:nbt/get_type/numeric/{ntype}"
+            ctx.files["__flare_stdlib__:nbt/get_type/numeric"].append(
+                f"execute unless data storage __flare_stdlib__:nbt_get_type output run function __flare_stdlib__:nbt/get_type/numeric/{ntype}"
             )
 
-        ctx.files["flare_stdlib:nbt/get_type/init"] = [
-            "data remove storage flare_stdlib:nbt_get_type output",
-            "execute unless data storage flare_stdlib:nbt_get_type output run function flare_stdlib:nbt/get_type/object",
-            "execute unless data storage flare_stdlib:nbt_get_type output run function flare_stdlib:nbt/get_type/array",
-            "execute unless data storage flare_stdlib:nbt_get_type output run function flare_stdlib:nbt/get_type/numeric",
-            "execute unless data storage flare_stdlib:nbt_get_type output run function flare_stdlib:nbt/get_type/string",
-            "execute unless data storage flare_stdlib:nbt_get_type output run data modify storage flare_stdlib:nbt_get_type output set value \"unknown\""
+        ctx.files["__flare_stdlib__:nbt/get_type/init"] = [
+            "data remove storage __flare_stdlib__:nbt_get_type output",
+            "execute unless data storage __flare_stdlib__:nbt_get_type output run function __flare_stdlib__:nbt/get_type/object",
+            "execute unless data storage __flare_stdlib__:nbt_get_type output run function __flare_stdlib__:nbt/get_type/array",
+            "execute unless data storage __flare_stdlib__:nbt_get_type output run function __flare_stdlib__:nbt/get_type/numeric",
+            "execute unless data storage __flare_stdlib__:nbt_get_type output run function __flare_stdlib__:nbt/get_type/string",
+            "execute unless data storage __flare_stdlib__:nbt_get_type output run data modify storage __flare_stdlib__:nbt_get_type output set value \"unknown\""
         ]
 
     @lazify(temp="!nbt_type", datatype=NBTType.String)
@@ -657,9 +657,9 @@ class nbt(FlareValue, NBTStringMethods):
         nbt._generate_get_type_stdlib()
         temp = self._alloc_temp("!type_in")
         temp[:] = self
-        _runcmd(f"data modify storage flare_stdlib:nbt_get_type input set from {temp._addr}")
-        _runcmd("function flare_stdlib:nbt/get_type/init")
-        dest[:] = nbt(addr="storage flare_stdlib:nbt_get_type output")
+        _runcmd(f"data modify storage __flare_stdlib__:nbt_get_type input set from {temp._addr}")
+        _runcmd("function __flare_stdlib__:nbt/get_type/init")
+        dest[:] = nbt(addr="storage __flare_stdlib__:nbt_get_type output")
 
     def _check_math(self, func_name: str):
         numeric_types = {

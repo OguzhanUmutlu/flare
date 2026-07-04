@@ -4,6 +4,7 @@ import hashlib
 import json
 import marshal
 import os
+import shutil
 import sys
 import threading
 import time
@@ -28,6 +29,10 @@ from .preprocessor import (
     CallGraphAnalyzer,
     preprocess_minecraft_commands,
 )
+from .utils import resolve_build_targets, resolve_uri
+from .setup_autoreload import setup_autoreload
+from .variables.builtins import flare_range, flare_ord, flare_bin, flare_len
+from .variables.regex import re_patch
 
 build_lock = threading.RLock()
 
@@ -103,8 +108,6 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         else:
             build_dirs_raw.append(config["out_dir"])
 
-    from .utils import resolve_build_targets
-
     resolved_build_dirs = resolve_build_targets(build_dirs_raw, p, namespace)
 
     if not resolved_build_dirs:
@@ -171,9 +174,6 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             "from flare import dbg, export, namespace, tick, load, nostack",
             global_env,
         )
-
-        from .variables.builtins import flare_range, flare_ord, flare_bin, flare_len
-        from .variables.regex import re_patch
 
         global_env["range"] = flare_range
         global_env["ord"] = flare_ord
@@ -375,6 +375,15 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                     except OSError:
                         pass
 
+                if not os.path.exists(target_dir_str) or not os.listdir(target_dir_str):
+                    shutil.copytree(build_dir_str, target_dir_str, dirs_exist_ok=True)
+                else:
+                    for changed in changed_files:
+                        rel = os.path.relpath(changed, build_dir_str)
+                        tgt_path = os.path.join(target_dir_str, rel)
+                        os.makedirs(os.path.dirname(tgt_path), exist_ok=True)
+                        shutil.copy2(changed, tgt_path)
+
                 print(f"Copied datapack to {target_dir.absolute()}")
             except Exception as e:
                 print(f"\033[93mFailed to update target datapack {target_dir}: {e}\033[0m")
@@ -387,6 +396,32 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
     cached_files = total_files - len(changed_files)
     print(
         f"  Wrote {len(changed_files)} files in {(io_end - io_start) * 1000:.2f}ms ({cached_files} cached, {total_files} total)\033[0m")
+
+    if config.get("autoreload"):
+        try:
+            autoreload_val = config["autoreload"]
+            if autoreload_val is True or str(autoreload_val).lower() == "true":
+                autoreload_val = "world://_last"
+            elif not ("://" in autoreload_val or "/" in autoreload_val or "\\" in autoreload_val):
+                autoreload_val = f"world://{autoreload_val}"
+            datapacks_dir = resolve_uri(autoreload_val, p)
+            pack_format = config.get("pack_format", 15)
+            setup_autoreload(datapacks_dir, pack_format)
+            print(f"  Triggered autoreload in {datapacks_dir.absolute()}")
+        except Exception as e:
+            print(f"\033[93m  Failed to setup autoreload: {e}\033[0m")
+    else:
+        for target_dir in resolved_build_dirs:
+            parent = target_dir.parent
+            if parent.name == "datapacks":
+                autoreload_dir = parent / "_flare_autoreload"
+                if autoreload_dir.exists():
+                    try:
+                        shutil.rmtree(autoreload_dir)
+                        print(f"  Removed autoreload from {parent.absolute()}")
+                    except OSError:
+                        pass
+
     return True, watch_files, build_dir
 
 
@@ -542,6 +577,13 @@ def main():
         default=False,
         help="Disable I/O cache, forcing all files to be rewritten.",
     )
+    parser.add_argument(
+        "--autoreload",
+        nargs="?",
+        const=True,
+        default=None,
+        help="Specify a world URI (e.g. world://my_world) to setup autoreload. Requires --watch.",
+    )
 
     args, unknown_args = parser.parse_known_args()
 
@@ -560,6 +602,8 @@ def main():
         cli_overrides["version"] = args.version
     if getattr(args, "no_cache", False):
         cli_overrides["no_cache"] = True
+    if hasattr(args, "autoreload") and args.autoreload is not None:
+        cli_overrides["autoreload"] = args.autoreload
     if hasattr(args, "validation") and args.validation is not None:
         cli_overrides["validation_level"] = args.validation
         if args.validation not in ("none", "warning", "strict"):
