@@ -60,6 +60,14 @@ if [ $DIFF_EXIT -eq 0 ]; then
         uv build
         
         echo "Publishing to PyPI..."
+        if [ -f ~/.pypirc ]; then
+            TOKEN=$(grep -oP '^password\s*=\s*\K.*' ~/.pypirc | head -n 1)
+            if [ -n "$TOKEN" ]; then
+                export UV_PUBLISH_TOKEN="$TOKEN"
+                echo "Using token from ~/.pypirc"
+            fi
+        fi
+        
         uv publish dist/*
         rm -rf *.egg-info
         

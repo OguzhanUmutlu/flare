@@ -4,7 +4,6 @@ import hashlib
 import json
 import marshal
 import os
-import shutil
 import sys
 import threading
 import time
@@ -224,7 +223,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
     build_dir_str = str(build_dir)
 
     def _ensure_parent(file_path_str):
-        parent = file_path_str[: file_path_str.rfind("/")]
+        parent = os.path.dirname(file_path_str)
         if parent not in _created_dirs:
             os.makedirs(parent, exist_ok=True)
             _created_dirs.add(parent)
@@ -237,6 +236,19 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         _ensure_parent(file_path_str)
         with open(file_path_str, "w") as f:
             f.write(content)
+
+        for target_dir in resolved_build_dirs:
+            target_dir_str = str(target_dir.absolute())
+            if os.path.abspath(target_dir_str) != os.path.abspath(build_dir_str):
+                rel = os.path.relpath(file_path_str, build_dir_str)
+                tgt_path = os.path.join(target_dir_str, rel)
+                _ensure_parent(tgt_path)
+                try:
+                    with open(tgt_path, "w") as f:
+                        f.write(content)
+                except Exception:
+                    pass
+
         changed_files.append(file_path_str)
 
     os.makedirs(build_dir_str, exist_ok=True)
@@ -347,20 +359,10 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
     with open(str(io_cache_path), "wb") as f:
         marshal.dump(new_io_cache, f)
 
-    changed_set = set(changed_files)
     for target_dir in resolved_build_dirs:
         target_dir_str = str(target_dir.absolute())
         if os.path.abspath(target_dir_str) != os.path.abspath(build_dir_str):
             try:
-                for src_path in changed_files:
-                    rel = os.path.relpath(src_path, build_dir_str)
-                    tgt_path = os.path.join(target_dir_str, rel)
-                    tgt_parent = os.path.dirname(tgt_path)
-                    if tgt_parent not in _created_dirs:
-                        os.makedirs(tgt_parent, exist_ok=True)
-                        _created_dirs.add(tgt_parent)
-                    shutil.copy2(src_path, tgt_path)
-
                 for stale in stale_files:
                     rel = os.path.relpath(stale, build_dir_str)
                     tgt_path = os.path.join(target_dir_str, rel)
@@ -375,7 +377,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
                 print(f"Copied datapack to {target_dir.absolute()}")
             except Exception as e:
-                print(f"\033[93mFailed to copy to {target_dir}: {e}\033[0m")
+                print(f"\033[93mFailed to update target datapack {target_dir}: {e}\033[0m")
 
     io_end = time.time()
     print(f"\033[92mSuccessfully built datapack to {build_dir.absolute()}\033[0m")
