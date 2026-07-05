@@ -21,6 +21,14 @@ class _FailType:
 fail = _FailType()
 
 
+class IntReturn:
+    def __init__(self, func_name):
+        self.func_name = func_name
+
+    def __icopy__(self, varid=None, is_recursive=False):
+        return self
+
+
 class flare_range:
     def __init__(self, *args):
         from .score import score

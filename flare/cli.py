@@ -38,7 +38,6 @@ build_lock = threading.RLock()
 
 
 def init_project(path: str):
-    from flare.utils import minecraft_version_to_pack_format
     p = Path(path)
     p.mkdir(parents=True, exist_ok=True)
     json_path = p / "flare.json"
@@ -351,6 +350,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             is_top_level = (
                     "generated_" not in name
                     and "while_" not in name
+                    and "with_" not in name
                     and name not in ("main", "load")
             )
         else:
@@ -360,6 +360,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             is_top_level = (
                     "generated_" not in filename
                     and "while_" not in filename
+                    and "with_" not in filename
                     and filename not in ("main", "load")
             )
 

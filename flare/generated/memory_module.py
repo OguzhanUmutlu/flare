@@ -1,236 +1,1164 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class GlobalPos:
-    pos: Any
-    dimension: str
+    def __init__(
+            self,
+            pos: Optional[Union[Any, Any]] = None,
+            dimension: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if pos is not None:
+            self.components["pos"] = pos
+        if dimension is not None:
+            self.components["dimension"] = dimension
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ExpirableValue:
-    ttl: long
+    def __init__(
+            self,
+            ttl: Optional[Union[long, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if ttl is not None:
+            self.components["ttl"] = ttl
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class AdmiringDisable(ExpirableValue):
-    value: bool
+    def __init__(
+            self,
+            value: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class AdmiringItem(ExpirableValue):
-    value: bool
+    def __init__(
+            self,
+            value: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class AngryAt(ExpirableValue):
-    value: Any
+    def __init__(
+            self,
+            value: Optional[Union[Any, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class AttackTargetCooldown(ExpirableValue):
-    value: int
+    def __init__(
+            self,
+            value: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BreezeJumpCooldown(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BreezeJumpInhaling(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BreezeJumpTarget(ExpirableValue):
-    value: Any
+    def __init__(
+            self,
+            value: Optional[Union[Any, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BreezeLeavingWater(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BreezeShoot(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BreezeShootCharging(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BreezeShootCooldown(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BreezeShootRecover(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ChargeCooldownTicks(ExpirableValue):
-    value: int
+    def __init__(
+            self,
+            value: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DangerDetectedRecently(ExpirableValue):
-    value: bool
+    def __init__(
+            self,
+            value: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DigCooldown(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class GazeCooldownTicks(ExpirableValue):
-    value: int
+    def __init__(
+            self,
+            value: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class GolemDetectedRecently(ExpirableValue):
-    value: bool
+    def __init__(
+            self,
+            value: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class HasHuntingCooldown(ExpirableValue):
-    value: bool
+    def __init__(
+            self,
+            value: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Home(ExpirableValue):
-    value: 'GlobalPos'
+    def __init__(
+            self,
+            value: Optional[Union['GlobalPos', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class HuntedRecently(ExpirableValue):
-    value: bool
+    def __init__(
+            self,
+            value: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class IsEmerging(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class IsInWater(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class IsPanicking(ExpirableValue):
-    value: bool
+    def __init__(
+            self,
+            value: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class IsPregnant(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class IsSniffing(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class IsTempted(ExpirableValue):
-    value: bool
+    def __init__(
+            self,
+            value: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ItemPickupCooldownTicks(ExpirableValue):
-    value: int
+    def __init__(
+            self,
+            value: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class JobSite(ExpirableValue):
-    value: 'GlobalPos'
+    def __init__(
+            self,
+            value: Optional[Union['GlobalPos', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class LastSlept(ExpirableValue):
-    value: long
+    def __init__(
+            self,
+            value: Optional[Union[long, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class LastWoken(ExpirableValue):
-    value: long
+    def __init__(
+            self,
+            value: Optional[Union[long, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class LastWorkedAtPoi(ExpirableValue):
-    value: long
+    def __init__(
+            self,
+            value: Optional[Union[long, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class LikedNoteblock(ExpirableValue):
-    value: 'GlobalPos'
+    def __init__(
+            self,
+            value: Optional[Union['GlobalPos', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class LikedNoteblockCooldownTicks(ExpirableValue):
-    value: int
+    def __init__(
+            self,
+            value: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class LikedPlayer(ExpirableValue):
-    value: Any
+    def __init__(
+            self,
+            value: Optional[Union[Any, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class LongJumpCoolingDown(ExpirableValue):
-    value: int
+    def __init__(
+            self,
+            value: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class MeetingPoint(ExpirableValue):
-    value: 'GlobalPos'
+    def __init__(
+            self,
+            value: Optional[Union['GlobalPos', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class PlayDeadTicks(ExpirableValue):
-    value: int
+    def __init__(
+            self,
+            value: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class PotentialJobSite(ExpirableValue):
-    value: 'GlobalPos'
+    def __init__(
+            self,
+            value: Optional[Union['GlobalPos', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RamCooldownTicks(ExpirableValue):
-    value: int
+    def __init__(
+            self,
+            value: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RecentProjectile(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RoarSoundCooldown(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RoarSoundDelay(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SniffCooldown(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SnifferExploredPositions(ExpirableValue):
-    value: list[Any]
+    def __init__(
+            self,
+            value: Optional[Union[list[Any], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SonicBoomCooldown(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SonicBoomSoundCooldown(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SonicBoomSoundDelay(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class TemptationCooldownTicks(ExpirableValue):
-    value: int
+    def __init__(
+            self,
+            value: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class TouchCooldown(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class UniversalAnger(ExpirableValue):
-    value: bool
+    def __init__(
+            self,
+            value: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class UnreachableTransportBlockPositions(ExpirableValue):
-    value: list['GlobalPos']
+    def __init__(
+            self,
+            value: Optional[Union[list['GlobalPos'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class VibrationCooldown(ExpirableValue):
-    value: dict
+    def __init__(
+            self,
+            value: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class VisitedBlockPositions(ExpirableValue):
-    value: list['GlobalPos']
+    def __init__(
+            self,
+            value: Optional[Union[list['GlobalPos'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

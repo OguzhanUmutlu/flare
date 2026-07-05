@@ -1,61 +1,242 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class Dialog:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DynamicCustomAction:
-    id: str
-    additions: Any
+    def __init__(
+            self,
+            id: Optional[Union[str, Any]] = None,
+            additions: Optional[Union[Any, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if id is not None:
+            self.components["id"] = id
+        if additions is not None:
+            self.components["additions"] = additions
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DynamicRunCommand:
-    template: str
+    def __init__(
+            self,
+            template: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if template is not None:
+            self.components["template"] = template
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ChangePage:
-    value: str
-    page: int
+    def __init__(
+            self,
+            value: Optional[Union[str, Any]] = None,
+            page: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
+        if page is not None:
+            self.components["page"] = page
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class CopyToClipboard:
-    value: str
+    def __init__(
+            self,
+            value: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class CustomAction:
-    id: str
-    payload: Any
+    def __init__(
+            self,
+            id: Optional[Union[str, Any]] = None,
+            payload: Optional[Union[Any, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if id is not None:
+            self.components["id"] = id
+        if payload is not None:
+            self.components["payload"] = payload
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class OpenUrl:
-    value: str
-    url: str
+    def __init__(
+            self,
+            value: Optional[Union[str, Any]] = None,
+            url: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
+        if url is not None:
+            self.components["url"] = url
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RunCommand:
-    value: Union[str, str]
-    command: str
+    def __init__(
+            self,
+            value: Optional[Union[Union[str, str], Any]] = None,
+            command: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
+        if command is not None:
+            self.components["command"] = command
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ShowDialog:
-    dialog: Union[str, 'Dialog']
+    def __init__(
+            self,
+            dialog: Optional[Union[Union[str, 'Dialog'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if dialog is not None:
+            self.components["dialog"] = dialog
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SuggestCommand:
-    value: str
-    command: str
+    def __init__(
+            self,
+            value: Optional[Union[str, Any]] = None,
+            command: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
+        if command is not None:
+            self.components["command"] = command
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

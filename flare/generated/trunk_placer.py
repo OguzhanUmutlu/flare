@@ -1,39 +1,116 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class BendingTrunkPlacer:
-    bend_length: 'IntProvider'
-    min_height_for_leaves: int
+    def __init__(
+            self,
+            bend_length: Optional[Union['IntProvider', Any]] = None,
+            min_height_for_leaves: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if bend_length is not None:
+            self.components["bend_length"] = bend_length
+        if min_height_for_leaves is not None:
+            self.components["min_height_for_leaves"] = min_height_for_leaves
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class CherryTrunkPlacer:
-    branch_count: 'IntProvider'
-    branch_horizontal_length: 'IntProvider'
-    branch_start_offset_from_top: 'UniformIntProvider'
-    branch_end_offset_from_top: 'IntProvider'
+    def __init__(
+            self,
+            branch_count: Optional[Union['IntProvider', Any]] = None,
+            branch_horizontal_length: Optional[Union['IntProvider', Any]] = None,
+            branch_start_offset_from_top: Optional[Union['UniformIntProvider', Any]] = None,
+            branch_end_offset_from_top: Optional[Union['IntProvider', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if branch_count is not None:
+            self.components["branch_count"] = branch_count
+        if branch_horizontal_length is not None:
+            self.components["branch_horizontal_length"] = branch_horizontal_length
+        if branch_start_offset_from_top is not None:
+            self.components["branch_start_offset_from_top"] = branch_start_offset_from_top
+        if branch_end_offset_from_top is not None:
+            self.components["branch_end_offset_from_top"] = branch_end_offset_from_top
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class PoplarTrunkPlacer:
-    trunk_height_above_branches: 'IntProvider'
-    branch_amount: 'IntProvider'
+    def __init__(
+            self,
+            trunk_height_above_branches: Optional[Union['IntProvider', Any]] = None,
+            branch_amount: Optional[Union['IntProvider', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if trunk_height_above_branches is not None:
+            self.components["trunk_height_above_branches"] = trunk_height_above_branches
+        if branch_amount is not None:
+            self.components["branch_amount"] = branch_amount
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class UpwardsBranchingTrunkPlacer:
-    extra_branch_steps: 'IntProvider'
-    extra_branch_length: 'IntProvider'
-    place_branch_per_log_probability: float
-    can_grow_through: Union[list[str], str]
+    def __init__(
+            self,
+            extra_branch_steps: Optional[Union['IntProvider', Any]] = None,
+            extra_branch_length: Optional[Union['IntProvider', Any]] = None,
+            place_branch_per_log_probability: Optional[Union[float, Any]] = None,
+            can_grow_through: Optional[Union[Union[list[str], str], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if extra_branch_steps is not None:
+            self.components["extra_branch_steps"] = extra_branch_steps
+        if extra_branch_length is not None:
+            self.components["extra_branch_length"] = extra_branch_length
+        if place_branch_per_log_probability is not None:
+            self.components["place_branch_per_log_probability"] = place_branch_per_log_probability
+        if can_grow_through is not None:
+            self.components["can_grow_through"] = can_grow_through
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

@@ -6,16 +6,18 @@ except Exception:
     __version__ = "latest"
 
 from .compiler import _flatten_and, _eval_to_bool_score, _compile_relational
-from .context import namespace, export, event, tick, load, push_context, runcommand, files, temp_obj, constant_obj, \
+from .context import namespace, export, tick, load, push_context, runcommand, files, temp_obj, constant_obj, \
     vars_obj, \
     constants, _flare_assign, _flare_aug_assign, _flare_print, dbg, _flare_return, _flare_in, _flare_notin, \
     _flare_print as print, style, _flare_enter_scope, _flare_exit_scope
 from .control_flow import _flare_if, _flare_while, _flare_for, _flare_not, _flare_with, _flare_as_var, _flare_break, \
     _flare_continue, \
     expand, schedule, _flare_and, _flare_or
+from .event import event
 from .execute_modifiers import _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, \
     store, ExecuteChain, StoreExecuteChain, if_, unless, if_block, unless_block, is_dimension, success, predicate, \
     stopwatch
+from .generated.events import *
 from .math import round_, floor, ceil, sin, cos, tan, asin, acos, atan, atan2, exp, log, ln, pow_, csc, sec, cot, acsc, \
     asec, acot, sinh, cosh, tanh, asinh, acosh, atanh, csch, sech, coth, acsch, asech, acoth, sqrt, fastsin, fastsqrt, \
     rsqrt, min_, max_
@@ -38,8 +40,10 @@ __all__ = ["round_", "floor", "ceil", "namespace", "export", "tick", "load", "sc
            "is_dimension", "success", "predicate", "stopwatch", "item"]
 
 from .resources import __all__ as _dd_all
+from .generated import events as _events
 
 __all__.extend(_dd_all)
+__all__.extend([name for name in dir(_events) if not name.startswith("_")])
 
 try:
     from .beet import beet_default as beet_default  # noqa: F401

@@ -1,30 +1,69 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class ConcentricRingsPlacement:
-    distance: int
-    spread: int
-    count: int
-    preferred_biomes: Union[list[str], str]
+    def __init__(
+            self,
+            distance: Optional[Union[int, Any]] = None,
+            spread: Optional[Union[int, Any]] = None,
+            count: Optional[Union[int, Any]] = None,
+            preferred_biomes: Optional[Union[Union[list[str], str], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if distance is not None:
+            self.components["distance"] = distance
+        if spread is not None:
+            self.components["spread"] = spread
+        if count is not None:
+            self.components["count"] = count
+        if preferred_biomes is not None:
+            self.components["preferred_biomes"] = preferred_biomes
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RandomSpreadPlacement:
-    spacing: int
-    separation: int
-    salt: int
-    spread_type: str
-    locate_offset: list[int]
+    def __init__(
+            self,
+            spacing: Optional[Union[int, Any]] = None,
+            separation: Optional[Union[int, Any]] = None,
+            salt: Optional[Union[int, Any]] = None,
+            spread_type: Optional[Union[str, Any]] = None,
+            locate_offset: Optional[Union[list[int], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if spacing is not None:
+            self.components["spacing"] = spacing
+        if separation is not None:
+            self.components["separation"] = separation
+        if salt is not None:
+            self.components["salt"] = salt
+        if spread_type is not None:
+            self.components["spread_type"] = spread_type
+        if locate_offset is not None:
+            self.components["locate_offset"] = locate_offset
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

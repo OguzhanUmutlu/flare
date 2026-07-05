@@ -57,6 +57,8 @@ class ScoreIf:
     def __branch__(self, invert=False):
         from .compiler import _eval_to_bool_score  # avoid circular import
         if invert:
+            if hasattr(self, "invert"):
+                return self.invert().__branch__()
             dest = _eval_to_bool_score(self)
             return [f"unless score {addr(dest)} matches 1"]
 
@@ -124,6 +126,9 @@ class ScoreUnlessMatches(ScoreIf):
                 st = f"{a}.."
         return f"execute unless score {addr(self.t)} matches {st} run "
 
+    def invert(self):
+        return ScoreIfMatches(self.t, self.rng)
+
 
 class ScoreIfScore(ScoreIf):
     def __init__(self, t: "flare.variables.score", op: str, t2: "flare.variables.score"):
@@ -135,10 +140,38 @@ class ScoreIfScore(ScoreIf):
     def __str__(self):
         return f"execute if score {addr(self.t)} {self.op} {addr(self.t2)} run "
 
+    def invert(self):
+        inv_op = {
+            "<": ">=",
+            "<=": ">",
+            "=": "!=",
+            ">": "<=",
+            ">=": "<"
+        }.get(self.op)
+        if inv_op == "!=":
+            return ScoreUnlessScore(self.t, "=", self.t2)
+        elif inv_op:
+            return ScoreIfScore(self.t, inv_op, self.t2)
+        raise NotImplementedError(f"Cannot invert score operator {self.op}")
+
+
+class ScoreUnlessScore(ScoreIf):
+    def __init__(self, t: "flare.variables.score", op: str, t2: "flare.variables.score"):
+        super().__init__([])
+        self.t = t
+        self.op = op
+        self.t2 = t2
+
+    def __str__(self):
+        return f"execute unless score {addr(self.t)} {self.op} {addr(self.t2)} run "
+
+    def invert(self):
+        return ScoreIfScore(self.t, self.op, self.t2)
+
 
 def _has_early_return(func_name):
     for cmd in ctx.files.get(func_name, []):
-        if cmd == "return 1" or cmd.endswith(" run return 1"):
+        if cmd.startswith("return ") or " run return " in cmd:
             return True
     return False
 

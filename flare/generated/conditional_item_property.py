@@ -1,37 +1,117 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class ComponentFlags:
-    predicate: Union[str, str]
-    value: Any
+    def __init__(
+            self,
+            predicate: Optional[Union[Union[str, str], Any]] = None,
+            value: Optional[Union[Any, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if predicate is not None:
+            self.components["predicate"] = predicate
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class CustomModelDataFlags:
-    index: int
+    def __init__(
+            self,
+            index: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if index is not None:
+            self.components["index"] = index
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class HasComponent:
-    component: str
-    ignore_default: bool
+    def __init__(
+            self,
+            component: Optional[Union[str, Any]] = None,
+            ignore_default: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if component is not None:
+            self.components["component"] = component
+        if ignore_default is not None:
+            self.components["ignore_default"] = ignore_default
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class KeybindDown:
-    keybind: str
+    def __init__(
+            self,
+            keybind: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if keybind is not None:
+            self.components["keybind"] = keybind
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ViewEntity:
-    pass
+    def __init__(
+            self,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

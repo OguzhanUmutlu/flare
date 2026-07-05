@@ -1,76 +1,317 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class BlockAge:
-    mossiness: float
+    def __init__(
+            self,
+            mossiness: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if mossiness is not None:
+            self.components["mossiness"] = mossiness
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BlockEntityModifier:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BlockIgnore:
-    blocks: list['BlockState']
+    def __init__(
+            self,
+            blocks: Optional[Union[list['BlockState'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if blocks is not None:
+            self.components["blocks"] = blocks
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BlockRot:
-    integrity: float
-    rottable_blocks: Union[list[str], str]
+    def __init__(
+            self,
+            integrity: Optional[Union[float, Any]] = None,
+            rottable_blocks: Optional[Union[Union[list[str], str], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if integrity is not None:
+            self.components["integrity"] = integrity
+        if rottable_blocks is not None:
+            self.components["rottable_blocks"] = rottable_blocks
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Capped:
-    delegate: 'Processor'
-    limit: 'IntProvider'
+    def __init__(
+            self,
+            delegate: Optional[Union['Processor', Any]] = None,
+            limit: Optional[Union['IntProvider', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if delegate is not None:
+            self.components["delegate"] = delegate
+        if limit is not None:
+            self.components["limit"] = limit
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Gravity:
-    heightmap: str
-    offset: int
+    def __init__(
+            self,
+            heightmap: Optional[Union[str, Any]] = None,
+            offset: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if heightmap is not None:
+            self.components["heightmap"] = heightmap
+        if offset is not None:
+            self.components["offset"] = offset
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class PosRuleTest:
-    predicate_type: str
+    def __init__(
+            self,
+            predicate_type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if predicate_type is not None:
+            self.components["predicate_type"] = predicate_type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Processor:
-    processor_type: str
+    def __init__(
+            self,
+            processor_type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if processor_type is not None:
+            self.components["processor_type"] = processor_type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ProcessorRule:
-    position_predicate: 'PosRuleTest'
-    location_predicate: 'RuleTest'
-    input_predicate: 'RuleTest'
-    output_state: 'BlockState'
-    output_nbt: Any
-    block_entity_modifier: 'BlockEntityModifier'
+    def __init__(
+            self,
+            position_predicate: Optional[Union['PosRuleTest', Any]] = None,
+            location_predicate: Optional[Union['RuleTest', Any]] = None,
+            input_predicate: Optional[Union['RuleTest', Any]] = None,
+            output_state: Optional[Union['BlockState', Any]] = None,
+            output_nbt: Optional[Union[Any, Any]] = None,
+            block_entity_modifier: Optional[Union['BlockEntityModifier', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if position_predicate is not None:
+            self.components["position_predicate"] = position_predicate
+        if location_predicate is not None:
+            self.components["location_predicate"] = location_predicate
+        if input_predicate is not None:
+            self.components["input_predicate"] = input_predicate
+        if output_state is not None:
+            self.components["output_state"] = output_state
+        if output_nbt is not None:
+            self.components["output_nbt"] = output_nbt
+        if block_entity_modifier is not None:
+            self.components["block_entity_modifier"] = block_entity_modifier
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ProtectedBlocks:
-    value: Union[str, str, str, list[str]]
+    def __init__(
+            self,
+            value: Optional[Union[Union[str, str, str, list[str]], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Rule:
-    rules: list['ProcessorRule']
+    def __init__(
+            self,
+            rules: Optional[Union[list['ProcessorRule'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if rules is not None:
+            self.components["rules"] = rules
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RuleTest:
-    predicate_type: str
+    def __init__(
+            self,
+            predicate_type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if predicate_type is not None:
+            self.components["predicate_type"] = predicate_type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BlockState:
-    Name: str
-    Properties: Any
+    def __init__(
+            self,
+            Name: Optional[Union[str, Any]] = None,
+            Properties: Optional[Union[Any, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if Name is not None:
+            self.components["Name"] = Name
+        if Properties is not None:
+            self.components["Properties"] = Properties
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

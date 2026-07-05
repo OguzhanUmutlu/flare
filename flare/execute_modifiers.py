@@ -148,6 +148,12 @@ class ExecuteChain:
     def __str__(self):
         return " ".join(self.fragments)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
     def __branch__(self, invert=False):
         if invert:
             raise ValueError("ExecuteChain cannot be inverted. Use 'unless' inside the chain.")
@@ -156,6 +162,8 @@ class ExecuteChain:
         return self.fragments
 
     def __with__(self, body_func):
+        from .control_flow import _has_early_return
+
         prefix = " ".join(self.fragments)
         func_name = f"{ctx._current_namespace}:with_{ctx.next_func_id()}"
 
@@ -163,18 +171,22 @@ class ExecuteChain:
             body_func()
 
         if ctx.files.get(func_name):
+            has_return = _has_early_return(func_name)
             if len(ctx.files[func_name]) == 1:
                 cmd = ctx.files[func_name][0]
                 del ctx.files[func_name]
                 ctx._runcmd(ctx.combine_execute(prefix, cmd))
-            else:
-                ctx.files[func_name].append("return 0")
+            elif has_return:
+                if not (ctx.files[func_name] and ctx.files[func_name][-1] in ("return 0", "return 1")):
+                    ctx.files[func_name].append("return 0")
                 ret_temp = ctx.next_temp_score("ret")
                 if prefix.startswith("execute "):
                     ctx._runcmd(f"execute store result score {addr(ret_temp)} {prefix[8:]} run function {func_name}")
                 else:
                     ctx._runcmd(f"execute store result score {addr(ret_temp)} run function {func_name}")
                 ctx._runcmd(f"execute if score {addr(ret_temp)} matches 1 run return 1")
+            else:
+                ctx._runcmd(ctx.combine_execute(prefix, f"function {func_name}"))
 
     def __as_var__(self):
         from .variables.block import block

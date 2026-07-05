@@ -1,80 +1,326 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class NoiseParameters:
-    firstOctave: int
-    amplitudes: list[double]
+    def __init__(
+            self,
+            firstOctave: Optional[Union[int, Any]] = None,
+            amplitudes: Optional[Union[list[double], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if firstOctave is not None:
+            self.components["firstOctave"] = firstOctave
+        if amplitudes is not None:
+            self.components["amplitudes"] = amplitudes
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RuleBasedBlockStateProvider:
-    rules: list[{'if_true': 'BlockPredicate', 'then': 'BlockStateProvider'}]
+    def __init__(
+            self,
+            rules: Optional[Union[list[{'if_true': 'BlockPredicate', 'then': 'BlockStateProvider'}], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if rules is not None:
+            self.components["rules"] = rules
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BlockPredicate:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BaseNoiseProvider:
-    seed: int
-    noise: 'NoiseParameters'
-    scale: float
+    def __init__(
+            self,
+            seed: Optional[Union[int, Any]] = None,
+            noise: Optional[Union['NoiseParameters', Any]] = None,
+            scale: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if seed is not None:
+            self.components["seed"] = seed
+        if noise is not None:
+            self.components["noise"] = noise
+        if scale is not None:
+            self.components["scale"] = scale
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BlockStateProvider:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class CopyPropertiesProvider:
-    source_block_state_provider: 'BlockStateProvider'
+    def __init__(
+            self,
+            source_block_state_provider: Optional[Union['BlockStateProvider', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if source_block_state_provider is not None:
+            self.components["source_block_state_provider"] = source_block_state_provider
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DualNoiseProvider(BaseNoiseProvider):
-    variety: 'InclusiveRange'
-    slow_noise: 'NoiseParameters'
-    slow_scale: float
-    states: list['BlockState']
+    def __init__(
+            self,
+            variety: Optional[Union['InclusiveRange', Any]] = None,
+            slow_noise: Optional[Union['NoiseParameters', Any]] = None,
+            slow_scale: Optional[Union[float, Any]] = None,
+            states: Optional[Union[list['BlockState'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if variety is not None:
+            self.components["variety"] = variety
+        if slow_noise is not None:
+            self.components["slow_noise"] = slow_noise
+        if slow_scale is not None:
+            self.components["slow_scale"] = slow_scale
+        if states is not None:
+            self.components["states"] = states
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class NoiseProvider(BaseNoiseProvider):
-    states: list['BlockState']
+    def __init__(
+            self,
+            states: Optional[Union[list['BlockState'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if states is not None:
+            self.components["states"] = states
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class NoiseThresholdProvider(BaseNoiseProvider):
-    threshold: float
-    high_chance: float
-    default_state: 'BlockState'
-    low_states: list['BlockState']
-    high_states: list['BlockState']
+    def __init__(
+            self,
+            threshold: Optional[Union[float, Any]] = None,
+            high_chance: Optional[Union[float, Any]] = None,
+            default_state: Optional[Union['BlockState', Any]] = None,
+            low_states: Optional[Union[list['BlockState'], Any]] = None,
+            high_states: Optional[Union[list['BlockState'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if threshold is not None:
+            self.components["threshold"] = threshold
+        if high_chance is not None:
+            self.components["high_chance"] = high_chance
+        if default_state is not None:
+            self.components["default_state"] = default_state
+        if low_states is not None:
+            self.components["low_states"] = low_states
+        if high_states is not None:
+            self.components["high_states"] = high_states
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RandomizedIntStateProvider:
-    property: str
-    values: 'IntProvider'
-    source: 'BlockStateProvider'
+    def __init__(
+            self,
+            property: Optional[Union[str, Any]] = None,
+            values: Optional[Union['IntProvider', Any]] = None,
+            source: Optional[Union['BlockStateProvider', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if property is not None:
+            self.components["property"] = property
+        if values is not None:
+            self.components["values"] = values
+        if source is not None:
+            self.components["source"] = source
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SimpleStateProvider:
-    state: 'BlockState'
+    def __init__(
+            self,
+            state: Optional[Union['BlockState', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if state is not None:
+            self.components["state"] = state
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class WeightedBlockStateProvider:
-    entries: 'NonEmptyWeightedList'
+    def __init__(
+            self,
+            entries: Optional[Union['NonEmptyWeightedList', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if entries is not None:
+            self.components["entries"] = entries
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BlockState:
-    Name: str
-    Properties: Any
+    def __init__(
+            self,
+            Name: Optional[Union[str, Any]] = None,
+            Properties: Optional[Union[Any, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if Name is not None:
+            self.components["Name"] = Name
+        if Properties is not None:
+            self.components["Properties"] = Properties
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

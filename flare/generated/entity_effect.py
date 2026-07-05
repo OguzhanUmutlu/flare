@@ -1,153 +1,655 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class AllOfEntityEffect:
-    effects: list['EntityEffect']
+    def __init__(
+            self,
+            effects: Optional[Union[list['EntityEffect'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if effects is not None:
+            self.components["effects"] = effects
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ApplyExhaustionEntityEffect:
-    amount: 'LevelBasedValue'
+    def __init__(
+            self,
+            amount: Optional[Union['LevelBasedValue', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if amount is not None:
+            self.components["amount"] = amount
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ApplyImpulseEntityEffect:
-    direction: list[float]
-    coordinate_scale: list[float]
-    magnitude: 'LevelBasedValue'
+    def __init__(
+            self,
+            direction: Optional[Union[list[float], Any]] = None,
+            coordinate_scale: Optional[Union[list[float], Any]] = None,
+            magnitude: Optional[Union['LevelBasedValue', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if direction is not None:
+            self.components["direction"] = direction
+        if coordinate_scale is not None:
+            self.components["coordinate_scale"] = coordinate_scale
+        if magnitude is not None:
+            self.components["magnitude"] = magnitude
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ApplyMobEffectEntityEffect:
-    to_apply: Union[str, list[str]]
-    min_duration: 'LevelBasedValue'
-    max_duration: 'LevelBasedValue'
-    min_amplifier: 'LevelBasedValue'
-    max_amplifier: 'LevelBasedValue'
+    def __init__(
+            self,
+            to_apply: Optional[Union[Union[str, list[str]], Any]] = None,
+            min_duration: Optional[Union['LevelBasedValue', Any]] = None,
+            max_duration: Optional[Union['LevelBasedValue', Any]] = None,
+            min_amplifier: Optional[Union['LevelBasedValue', Any]] = None,
+            max_amplifier: Optional[Union['LevelBasedValue', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if to_apply is not None:
+            self.components["to_apply"] = to_apply
+        if min_duration is not None:
+            self.components["min_duration"] = min_duration
+        if max_duration is not None:
+            self.components["max_duration"] = max_duration
+        if min_amplifier is not None:
+            self.components["min_amplifier"] = min_amplifier
+        if max_amplifier is not None:
+            self.components["max_amplifier"] = max_amplifier
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ChangeItemDamageEffect:
-    amount: 'LevelBasedValue'
+    def __init__(
+            self,
+            amount: Optional[Union['LevelBasedValue', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if amount is not None:
+            self.components["amount"] = amount
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DamageEntityEffect:
-    damage_type: str
-    min_damage: 'LevelBasedValue'
-    max_damage: 'LevelBasedValue'
+    def __init__(
+            self,
+            damage_type: Optional[Union[str, Any]] = None,
+            min_damage: Optional[Union['LevelBasedValue', Any]] = None,
+            max_damage: Optional[Union['LevelBasedValue', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if damage_type is not None:
+            self.components["damage_type"] = damage_type
+        if min_damage is not None:
+            self.components["min_damage"] = min_damage
+        if max_damage is not None:
+            self.components["max_damage"] = max_damage
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DamageItemEffect:
-    amount: 'LevelBasedValue'
+    def __init__(
+            self,
+            amount: Optional[Union['LevelBasedValue', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if amount is not None:
+            self.components["amount"] = amount
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class EntityEffect:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ExplodeEntityEffect:
-    attribute_to_user: bool
-    damage_type: str
-    immune_blocks: Union[str, list[str]]
-    knockback_multiplier: 'LevelBasedValue'
-    offset: list[double]
-    radius: 'LevelBasedValue'
-    create_fire: bool
-    block_interaction: str
-    small_particle: 'Particle'
-    large_particle: 'Particle'
-    block_particles: list['ExplosionParticleInfo']
-    sound: 'SoundEventRef'
+    def __init__(
+            self,
+            attribute_to_user: Optional[Union[bool, Any]] = None,
+            damage_type: Optional[Union[str, Any]] = None,
+            immune_blocks: Optional[Union[Union[str, list[str]], Any]] = None,
+            knockback_multiplier: Optional[Union['LevelBasedValue', Any]] = None,
+            offset: Optional[Union[list[double], Any]] = None,
+            radius: Optional[Union['LevelBasedValue', Any]] = None,
+            create_fire: Optional[Union[bool, Any]] = None,
+            block_interaction: Optional[Union[str, Any]] = None,
+            small_particle: Optional[Union['Particle', Any]] = None,
+            large_particle: Optional[Union['Particle', Any]] = None,
+            block_particles: Optional[Union[list['ExplosionParticleInfo'], Any]] = None,
+            sound: Optional[Union['SoundEventRef', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if attribute_to_user is not None:
+            self.components["attribute_to_user"] = attribute_to_user
+        if damage_type is not None:
+            self.components["damage_type"] = damage_type
+        if immune_blocks is not None:
+            self.components["immune_blocks"] = immune_blocks
+        if knockback_multiplier is not None:
+            self.components["knockback_multiplier"] = knockback_multiplier
+        if offset is not None:
+            self.components["offset"] = offset
+        if radius is not None:
+            self.components["radius"] = radius
+        if create_fire is not None:
+            self.components["create_fire"] = create_fire
+        if block_interaction is not None:
+            self.components["block_interaction"] = block_interaction
+        if small_particle is not None:
+            self.components["small_particle"] = small_particle
+        if large_particle is not None:
+            self.components["large_particle"] = large_particle
+        if block_particles is not None:
+            self.components["block_particles"] = block_particles
+        if sound is not None:
+            self.components["sound"] = sound
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ExplosionParticleInfo:
-    weight: int
-    particle: 'Particle'
-    scaling: float
-    speed: float
+    def __init__(
+            self,
+            weight: Optional[Union[int, Any]] = None,
+            particle: Optional[Union['Particle', Any]] = None,
+            scaling: Optional[Union[float, Any]] = None,
+            speed: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if weight is not None:
+            self.components["weight"] = weight
+        if particle is not None:
+            self.components["particle"] = particle
+        if scaling is not None:
+            self.components["scaling"] = scaling
+        if speed is not None:
+            self.components["speed"] = speed
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class IgniteEntityEffect:
-    duration: 'LevelBasedValue'
+    def __init__(
+            self,
+            duration: Optional[Union['LevelBasedValue', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if duration is not None:
+            self.components["duration"] = duration
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ParticlePosition:
-    type: Union[Any, Any]
-    offset: float
-    scale: float
+    def __init__(
+            self,
+            type: Optional[Union[Union[Any, Any], Any]] = None,
+            offset: Optional[Union[float, Any]] = None,
+            scale: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
+        if offset is not None:
+            self.components["offset"] = offset
+        if scale is not None:
+            self.components["scale"] = scale
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ParticleVelocity:
-    base: float
-    movement_scale: float
+    def __init__(
+            self,
+            base: Optional[Union[float, Any]] = None,
+            movement_scale: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if base is not None:
+            self.components["base"] = base
+        if movement_scale is not None:
+            self.components["movement_scale"] = movement_scale
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class PlaySoundEntityEffect:
-    sound: Union['SoundEventRef', list['SoundEventRef']]
-    volume: 'FloatProvider'
-    pitch: 'FloatProvider'
+    def __init__(
+            self,
+            sound: Optional[Union[Union['SoundEventRef', list['SoundEventRef']], Any]] = None,
+            volume: Optional[Union['FloatProvider', Any]] = None,
+            pitch: Optional[Union['FloatProvider', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if sound is not None:
+            self.components["sound"] = sound
+        if volume is not None:
+            self.components["volume"] = volume
+        if pitch is not None:
+            self.components["pitch"] = pitch
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ReplaceBlockEntityEffect:
-    block_state: 'BlockStateProvider'
-    offset: list[int]
-    predicate: 'BlockPredicate'
-    trigger_game_event: str
+    def __init__(
+            self,
+            block_state: Optional[Union['BlockStateProvider', Any]] = None,
+            offset: Optional[Union[list[int], Any]] = None,
+            predicate: Optional[Union['BlockPredicate', Any]] = None,
+            trigger_game_event: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if block_state is not None:
+            self.components["block_state"] = block_state
+        if offset is not None:
+            self.components["offset"] = offset
+        if predicate is not None:
+            self.components["predicate"] = predicate
+        if trigger_game_event is not None:
+            self.components["trigger_game_event"] = trigger_game_event
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ReplaceDiskEntityEffect(ReplaceBlockEntityEffect):
-    offset: list[int]
-    radius: 'LevelBasedValue'
-    height: 'LevelBasedValue'
+    def __init__(
+            self,
+            offset: Optional[Union[list[int], Any]] = None,
+            radius: Optional[Union['LevelBasedValue', Any]] = None,
+            height: Optional[Union['LevelBasedValue', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if offset is not None:
+            self.components["offset"] = offset
+        if radius is not None:
+            self.components["radius"] = radius
+        if height is not None:
+            self.components["height"] = height
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RunFunctionEntityEffect:
-    function: str
+    def __init__(
+            self,
+            function: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if function is not None:
+            self.components["function"] = function
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SetBlockPropertiesEntityEffect:
-    properties: Any
-    offset: list[int]
-    trigger_game_event: str
+    def __init__(
+            self,
+            properties: Optional[Union[Any, Any]] = None,
+            offset: Optional[Union[list[int], Any]] = None,
+            trigger_game_event: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if properties is not None:
+            self.components["properties"] = properties
+        if offset is not None:
+            self.components["offset"] = offset
+        if trigger_game_event is not None:
+            self.components["trigger_game_event"] = trigger_game_event
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SpawnParticlesEntityEffect:
-    particle: 'Particle'
-    horizontal_position: 'ParticlePosition'
-    vertical_position: 'ParticlePosition'
-    horizontal_velocity: 'ParticleVelocity'
-    vertical_velocity: 'ParticleVelocity'
-    speed: float
+    def __init__(
+            self,
+            particle: Optional[Union['Particle', Any]] = None,
+            horizontal_position: Optional[Union['ParticlePosition', Any]] = None,
+            vertical_position: Optional[Union['ParticlePosition', Any]] = None,
+            horizontal_velocity: Optional[Union['ParticleVelocity', Any]] = None,
+            vertical_velocity: Optional[Union['ParticleVelocity', Any]] = None,
+            speed: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if particle is not None:
+            self.components["particle"] = particle
+        if horizontal_position is not None:
+            self.components["horizontal_position"] = horizontal_position
+        if vertical_position is not None:
+            self.components["vertical_position"] = vertical_position
+        if horizontal_velocity is not None:
+            self.components["horizontal_velocity"] = horizontal_velocity
+        if vertical_velocity is not None:
+            self.components["vertical_velocity"] = vertical_velocity
+        if speed is not None:
+            self.components["speed"] = speed
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SummonEntityEffect:
-    entity: Union[str, list[str]]
-    join_team: bool
-LevelBasedValue = Union[float, 'LevelBasedValueMap']
+    def __init__(
+            self,
+            entity: Optional[Union[Union[str, list[str]], Any]] = None,
+            join_team: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if entity is not None:
+            self.components["entity"] = entity
+        if join_team is not None:
+            self.components["join_team"] = join_team
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+LevelBasedValue = Union[Union[float, 'LevelBasedValueMap'], Any]
+
 class LevelBasedValueMap:
-    type: str
-SoundEventRef = Union[str, str, {'sound_id': str, 'range': float}]
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+SoundEventRef = Union[Union[str, str, {'sound_id': str, 'range': float}], Any]
+
 class BlockPredicate:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BlockStateProvider:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Particle:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

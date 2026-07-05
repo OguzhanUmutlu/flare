@@ -269,7 +269,8 @@ class block(FlareValue, Generic[T]):
                 right_target_func = f"__flare_stdlib__:block/get/blocks/{right_child_id}"
                 right_tag_values = build_node(mid, end_idx, right_child_id)
                 context.json_files[f"__flare_stdlib__:tags/block/get/blocks/{right_child_id}.json"] = {
-                    "values": right_tag_values}
+                    "values": right_tag_values
+                }
 
             context.files[f"__flare_stdlib__:block/get/blocks/{my_id}"] = [
                 f"execute if block ~ ~ ~ {left_val} run function {left_target_func}",
@@ -439,3 +440,36 @@ class block(FlareValue, Generic[T]):
     def is_loaded(self) -> "InlineCondition":
         from ..execute_modifiers import InlineCondition
         return InlineCondition(f"if loaded {self.pos}")
+
+    def add_particles(self, name: str, delta: Union[str, tuple, list] = None, speed: float = None,
+                      count: int = None, mode: str = None, viewers: Union[str, "selector"] = None):
+        cmd = f"particle {name} {self.pos}"
+
+        if delta is not None or speed is not None or count is not None or mode is not None or viewers is not None:
+            if delta is None:
+                delta = "0 0 0"
+            elif isinstance(delta, (tuple, list)):
+                delta = " ".join(str(p) for p in delta)
+            cmd += f" {delta}"
+
+        if speed is not None or count is not None or mode is not None or viewers is not None:
+            if speed is None:
+                speed = 0.0
+            cmd += f" {speed}"
+
+        if count is not None or mode is not None or viewers is not None:
+            if count is None:
+                count = 0
+            cmd += f" {count}"
+
+        if mode is not None or viewers is not None:
+            if mode is None:
+                mode = "normal"
+            cmd += f" {mode}"
+
+        if viewers is not None:
+            if hasattr(viewers, "_target_str"):
+                viewers = viewers._target_str
+            cmd += f" {viewers}"
+
+        _runcmd(cmd)

@@ -7,7 +7,7 @@ Flare supports dynamically generating these JSON files using the top-level `add_
 ## Supported Generators
 
 > [!TIP]
-> **Typed Structs Supported:** You can use strongly-typed classes from `flare.generated.resource` instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
+> **Typed Structs Supported:** You can use strongly-typed classes from `flare` (like `BannerPattern`, `TrimMaterial`) instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
 
 - `add_banner_pattern()`
 - `add_chat_type()`
@@ -22,10 +22,10 @@ You can define custom banner patterns by linking an identifier to a texture name
 ```python
 from flare import *
 
-add_banner_pattern("flare_logo", {
-    "asset_id": "my_namespace:flare_logo",
-    "translation_key": "block.minecraft.banner.flare_logo"
-})
+add_banner_pattern("flare_logo", BannerPattern(
+    asset_id="my_namespace:flare_logo",
+    translation_key="block.minecraft.banner.flare_logo"
+).to_dict())
 ```
 
 ## Example: Trim Materials
@@ -35,13 +35,13 @@ Armor trims can also be customized by adding a new trim material.
 ```python
 from flare import *
 
-add_trim_material("ruby", {
-    "asset_name": "ruby",
-    "ingredient": "my_namespace:ruby",
-    "item_model_index": 0.5,
-    "description": {
+add_trim_material("ruby", TrimMaterial(
+    asset_name="ruby",
+    ingredient="my_namespace:ruby",
+    item_model_index=0.5,
+    description={
         "translate": "trim_material.my_namespace.ruby",
         "color": "#FF0000"
     }
-})
+).to_dict())
 ```

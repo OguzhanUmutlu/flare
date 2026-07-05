@@ -277,3 +277,11 @@ class selector(Generic[T]):
             _runcmd(f"give {self._target_str} {item}")
         else:
             _runcmd(f"give {self._target_str} {item} {count}")
+
+    def clear_inventory(self, item=None, max_count: int = None):
+        cmd = f"clear {self._target_str}"
+        if item is not None:
+            cmd += f" {item}"
+            if max_count is not None:
+                cmd += f" {max_count}"
+        _runcmd(cmd)

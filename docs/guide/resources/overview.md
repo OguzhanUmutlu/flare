@@ -11,40 +11,56 @@ To avoid collisions with standard Minecraft commands, all JSON file builders are
 ```python
 from flare import *
 
-add_advancement("my_advancement", {
-    "display": {
+add_advancement("my_advancement", Advancement(
+    display={
         "title": "Hello Flare!",
         "description": "Created using Python",
         "icon": {"item": "minecraft:diamond"}
     },
-    "criteria": {
+    criteria={
         "req": {"trigger": "minecraft:tick"}
     }
-})
+).to_dict())
 ```
 
 When you run your Flare script, this will automatically generate a valid JSON file at `data/<namespace>/advancement/my_advancement.json`.
 
-## Typed Structs
+## The `add_resource` Function
 
-Instead of using raw dictionaries, Flare provides strongly typed Python classes for all 47+ JSON structures. You can import these directly from `flare.generated.resource`!
-
-These **Typed Structs** will provide you with full IDE autocompletion and type-checking, preventing you from writing broken datapacks due to a typo. You can pass them as arguments exactly like dictionaries.
+All of the `add_*` functions (like `add_advancement`) use a powerful underlying function called `add_resource()`. You can use `add_resource()` directly if you want to create a resource type that doesn't have a dedicated `add_*` function yet, or if you prefer a unified function signature.
 
 ```python
 from flare import *
-from flare.generated.resource import Advancement, AdvancementDisplay
+
+# This does the exact same thing as add_advancement
+add_resource("advancement", "my_advancement", {
+    "display": {
+        "title": "Hello Flare!"
+    }
+})
+```
+
+The first argument is the internal `type_path` of the resource. For example, `worldgen/biome` for biomes, `advancement` for advancements, or `tags/blocks` for block tags.
+
+## Typed Structs
+
+Instead of using raw dictionaries, Flare provides strongly typed Python classes for all 70+ JSON structures. You can import these directly from `flare` (they are exported automatically)!
+
+These **Typed Structs** will provide you with full IDE autocompletion and type-checking, preventing you from writing broken datapacks due to a typo. You can convert them to a dictionary simply by calling `.to_dict()`.
+
+```python
+from flare import *
 
 add_advancement("my_typed_advancement", Advancement(
-    display=AdvancementDisplay(
-        title="Typed Advancement!",
-        description="Created with pure IDE autocompletion",
-        icon={"item": "minecraft:emerald"}
-    ),
+    display={
+        "title": "Typed Advancement!",
+        "description": "Created with pure IDE autocompletion",
+        "icon": {"item": "minecraft:emerald"}
+    },
     criteria={
         "req": {"trigger": "minecraft:tick"}
     }
-))
+).to_dict())
 ```
 
 ## Supported Features
@@ -62,13 +78,13 @@ By default, files are placed in your current `context.namespace()`. You can pref
 
 ```python
 # Replaces the vanilla diamond sword recipe!
-add_recipe("minecraft:diamond_sword", {
-    "type": "minecraft:crafting_shaped",
-    "pattern": [" # ", " # ", " / "],
-    "key": {
+add_recipe("minecraft:diamond_sword", Recipe(
+    type="minecraft:crafting_shaped",
+    pattern=[" # ", " # ", " / "],
+    key={
         "#": {"item": "minecraft:dirt"},
         "/": {"item": "minecraft:stick"}
     },
-    "result": {"item": "minecraft:diamond_sword"}
-})
+    result={"item": "minecraft:diamond_sword"}
+).to_dict())
 ```

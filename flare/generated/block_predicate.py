@@ -1,74 +1,311 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
+VerticalAnchor = Union[Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}, {'relative_to_sea_level': int}], Any]
 
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-VerticalAnchor = Union[{'absolute': int}, {'above_bottom': int}, {'below_top': int}, {'relative_to_sea_level': int}]
-
-@struct
 class BlockPredicate:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class CombiningPredicate:
-    predicates: list['BlockPredicate']
+    def __init__(
+            self,
+            predicates: Optional[Union[list['BlockPredicate'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if predicates is not None:
+            self.components["predicates"] = predicates
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class PredicateOffset:
-    offset: list[int]
+    def __init__(
+            self,
+            offset: Optional[Union[list[int], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if offset is not None:
+            self.components["offset"] = offset
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class HasSturdyFacePredicate(PredicateOffset):
-    direction: str
+    def __init__(
+            self,
+            direction: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if direction is not None:
+            self.components["direction"] = direction
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class HeightRangePredicate:
-    min_inclusive: 'VerticalAnchor'
-    max_inclusive: 'VerticalAnchor'
+    def __init__(
+            self,
+            min_inclusive: Optional[Union['VerticalAnchor', Any]] = None,
+            max_inclusive: Optional[Union['VerticalAnchor', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if min_inclusive is not None:
+            self.components["min_inclusive"] = min_inclusive
+        if max_inclusive is not None:
+            self.components["max_inclusive"] = max_inclusive
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class InsideWorldBoundsPredicate(PredicateOffset):
-    pass
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class MatchingBiomesPredicate:
-    biomes: Union[str, list[str]]
+    def __init__(
+            self,
+            biomes: Optional[Union[Union[str, list[str]], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if biomes is not None:
+            self.components["biomes"] = biomes
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class MatchingBlockTagPredicate(PredicateOffset):
-    tag: str
+    def __init__(
+            self,
+            tag: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if tag is not None:
+            self.components["tag"] = tag
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class MatchingBlocksPredicate(PredicateOffset):
-    blocks: Union[list[str], str]
+    def __init__(
+            self,
+            blocks: Optional[Union[Union[list[str], str], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if blocks is not None:
+            self.components["blocks"] = blocks
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class MatchingFluidsPredicate(PredicateOffset):
-    fluids: Union[list[str], str]
+    def __init__(
+            self,
+            fluids: Optional[Union[Union[list[str], str], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if fluids is not None:
+            self.components["fluids"] = fluids
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class NotPredicate:
-    predicate: 'BlockPredicate'
+    def __init__(
+            self,
+            predicate: Optional[Union['BlockPredicate', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if predicate is not None:
+            self.components["predicate"] = predicate
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class UnobstructedPredicate:
-    offset: list[int]
+    def __init__(
+            self,
+            offset: Optional[Union[list[int], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if offset is not None:
+            self.components["offset"] = offset
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class WouldSurvivePredicate(PredicateOffset):
-    state: 'BlockState'
+    def __init__(
+            self,
+            state: Optional[Union['BlockState', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if state is not None:
+            self.components["state"] = state
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BlockState:
-    Name: str
-    Properties: Any
+    def __init__(
+            self,
+            Name: Optional[Union[str, Any]] = None,
+            Properties: Optional[Union[Any, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if Name is not None:
+            self.components["Name"] = Name
+        if Properties is not None:
+            self.components["Properties"] = Properties
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

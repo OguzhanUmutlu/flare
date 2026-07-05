@@ -1,130 +1,540 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class Button:
-    label: 'Text'
-    tooltip: 'Text'
-    width: int
-    action: 'ClickAction'
+    def __init__(
+            self,
+            label: Optional[Union['Text', Any]] = None,
+            tooltip: Optional[Union['Text', Any]] = None,
+            width: Optional[Union[int, Any]] = None,
+            action: Optional[Union['ClickAction', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if label is not None:
+            self.components["label"] = label
+        if tooltip is not None:
+            self.components["tooltip"] = tooltip
+        if width is not None:
+            self.components["width"] = width
+        if action is not None:
+            self.components["action"] = action
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DialogBase:
-    title: 'Text'
-    external_title: 'Text'
-    body: Union['DialogBody', list['DialogBody']]
-    inputs: list['InputControl']
-    can_close_with_escape: bool
-    after_action: str
+    def __init__(
+            self,
+            title: Optional[Union['Text', Any]] = None,
+            external_title: Optional[Union['Text', Any]] = None,
+            body: Optional[Union[Union['DialogBody', list['DialogBody']], Any]] = None,
+            inputs: Optional[Union[list['InputControl'], Any]] = None,
+            can_close_with_escape: Optional[Union[bool, Any]] = None,
+            after_action: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if title is not None:
+            self.components["title"] = title
+        if external_title is not None:
+            self.components["external_title"] = external_title
+        if body is not None:
+            self.components["body"] = body
+        if inputs is not None:
+            self.components["inputs"] = inputs
+        if can_close_with_escape is not None:
+            self.components["can_close_with_escape"] = can_close_with_escape
+        if after_action is not None:
+            self.components["after_action"] = after_action
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ListDialogBase(DialogBase):
-    exit_action: 'Button'
-    columns: int
+    def __init__(
+            self,
+            exit_action: Optional[Union['Button', Any]] = None,
+            columns: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if exit_action is not None:
+            self.components["exit_action"] = exit_action
+        if columns is not None:
+            self.components["columns"] = columns
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ButtonListDialogBase(ListDialogBase):
-    button_width: int
+    def __init__(
+            self,
+            button_width: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if button_width is not None:
+            self.components["button_width"] = button_width
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ConfirmationDialog(DialogBase):
-    yes: 'Button'
-    no: 'Button'
+    def __init__(
+            self,
+            yes: Optional[Union['Button', Any]] = None,
+            no: Optional[Union['Button', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if yes is not None:
+            self.components["yes"] = yes
+        if no is not None:
+            self.components["no"] = no
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Dialog:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class MultiActionDialog(ListDialogBase):
-    actions: list['Button']
+    def __init__(
+            self,
+            actions: Optional[Union[list['Button'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if actions is not None:
+            self.components["actions"] = actions
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class NoticeDialog(DialogBase):
-    action: 'Button'
+    def __init__(
+            self,
+            action: Optional[Union['Button', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if action is not None:
+            self.components["action"] = action
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RedirectDialog(ButtonListDialogBase):
-    dialogs: Union[list[Union[str, 'Dialog']], str, 'Dialog']
+    def __init__(
+            self,
+            dialogs: Optional[Union[Union[list[Union[str, 'Dialog']], str, 'Dialog'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if dialogs is not None:
+            self.components["dialogs"] = dialogs
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ServerLinksDialog(ButtonListDialogBase):
-    pass
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ClickAction:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DialogBody:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class InputControl:
-    type: str
-    key: Union[Union[str], Any]
-Profile = Union[{'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], 'ProfilePropertyMap']}, {'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], list['ProfileProperty'], 'ProfilePropertyMap'], 'texture': str, 'cape': str, 'elytra': str, 'model': str}, str]
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            key: Optional[Union[Union[Union[str], Any], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
+        if key is not None:
+            self.components["key"] = key
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+Profile = Union[Union[{'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], 'ProfilePropertyMap']}, {'name': str, 'id': Any, 'properties': Union[list['ProfileProperty'], list['ProfileProperty'], 'ProfilePropertyMap'], 'texture': str, 'cape': str, 'elytra': str, 'model': str}, str], Any]
+
 class ProfileProperty:
-    name: Union[str, str]
-    value: Union[str, str]
-    signature: Union[str, str]
+    def __init__(
+            self,
+            name: Optional[Union[Union[str, str], Any]] = None,
+            value: Optional[Union[Union[str, str], Any]] = None,
+            signature: Optional[Union[Union[str, str], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if name is not None:
+            self.components["name"] = name
+        if value is not None:
+            self.components["value"] = value
+        if signature is not None:
+            self.components["signature"] = signature
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ProfilePropertyMap:
-    pass
-RGBA = Union[int, list[float]]
+    def __init__(
+            self,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+RGBA = Union[Union[int, list[float]], Any]
+
 class ClickEvent:
-    action: str
+    def __init__(
+            self,
+            action: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if action is not None:
+            self.components["action"] = action
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class HoverEvent:
-    action: str
+    def __init__(
+            self,
+            action: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if action is not None:
+            self.components["action"] = action
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ObjectTextConfig:
-    fallback: 'Text'
-Text = Union[str, 'TextObject', list['Text']]
+    def __init__(
+            self,
+            fallback: Optional[Union['Text', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if fallback is not None:
+            self.components["fallback"] = fallback
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+Text = Union[Union[str, 'TextObject', list['Text']], Any]
+
 class TextStyle:
-    color: Union[str, str]
-    shadow_color: 'RGBA'
-    font: str
-    bold: bool
-    italic: bool
-    underlined: bool
-    strikethrough: bool
-    obfuscated: bool
-    insertion: str
-    clickEvent: 'ClickEvent'
-    click_event: 'ClickEvent'
-    hoverEvent: 'HoverEvent'
-    hover_event: 'HoverEvent'
+    def __init__(
+            self,
+            color: Optional[Union[Union[str, str], Any]] = None,
+            shadow_color: Optional[Union['RGBA', Any]] = None,
+            font: Optional[Union[str, Any]] = None,
+            bold: Optional[Union[bool, Any]] = None,
+            italic: Optional[Union[bool, Any]] = None,
+            underlined: Optional[Union[bool, Any]] = None,
+            strikethrough: Optional[Union[bool, Any]] = None,
+            obfuscated: Optional[Union[bool, Any]] = None,
+            insertion: Optional[Union[str, Any]] = None,
+            clickEvent: Optional[Union['ClickEvent', Any]] = None,
+            click_event: Optional[Union['ClickEvent', Any]] = None,
+            hoverEvent: Optional[Union['HoverEvent', Any]] = None,
+            hover_event: Optional[Union['HoverEvent', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if color is not None:
+            self.components["color"] = color
+        if shadow_color is not None:
+            self.components["shadow_color"] = shadow_color
+        if font is not None:
+            self.components["font"] = font
+        if bold is not None:
+            self.components["bold"] = bold
+        if italic is not None:
+            self.components["italic"] = italic
+        if underlined is not None:
+            self.components["underlined"] = underlined
+        if strikethrough is not None:
+            self.components["strikethrough"] = strikethrough
+        if obfuscated is not None:
+            self.components["obfuscated"] = obfuscated
+        if insertion is not None:
+            self.components["insertion"] = insertion
+        if clickEvent is not None:
+            self.components["clickEvent"] = clickEvent
+        if click_event is not None:
+            self.components["click_event"] = click_event
+        if hoverEvent is not None:
+            self.components["hoverEvent"] = hoverEvent
+        if hover_event is not None:
+            self.components["hover_event"] = hover_event
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class TextBase(TextStyle):
-    extra: list['Text']
+    def __init__(
+            self,
+            extra: Optional[Union[list['Text'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if extra is not None:
+            self.components["extra"] = extra
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class TextNbtBase(TextBase):
-    interpret: bool
-    plain: bool
-    separator: 'Text'
-TextObject = Union[{'text': str, 'type': Any}, {'translate': str, 'fallback': str, 'with': list['Text'], 'type': Any}, {'score': {'objective': str, 'name': str}, 'type': Any}, {'selector': str, 'separator': 'Text', 'type': Any}, {'keybind': str, 'type': Any}, {'block': str, 'nbt': str, 'source': Any, 'type': Any}, {'entity': str, 'nbt': str, 'source': Any, 'type': Any}, {'storage': str, 'nbt': str, 'source': Any, 'type': Any}, {'atlas': str, 'sprite': str, 'object': Any, 'type': Any}, {'player': 'Profile', 'hat': bool, 'object': Any, 'type': Any}]
+    def __init__(
+            self,
+            interpret: Optional[Union[bool, Any]] = None,
+            plain: Optional[Union[bool, Any]] = None,
+            separator: Optional[Union['Text', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if interpret is not None:
+            self.components["interpret"] = interpret
+        if plain is not None:
+            self.components["plain"] = plain
+        if separator is not None:
+            self.components["separator"] = separator
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+TextObject = Union[Union[{'text': str, 'type': Any}, {'translate': str, 'fallback': str, 'with': list['Text'], 'type': Any}, {'score': {'objective': str, 'name': str}, 'type': Any}, {'selector': str, 'separator': 'Text', 'type': Any}, {'keybind': str, 'type': Any}, {'block': str, 'nbt': str, 'source': Any, 'type': Any}, {'entity': str, 'nbt': str, 'source': Any, 'type': Any}, {'storage': str, 'nbt': str, 'source': Any, 'type': Any}, {'atlas': str, 'sprite': str, 'object': Any, 'type': Any}, {'player': 'Profile', 'hat': bool, 'object': Any, 'type': Any}], Any]
+

@@ -1,69 +1,266 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class Banner:
-    color: 'DyeColor'
-    attachment: str
+    def __init__(
+            self,
+            color: Optional[Union['DyeColor', Any]] = None,
+            attachment: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if color is not None:
+            self.components["color"] = color
+        if attachment is not None:
+            self.components["attachment"] = attachment
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Bed:
-    texture: str
-    part: str
+    def __init__(
+            self,
+            texture: Optional[Union[str, Any]] = None,
+            part: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if texture is not None:
+            self.components["texture"] = texture
+        if part is not None:
+            self.components["part"] = part
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Book:
-    open_angle: float
-    page1: float
-    page2: float
+    def __init__(
+            self,
+            open_angle: Optional[Union[float, Any]] = None,
+            page1: Optional[Union[float, Any]] = None,
+            page2: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if open_angle is not None:
+            self.components["open_angle"] = open_angle
+        if page1 is not None:
+            self.components["page1"] = page1
+        if page2 is not None:
+            self.components["page2"] = page2
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Chest:
-    texture: str
-    openness: float
-    chest_type: str
+    def __init__(
+            self,
+            texture: Optional[Union[str, Any]] = None,
+            openness: Optional[Union[float, Any]] = None,
+            chest_type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if texture is not None:
+            self.components["texture"] = texture
+        if openness is not None:
+            self.components["openness"] = openness
+        if chest_type is not None:
+            self.components["chest_type"] = chest_type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class CopperGolemStatue:
-    pose: str
-    texture: str
+    def __init__(
+            self,
+            pose: Optional[Union[str, Any]] = None,
+            texture: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if pose is not None:
+            self.components["pose"] = pose
+        if texture is not None:
+            self.components["texture"] = texture
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class EndCube:
-    effect: str
+    def __init__(
+            self,
+            effect: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if effect is not None:
+            self.components["effect"] = effect
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class HangingSign:
-    wood_type: str
-    texture: str
-    attachment: str
+    def __init__(
+            self,
+            wood_type: Optional[Union[str, Any]] = None,
+            texture: Optional[Union[str, Any]] = None,
+            attachment: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if wood_type is not None:
+            self.components["wood_type"] = wood_type
+        if texture is not None:
+            self.components["texture"] = texture
+        if attachment is not None:
+            self.components["attachment"] = attachment
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Head:
-    kind: str
-    animation: float
+    def __init__(
+            self,
+            kind: Optional[Union[str, Any]] = None,
+            animation: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if kind is not None:
+            self.components["kind"] = kind
+        if animation is not None:
+            self.components["animation"] = animation
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ShulkerBox:
-    texture: str
-    openness: float
-    orientation: str
+    def __init__(
+            self,
+            texture: Optional[Union[str, Any]] = None,
+            openness: Optional[Union[float, Any]] = None,
+            orientation: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if texture is not None:
+            self.components["texture"] = texture
+        if openness is not None:
+            self.components["openness"] = openness
+        if orientation is not None:
+            self.components["orientation"] = orientation
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class StandingSign:
-    wood_type: str
-    texture: str
-    attachement: str
+    def __init__(
+            self,
+            wood_type: Optional[Union[str, Any]] = None,
+            texture: Optional[Union[str, Any]] = None,
+            attachement: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if wood_type is not None:
+            self.components["wood_type"] = wood_type
+        if texture is not None:
+            self.components["texture"] = texture
+        if attachement is not None:
+            self.components["attachement"] = attachement
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

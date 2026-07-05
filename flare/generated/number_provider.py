@@ -1,59 +1,223 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
+LevelBasedValue = Union[Union[float, 'LevelBasedValueMap'], Any]
 
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-LevelBasedValue = Union[float, 'LevelBasedValueMap']
-
-@struct
 class LevelBasedValueMap:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BinomialNumberProvider:
-    n: 'NumberProvider'
-    p: 'NumberProvider'
+    def __init__(
+            self,
+            n: Optional[Union['NumberProvider', Any]] = None,
+            p: Optional[Union['NumberProvider', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if n is not None:
+            self.components["n"] = n
+        if p is not None:
+            self.components["p"] = p
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ConstantNumberProvider:
-    value: float
+    def __init__(
+            self,
+            value: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class EnchantmentLevelProvider:
-    amount: 'LevelBasedValue'
+    def __init__(
+            self,
+            amount: Optional[Union['LevelBasedValue', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if amount is not None:
+            self.components["amount"] = amount
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class EnvironmentAttributeNumberProvider:
-    attribute: str
-NumberProvider = Union[float, {'type': str}]
+    def __init__(
+            self,
+            attribute: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if attribute is not None:
+            self.components["attribute"] = attribute
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+NumberProvider = Union[Union[float, {'type': str}], Any]
+
 class ScoreNumberProvider:
-    target: 'ScoreProvider'
-    score: str
-    scale: float
-ScoreProvider = Union[str, {'type': str}]
+    def __init__(
+            self,
+            target: Optional[Union['ScoreProvider', Any]] = None,
+            score: Optional[Union[str, Any]] = None,
+            scale: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if target is not None:
+            self.components["target"] = target
+        if score is not None:
+            self.components["score"] = score
+        if scale is not None:
+            self.components["scale"] = scale
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+ScoreProvider = Union[Union[str, {'type': str}], Any]
+
 class StorageNumberProvider:
-    storage: str
-    path: str
+    def __init__(
+            self,
+            storage: Optional[Union[str, Any]] = None,
+            path: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if storage is not None:
+            self.components["storage"] = storage
+        if path is not None:
+            self.components["path"] = path
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SumNumberProvider:
-    summands: list['NumberProvider']
+    def __init__(
+            self,
+            summands: Optional[Union[list['NumberProvider'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if summands is not None:
+            self.components["summands"] = summands
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class UniformNumberProvider:
-    min: 'NumberProvider'
-    max: 'NumberProvider'
+    def __init__(
+            self,
+            min: Optional[Union['NumberProvider', Any]] = None,
+            max: Optional[Union['NumberProvider', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if min is not None:
+            self.components["min"] = min
+        if max is not None:
+            self.components["max"] = max
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

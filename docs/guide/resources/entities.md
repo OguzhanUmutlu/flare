@@ -7,7 +7,7 @@ Flare natively generates these JSON definitions using the top-level `add_*` func
 ## Supported Generators
 
 > [!TIP]
-> **Typed Structs Supported:** You can use strongly-typed classes from `flare.generated.resource` instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
+> **Typed Structs Supported:** You can use strongly-typed classes from `flare` (like `WolfVariant`, `TrialSpawner`) instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
 
 - `add_cat_variant()`
 - `add_chicken_variant()`
@@ -29,12 +29,12 @@ You can define entirely new breeds of wolves and configure the specific biomes t
 ```python
 from flare import *
 
-add_wolf_variant("husky", {
-    "wild_texture": "my_namespace:entity/wolf/husky",
-    "tame_texture": "my_namespace:entity/wolf/husky_tame",
-    "angry_texture": "my_namespace:entity/wolf/husky_angry",
-    "biomes": "#minecraft:is_snowy"
-})
+add_wolf_variant("husky", WolfVariant(
+    wild_texture="my_namespace:entity/wolf/husky",
+    tame_texture="my_namespace:entity/wolf/husky_tame",
+    angry_texture="my_namespace:entity/wolf/husky_angry",
+    biomes="#minecraft:is_snowy"
+).to_dict())
 ```
 
 ## Example: Trial Spawners
@@ -44,14 +44,14 @@ You can completely replace the spawn pools and reward sets for trial spawners.
 ```python
 from flare import *
 
-add_trial_spawner("my_custom_spawner", {
-    "spawn_range": 4,
-    "total_mobs": 10,
-    "simultaneous_mobs": 3,
-    "total_mobs_added_per_player": 2,
-    "simultaneous_mobs_added_per_player": 1,
-    "ticks_between_spawn": 40,
-    "spawn_potentials": [
+add_trial_spawner("my_custom_spawner", TrialSpawner(
+    spawn_range=4,
+    total_mobs=10,
+    simultaneous_mobs=3,
+    total_mobs_added_per_player=2,
+    simultaneous_mobs_added_per_player=1,
+    ticks_between_spawn=40,
+    spawn_potentials=[
         {
             "data": {
                 "entity": {
@@ -61,11 +61,11 @@ add_trial_spawner("my_custom_spawner", {
             "weight": 1
         }
     ],
-    "loot_tables_to_eject": [
+    loot_tables_to_eject=[
         {
             "data": "minecraft:chests/simple_dungeon",
             "weight": 1
         }
     ]
-})
+).to_dict())
 ```

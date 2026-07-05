@@ -1,59 +1,219 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class ConfiguredFeature:
-    type: Union[str, str]
-    config: Any
-ConfiguredFeatureRef = Union[str, str, 'ConfiguredFeature']
+    def __init__(
+            self,
+            type: Optional[Union[Union[str, str], Any]] = None,
+            config: Optional[Union[Any, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
+        if config is not None:
+            self.components["config"] = config
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+ConfiguredFeatureRef = Union[Union[str, str, 'ConfiguredFeature'], Any]
+
 class PlacedFeature:
-    feature: 'ConfiguredFeatureRef'
-    placement: list['PlacementModifier']
-PlacedFeatureRef = Union[str, 'PlacedFeature']
+    def __init__(
+            self,
+            feature: Optional[Union['ConfiguredFeatureRef', Any]] = None,
+            placement: Optional[Union[list['PlacementModifier'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if feature is not None:
+            self.components["feature"] = feature
+        if placement is not None:
+            self.components["placement"] = placement
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+PlacedFeatureRef = Union[Union[str, 'PlacedFeature'], Any]
+
 class PlacementModifier:
-    type: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Processor:
-    processor_type: str
-ProcessorList = Union[list['Processor'], {'processors': list['Processor']}]
-ProcessorListRef = Union[str, 'ProcessorList']
+    def __init__(
+            self,
+            processor_type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if processor_type is not None:
+            self.components["processor_type"] = processor_type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+ProcessorList = Union[Union[list['Processor'], {'processors': list['Processor']}], Any]
+
+ProcessorListRef = Union[Union[str, 'ProcessorList'], Any]
+
 class Element:
-    element_type: str
+    def __init__(
+            self,
+            element_type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if element_type is not None:
+            self.components["element_type"] = element_type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ElementBase:
-    projection: str
+    def __init__(
+            self,
+            projection: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if projection is not None:
+            self.components["projection"] = projection
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class FeatureElement(ElementBase):
-    feature: Union['ConfiguredFeatureRef', 'PlacedFeatureRef']
+    def __init__(
+            self,
+            feature: Optional[Union[Union['ConfiguredFeatureRef', 'PlacedFeatureRef'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if feature is not None:
+            self.components["feature"] = feature
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ListElement(ElementBase):
-    elements: list['Element']
+    def __init__(
+            self,
+            elements: Optional[Union[list['Element'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if elements is not None:
+            self.components["elements"] = elements
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SingleElement(ElementBase):
-    location: str
-    processors: 'ProcessorListRef'
-    override_liquid_settings: str
+    def __init__(
+            self,
+            location: Optional[Union[str, Any]] = None,
+            processors: Optional[Union['ProcessorListRef', Any]] = None,
+            override_liquid_settings: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if location is not None:
+            self.components["location"] = location
+        if processors is not None:
+            self.components["processors"] = processors
+        if override_liquid_settings is not None:
+            self.components["override_liquid_settings"] = override_liquid_settings
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

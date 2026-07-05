@@ -394,10 +394,16 @@ class FlareTransformer(ast.NodeTransformer):
 
         value = node.value if node.value is not None else ast.Constant(value=None)
 
+        lambda_node = ast.Lambda(
+            args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
+            body=value
+        )
+
         if_node = ast.If(test=ast.Compare(
             left=ast.Attribute(value=ast.Name(id="ctx", ctx=ast.Load()), attr="current_file", ctx=ast.Load()),
             ops=[ast.IsNot()], comparators=[ast.Constant(value=None)]), body=[
-            ast.Expr(value=ast.Call(func=ast.Name(id="_flare_return", ctx=ast.Load()), args=[value], keywords=[])),
+            ast.Expr(
+                value=ast.Call(func=ast.Name(id="_flare_return", ctx=ast.Load()), args=[lambda_node], keywords=[])),
             ast.Return(value=None)], orelse=[ast.Return(value=value)])
         ast.copy_location(if_node, node)
 

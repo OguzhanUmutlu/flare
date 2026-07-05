@@ -1,42 +1,144 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class Checkerboard:
-    scale: int
-    biomes: Union[list[str], str]
+    def __init__(
+            self,
+            scale: Optional[Union[int, Any]] = None,
+            biomes: Optional[Union[Union[list[str], str], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if scale is not None:
+            self.components["scale"] = scale
+        if biomes is not None:
+            self.components["biomes"] = biomes
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Fixed:
-    biome: str
+    def __init__(
+            self,
+            biome: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if biome is not None:
+            self.components["biome"] = biome
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class MultiNoiseBase:
-    seed: long
+    def __init__(
+            self,
+            seed: Optional[Union[long, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if seed is not None:
+            self.components["seed"] = seed
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class MultiNoise(MultiNoiseBase):
-    preset: Union[str, str, str]
+    def __init__(
+            self,
+            preset: Optional[Union[Union[str, str, str], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if preset is not None:
+            self.components["preset"] = preset
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class TheEnd:
-    seed: long
+    def __init__(
+            self,
+            seed: Optional[Union[long, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if seed is not None:
+            self.components["seed"] = seed
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class VanillaLayered:
-    seed: long
-    large_biomes: bool
-    legacy_biome_init_layer: bool
+    def __init__(
+            self,
+            seed: Optional[Union[long, Any]] = None,
+            large_biomes: Optional[Union[bool, Any]] = None,
+            legacy_biome_init_layer: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if seed is not None:
+            self.components["seed"] = seed
+        if large_biomes is not None:
+            self.components["large_biomes"] = large_biomes
+        if legacy_biome_init_layer is not None:
+            self.components["legacy_biome_init_layer"] = legacy_biome_init_layer
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

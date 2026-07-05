@@ -314,6 +314,8 @@ def _flare_print(*args, sep: str = " ", color: str | int | Color | None = None, 
 
 
 def export(func=None, *, name=None, append=False, returns=None):
+    from .variables.builtins import IntReturn
+
     if isinstance(func, str):
         name = func
         func = None
@@ -375,6 +377,35 @@ def export(func=None, *, name=None, append=False, returns=None):
     _logical_func = func_name
 
     class ProxyFunction:
+        __name__ = actual_name
+
+        @property
+        def returns(self):
+            if func_name in return_targets:
+                return return_targets[func_name]
+
+            ret_anno = return_types.get(func_name, sig.return_annotation)
+            if ret_anno == int or ret_anno == "int":
+                raise TypeError(f"Cannot access .returns on function '{func_name}' because it returns a raw int.")
+
+            if hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
+                target = score(addr=f"{func_name.replace(':', '_')}_ret {vars_obj}")
+            else:
+                if inspect.isclass(ret_anno) and issubclass(ret_anno, nbt):
+                    target = ret_anno(addr=f"storage {returns_storage} {func_name.replace(':', '_')}")
+                else:
+                    datatype = None
+                    if hasattr(ret_anno, "__origin__") or isinstance(ret_anno, type):
+                        datatype = getattr(ret_anno, "__origin__", ret_anno)
+                    target = nbt(addr=f"storage {returns_storage} {func_name.replace(':', '_')}", datatype=datatype)
+
+            return_targets[func_name] = target
+            return target
+
+        @returns.setter
+        def returns(self, value):
+            self.returns.__iset__(value)
+
         def _write_non_macro_args(self, bound):
             for arg_name, arg_val in bound.arguments.items():
                 target = kwargs[arg_name]
@@ -407,7 +438,9 @@ def export(func=None, *, name=None, append=False, returns=None):
                 return "UNKNOWN_RETURN"
             elif ret_anno is not inspect.Signature.empty and ret_anno is not None:
                 global _temp_id
-                if hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
+                if ret_anno == int or ret_anno == "int":
+                    return IntReturn(func_name)
+                elif hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
                     temp_ret = score(addr=f"!ret{_temp_id}")
                     _temp_id += 1
                     _runcmd(
@@ -520,41 +553,6 @@ def export(func=None, *, name=None, append=False, returns=None):
             return_types[func_name] = None
 
     return proxy
-
-
-def event(trigger: str, conditions: dict = None, *, name=None, append=False, returns=None):
-    from .resources import add_advancement
-
-    if conditions is None:
-        conditions = {}
-
-    def wrapper(func):
-        actual_name = name if name is not None else func.__name__
-        func_name = f"{_current_namespace}:{actual_name}"
-        adv_name = f"{_current_namespace}:events/{actual_name}"
-
-        adv_json = {
-            "criteria": {
-                "requirement": {
-                    "trigger": f"minecraft:{trigger}" if ":" not in trigger else trigger,
-                    "conditions": conditions
-                }
-            },
-            "rewards": {
-                "function": func_name
-            }
-        }
-
-        add_advancement(f"events/{actual_name}", adv_json)
-
-        exported_func = export(name=actual_name, append=append, returns=returns)(func)
-
-        if func_name in files:
-            files[func_name].insert(0, f"advancement revoke @s only {adv_name}")
-
-        return exported_func
-
-    return wrapper
 
 
 def _flare_in(item, container):
@@ -670,19 +668,25 @@ def _flare_aug_assign(var_name, op_name, value, _locals, _globals):
     return value
 
 
-def _flare_return(value):
+def _flare_return(value_fn):
+    from .variables.score import addr
+
     func_name = _logical_func
     if func_name is None:
         raise Exception("Return outside of exported function")
 
-    if isinstance(value, str) and value == "UNKNOWN_RETURN":
+    if isinstance(value_fn, str) and value_fn == "UNKNOWN_RETURN":
         has_returns[func_name] = True
         return
 
     from .variables.builtins import _FailType
-    if isinstance(value, _FailType):
+    if isinstance(value_fn, _FailType):
         _runcmd("return fail")
         return
+
+    start_len = len(files.get(current_file, []))
+    value = value_fn() if callable(value_fn) else value_fn
+    added_cmds = files.get(current_file, [])[start_len:]
 
     ret_anno = return_types.get(func_name, None)
 
@@ -697,6 +701,8 @@ def _flare_return(value):
         elif hasattr(type(leaf), "__name__") and type(leaf).__name__ in ("score", "fixed", "_PrecisionScore", "nbt",
                                                                          "_TypedNBT"):
             ret_anno = type(leaf)
+        elif isinstance(leaf, int):
+            ret_anno = int
         else:
             raise TypeError(f"Cannot auto-detect return type from value of type {type(leaf)}")
         return_types[func_name] = ret_anno
@@ -706,7 +712,25 @@ def _flare_return(value):
     if ret_anno is None or ret_anno == type(None):
         if value is not None:
             raise TypeError(f"Function {func_name} returned a value but has no return type annotation")
+        _runcmd("return 1")
         return
+
+    if ret_anno == int:
+        if len(added_cmds) == 1:
+            cmd = added_cmds[0]
+            files[current_file].pop()
+            _runcmd(f"return run {cmd}")
+            return
+        elif len(added_cmds) == 0 and isinstance(value, int):
+            _runcmd(f"return {value}")
+            return
+        elif len(added_cmds) == 0 and hasattr(type(value), "__name__") and type(value).__name__ == "score":
+            value._check_addr()
+            _runcmd(f"return run scoreboard players get {addr(value)}")
+            return
+        else:
+            raise TypeError(
+                f"Function {func_name} has return type int but returned multiple commands or a non-integer value")
 
     if func_name in return_targets:
         target = return_targets[func_name]

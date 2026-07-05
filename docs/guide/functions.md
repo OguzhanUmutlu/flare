@@ -55,7 +55,37 @@ def broken():          # Returns a plain Python value Flare can't map to MC
 
 - If the function never returns a value → return type is `None`.
 - If it returns a `score` / `nbt` → detected automatically.
+- If it returns an `int` or you annotate it with `-> int` → automatically compiles to native Minecraft `return run` logic!
 - If it returns something Flare can't recognize → `TypeError`.
+
+### Pure `int` Returns (`return run`)
+
+Flare natively supports Minecraft 1.20.2+ `return run <command>` execution flow. By typing your function as returning a standard `int`, Flare will avoid using any temporary scoreboards for return value assignments.
+
+If you return another function call or inline an execution chain, Flare will natively optimize this using `return run`:
+
+```python
+@export
+def check_clear(player: selector) -> int:
+    # Compiles to a clean, native return chain without ANY scoreboard math!
+    # execute as @s run return run clear ...
+    with as_(player):
+        return player.clear("dirt")
+```
+
+### Accessing the Return Variable Directly (`.returns`)
+
+For complex recursive functions (or functions returning NBT/Scores), you might want to directly overwrite the return variable instead of explicitly calling `return` multiple times. You can access the pre-allocated return target for any exported function using `.returns`:
+
+```python
+@export
+def calculate(a: score) -> score:
+    # Directly writes to calculate's return variable
+    calculate.returns = a * 2
+    calculate.returns += 10
+    
+    # Implicitly returns at the end of the function!
+```
 
 ### `return fail`
 

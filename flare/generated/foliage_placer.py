@@ -1,49 +1,176 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class CherryFoliagePlacer:
-    height: 'IntProvider'
-    wide_bottom_layer_hole_chance: float
-    corner_hole_chance: float
-    hanging_leaves_chance: float
-    hanging_leaves_extension_chance: float
+    def __init__(
+            self,
+            height: Optional[Union['IntProvider', Any]] = None,
+            wide_bottom_layer_hole_chance: Optional[Union[float, Any]] = None,
+            corner_hole_chance: Optional[Union[float, Any]] = None,
+            hanging_leaves_chance: Optional[Union[float, Any]] = None,
+            hanging_leaves_extension_chance: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if height is not None:
+            self.components["height"] = height
+        if wide_bottom_layer_hole_chance is not None:
+            self.components["wide_bottom_layer_hole_chance"] = wide_bottom_layer_hole_chance
+        if corner_hole_chance is not None:
+            self.components["corner_hole_chance"] = corner_hole_chance
+        if hanging_leaves_chance is not None:
+            self.components["hanging_leaves_chance"] = hanging_leaves_chance
+        if hanging_leaves_extension_chance is not None:
+            self.components["hanging_leaves_extension_chance"] = hanging_leaves_extension_chance
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class HeightFoliagePlacer:
-    height: int
+    def __init__(
+            self,
+            height: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if height is not None:
+            self.components["height"] = height
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class MegaPineFoliagePlacer:
-    crown_height: Union['UniformInt', 'IntProvider']
+    def __init__(
+            self,
+            crown_height: Optional[Union[Union['UniformInt', 'IntProvider'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if crown_height is not None:
+            self.components["crown_height"] = crown_height
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class PineFoliagePlacer:
-    height: Union['UniformInt', 'IntProvider']
+    def __init__(
+            self,
+            height: Optional[Union[Union['UniformInt', 'IntProvider'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if height is not None:
+            self.components["height"] = height
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class PoplarFoliagePlacer:
-    height: 'IntProvider'
-    side_hole_chance: float
+    def __init__(
+            self,
+            height: Optional[Union['IntProvider', Any]] = None,
+            side_hole_chance: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if height is not None:
+            self.components["height"] = height
+        if side_hole_chance is not None:
+            self.components["side_hole_chance"] = side_hole_chance
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RandomSpreadFoliagePlacer:
-    foliage_height: 'IntProvider'
-    leaf_placement_attempts: int
+    def __init__(
+            self,
+            foliage_height: Optional[Union['IntProvider', Any]] = None,
+            leaf_placement_attempts: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if foliage_height is not None:
+            self.components["foliage_height"] = foliage_height
+        if leaf_placement_attempts is not None:
+            self.components["leaf_placement_attempts"] = leaf_placement_attempts
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SprucePineFoliagePlacer:
-    trunk_height: Union['UniformInt', 'IntProvider']
+    def __init__(
+            self,
+            trunk_height: Optional[Union[Union['UniformInt', 'IntProvider'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if trunk_height is not None:
+            self.components["trunk_height"] = trunk_height
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+

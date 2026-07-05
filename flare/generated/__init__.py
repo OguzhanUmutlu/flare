@@ -27,6 +27,7 @@ from .entity_sub_predicate import *
 from .environment_attribute import *
 from .environment_attribute_argb_color_modifier import *
 from .environment_attribute_color_modifier import *
+from .events import *
 from .feature_config import *
 from .feature_size import *
 from .foliage_placer import *
@@ -36,6 +37,7 @@ from .height_provider import *
 from .hover_event import *
 from .input_control import *
 from .item import *
+from .item_base import *
 from .item_model import *
 from .level_based_value import *
 from .list_operation import *
@@ -55,6 +57,7 @@ from .position_source import *
 from .random_int_generator import *
 from .recipe_serializer import *
 from .resource import *
+from .resource_classes import *
 from .root_placer import *
 from .rule_block_entity_modifier import *
 from .rule_test import *

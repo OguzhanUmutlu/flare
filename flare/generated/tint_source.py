@@ -1,51 +1,190 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
+ActuallyTranslucentRGB = Union[Union[int, list[float]], Any]
 
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-ActuallyTranslucentRGB = Union[int, list[float]]
-
-@struct
 class ConstantTint:
-    value: 'RGB'
+    def __init__(
+            self,
+            value: Optional[Union['RGB', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class CustomModelDataTint:
-    index: int
-    default: 'RGB'
+    def __init__(
+            self,
+            index: Optional[Union[int, Any]] = None,
+            default: Optional[Union['RGB', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if index is not None:
+            self.components["index"] = index
+        if default is not None:
+            self.components["default"] = default
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DyeTint:
-    default: 'ActuallyTranslucentRGB'
+    def __init__(
+            self,
+            default: Optional[Union['ActuallyTranslucentRGB', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if default is not None:
+            self.components["default"] = default
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class FireworkTint:
-    default: 'ActuallyTranslucentRGB'
+    def __init__(
+            self,
+            default: Optional[Union['ActuallyTranslucentRGB', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if default is not None:
+            self.components["default"] = default
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class GrassTint:
-    temperature: float
-    downfall: float
+    def __init__(
+            self,
+            temperature: Optional[Union[float, Any]] = None,
+            downfall: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if temperature is not None:
+            self.components["temperature"] = temperature
+        if downfall is not None:
+            self.components["downfall"] = downfall
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class MapColorTint:
-    default: 'RGB'
+    def __init__(
+            self,
+            default: Optional[Union['RGB', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if default is not None:
+            self.components["default"] = default
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class PotionTint:
-    default: 'RGB'
+    def __init__(
+            self,
+            default: Optional[Union['RGB', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if default is not None:
+            self.components["default"] = default
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class TeamTint:
-    default: 'RGB'
-RGB = Union[int, list[float]]
+    def __init__(
+            self,
+            default: Optional[Union['RGB', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if default is not None:
+            self.components["default"] = default
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+RGB = Union[Union[int, list[float]], Any]
+

@@ -1,72 +1,276 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class LootPoolEntryBase:
-    conditions: list['LootCondition']
+    def __init__(
+            self,
+            conditions: Optional[Union[list['LootCondition'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if conditions is not None:
+            self.components["conditions"] = conditions
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class CompositePoolEntry(LootPoolEntryBase):
-    children: list['LootPoolEntry']
+    def __init__(
+            self,
+            children: Optional[Union[list['LootPoolEntry'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if children is not None:
+            self.components["children"] = children
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SingletonPoolEntry(LootPoolEntryBase):
-    weight: int
-    quality: int
-    functions: list['LootFunction']
+    def __init__(
+            self,
+            weight: Optional[Union[int, Any]] = None,
+            quality: Optional[Union[int, Any]] = None,
+            functions: Optional[Union[list['LootFunction'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if weight is not None:
+            self.components["weight"] = weight
+        if quality is not None:
+            self.components["quality"] = quality
+        if functions is not None:
+            self.components["functions"] = functions
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DynamicPoolEntry(SingletonPoolEntry):
-    name: str
+    def __init__(
+            self,
+            name: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if name is not None:
+            self.components["name"] = name
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ItemPoolEntry(SingletonPoolEntry):
-    name: Union[str, str]
+    def __init__(
+            self,
+            name: Optional[Union[Union[str, str], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if name is not None:
+            self.components["name"] = name
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class LootPool:
-    rolls: Union['RandomIntGenerator', 'NumberProvider']
-    bonus_rolls: Union['MinMaxBounds', 'NumberProvider']
-    entries: list['LootPoolEntry']
-    functions: list['LootFunction']
-    conditions: list['LootCondition']
+    def __init__(
+            self,
+            rolls: Optional[Union[Union['RandomIntGenerator', 'NumberProvider'], Any]] = None,
+            bonus_rolls: Optional[Union[Union['MinMaxBounds', 'NumberProvider'], Any]] = None,
+            entries: Optional[Union[list['LootPoolEntry'], Any]] = None,
+            functions: Optional[Union[list['LootFunction'], Any]] = None,
+            conditions: Optional[Union[list['LootCondition'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if rolls is not None:
+            self.components["rolls"] = rolls
+        if bonus_rolls is not None:
+            self.components["bonus_rolls"] = bonus_rolls
+        if entries is not None:
+            self.components["entries"] = entries
+        if functions is not None:
+            self.components["functions"] = functions
+        if conditions is not None:
+            self.components["conditions"] = conditions
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class LootPoolEntry:
-    type: Union[str, str]
+    def __init__(
+            self,
+            type: Optional[Union[Union[str, str], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class LootTable:
-    type: str
-    pools: list['LootPool']
-    functions: list['LootFunction']
-    random_sequence: str
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            pools: Optional[Union[list['LootPool'], Any]] = None,
+            functions: Optional[Union[list['LootFunction'], Any]] = None,
+            random_sequence: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
+        if pools is not None:
+            self.components["pools"] = pools
+        if functions is not None:
+            self.components["functions"] = functions
+        if random_sequence is not None:
+            self.components["random_sequence"] = random_sequence
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class LootTablePoolEntry(SingletonPoolEntry):
-    name: str
-    value: Union[str, 'LootTable']
+    def __init__(
+            self,
+            name: Optional[Union[str, Any]] = None,
+            value: Optional[Union[Union[str, 'LootTable'], Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if name is not None:
+            self.components["name"] = name
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SlotsPoolEntry(SingletonPoolEntry):
-    slot_source: 'SlotSource'
+    def __init__(
+            self,
+            slot_source: Optional[Union['SlotSource', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if slot_source is not None:
+            self.components["slot_source"] = slot_source
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class TagPoolEntry(SingletonPoolEntry):
-    name: str
-    expand: bool
-NumberProvider = Union[float, {'type': str}]
-RandomIntGenerator = Union[int, {'type': str}]
+    def __init__(
+            self,
+            name: Optional[Union[str, Any]] = None,
+            expand: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if name is not None:
+            self.components["name"] = name
+        if expand is not None:
+            self.components["expand"] = expand
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+NumberProvider = Union[Union[float, {'type': str}], Any]
+
+RandomIntGenerator = Union[Union[int, {'type': str}], Any]
+

@@ -1,104 +1,445 @@
 ### AUTO GENERATED DO NOT EDIT ###
-from flare.variables.nbt import struct
-from flare.types import byte, short, long, double
-from flare.basesymbols import *
-import typing
-from typing import Any
-if typing.TYPE_CHECKING:
-    from typing import Union
-else:
+from typing import Optional, Union, Any
+from flare.generated.data_component import *
 
-    class _DummyUnion:
-
-        def __getitem__(self, items):
-            return typing.Any
-    Union = _DummyUnion()
-
-@struct
 class BlockState:
-    Name: str
-    Properties: Any
-RGB = Union[int, list[float]]
-RGBA = Union[int, list[float]]
+    def __init__(
+            self,
+            Name: Optional[Union[str, Any]] = None,
+            Properties: Optional[Union[Any, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if Name is not None:
+            self.components["Name"] = Name
+        if Properties is not None:
+            self.components["Properties"] = Properties
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+RGB = Union[Union[int, list[float]], Any]
+
+RGBA = Union[Union[int, list[float]], Any]
+
 class BlockParticle:
-    value: 'BlockState'
-    block_state: Union[str, 'BlockState']
+    def __init__(
+            self,
+            value: Optional[Union['BlockState', Any]] = None,
+            block_state: Optional[Union[Union[str, 'BlockState'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
+        if block_state is not None:
+            self.components["block_state"] = block_state
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DragonBreathParticle:
-    power: float
-DustColor = Union['LegacyDustColor', 'RGB']
+    def __init__(
+            self,
+            power: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if power is not None:
+            self.components["power"] = power
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+DustColor = Union[Union['LegacyDustColor', 'RGB'], Any]
+
 class DustColorTransitionParticle:
-    value: {'fromColor': 'DustColor', 'toColor': 'DustColor', 'scale': float}
+    def __init__(
+            self,
+            value: Optional[Union[{'fromColor': 'DustColor', 'toColor': 'DustColor', 'scale': float}, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DustParticle:
-    value: {'r': float, 'g': float, 'b': float, 'scale': float}
+    def __init__(
+            self,
+            value: Optional[Union[{'r': float, 'g': float, 'b': float, 'scale': float}, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class EffectParticle:
-    power: float
-    color: 'RGB'
+    def __init__(
+            self,
+            power: Optional[Union[float, Any]] = None,
+            color: Optional[Union['RGB', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if power is not None:
+            self.components["power"] = power
+        if color is not None:
+            self.components["color"] = color
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class EntityEffectParticle:
-    value: {'r': float, 'g': float, 'b': float, 'a': float}
-    color: 'TranslucentParticle'
+    def __init__(
+            self,
+            value: Optional[Union[{'r': float, 'g': float, 'b': float, 'a': float}, Any]] = None,
+            color: Optional[Union['TranslucentParticle', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
+        if color is not None:
+            self.components["color"] = color
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class FlashParticle:
-    color: 'TranslucentParticle'
+    def __init__(
+            self,
+            color: Optional[Union['TranslucentParticle', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if color is not None:
+            self.components["color"] = color
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class GeyserBaseParticle:
-    water_blocks: int
-    burst_impulse_base: float
+    def __init__(
+            self,
+            water_blocks: Optional[Union[int, Any]] = None,
+            burst_impulse_base: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if water_blocks is not None:
+            self.components["water_blocks"] = water_blocks
+        if burst_impulse_base is not None:
+            self.components["burst_impulse_base"] = burst_impulse_base
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class GeyserParticle:
-    water_blocks: int
+    def __init__(
+            self,
+            water_blocks: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if water_blocks is not None:
+            self.components["water_blocks"] = water_blocks
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ItemParticle:
-    value: 'ItemStack'
-    item: Union[str, 'SingleItem', 'ItemStackTemplate']
+    def __init__(
+            self,
+            value: Optional[Union['ItemStack', Any]] = None,
+            item: Optional[Union[Union[str, 'SingleItem', 'ItemStackTemplate'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
+        if item is not None:
+            self.components["item"] = item
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SafePositionSource:
-    type: Any
-    pos: list[int]
+    def __init__(
+            self,
+            type: Optional[Union[Any, Any]] = None,
+            pos: Optional[Union[list[int], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
+        if pos is not None:
+            self.components["pos"] = pos
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SculkChargeParticle:
-    value: float
-    roll: float
+    def __init__(
+            self,
+            value: Optional[Union[float, Any]] = None,
+            roll: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
+        if roll is not None:
+            self.components["roll"] = roll
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ShriekParticle:
-    value: int
-    delay: int
+    def __init__(
+            self,
+            value: Optional[Union[int, Any]] = None,
+            delay: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if value is not None:
+            self.components["value"] = value
+        if delay is not None:
+            self.components["delay"] = delay
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class TintedLeavesParticle:
-    color: 'RGBA'
+    def __init__(
+            self,
+            color: Optional[Union['RGBA', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if color is not None:
+            self.components["color"] = color
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class TrailParticle:
-    target: list[double]
-    color: 'RGB'
-    duration: int
-TranslucentParticle = Union['LegacyTranslucentParticle', 'RGBA']
+    def __init__(
+            self,
+            target: Optional[Union[list[double], Any]] = None,
+            color: Optional[Union['RGB', Any]] = None,
+            duration: Optional[Union[int, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if target is not None:
+            self.components["target"] = target
+        if color is not None:
+            self.components["color"] = color
+        if duration is not None:
+            self.components["duration"] = duration
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+TranslucentParticle = Union[Union['LegacyTranslucentParticle', 'RGBA'], Any]
+
 class VibrationParticleData:
-    arrival_in_ticks: int
-    destination: 'SafePositionSource'
+    def __init__(
+            self,
+            arrival_in_ticks: Optional[Union[int, Any]] = None,
+            destination: Optional[Union['SafePositionSource', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if arrival_in_ticks is not None:
+            self.components["arrival_in_ticks"] = arrival_in_ticks
+        if destination is not None:
+            self.components["destination"] = destination
 
-@struct
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class VibrationParticle(VibrationParticleData):
-    value: 'VibrationParticleData'
-ItemStackTemplate = Union['ItemStack', str]
+    def __init__(
+            self,
+            value: Optional[Union['VibrationParticleData', Any]] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        if value is not None:
+            self.components["value"] = value
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+ItemStackTemplate = Union[Union['ItemStack', str], Any]
+

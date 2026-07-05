@@ -1,5 +1,5 @@
 {
-  "namespace": "worldedit",
+  "namespace": "we",
   "pack_format": "26.2",
   "description": "WorldEdit made with Flare",
   "build_dir": [

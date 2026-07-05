@@ -7,7 +7,7 @@ Flare supports dynamically generating these JSON files inside your python script
 ## Supported Generators
 
 > [!TIP]
-> **Typed Structs Supported:** You can use strongly-typed classes from `flare.generated.resource` instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
+> **Typed Structs Supported:** You can use strongly-typed classes from `flare` (like `Advancement`, `LootTable`) instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
 
 - `add_advancement()`
 - `add_loot_table()`
@@ -22,14 +22,14 @@ Advancements can be used for guiding players, triggering specific reward logic, 
 ```python
 from flare import *
 
-add_advancement("find_diamond", {
-    "display": {
+add_advancement("find_diamond", Advancement(
+    display={
         "title": "Shiny!",
         "description": "Find your first diamond.",
         "icon": {"item": "minecraft:diamond"}
     },
-    "parent": "minecraft:story/mine_stone",
-    "criteria": {
+    parent="minecraft:story/mine_stone",
+    criteria={
         "has_diamond": {
             "trigger": "minecraft:inventory_changed",
             "conditions": {
@@ -39,7 +39,7 @@ add_advancement("find_diamond", {
             }
         }
     }
-})
+).to_dict())
 ```
 
 ## Recipes
@@ -49,19 +49,19 @@ You can add custom crafting, smelting, campfire cooking, and smithing recipes us
 ```python
 from flare import *
 
-add_recipe("custom_bread", {
-    "type": "minecraft:crafting_shaped",
-    "pattern": [
+add_recipe("custom_bread", Recipe(
+    type="minecraft:crafting_shaped",
+    pattern=[
         "WWW"
     ],
-    "key": {
+    key={
         "W": {"item": "minecraft:wheat"}
     },
-    "result": {
+    result={
         "item": "minecraft:bread",
         "count": 3
     }
-})
+).to_dict())
 ```
 
 ## Loot Tables
@@ -71,9 +71,9 @@ Loot tables define what drops from blocks, entities, chests, or fishing.
 ```python
 from flare import *
 
-add_loot_table("blocks/custom_ore", {
-    "type": "minecraft:block",
-    "pools": [
+add_loot_table("blocks/custom_ore", LootTable(
+    type="minecraft:block",
+    pools=[
         {
             "rolls": 1,
             "entries": [
@@ -84,5 +84,5 @@ add_loot_table("blocks/custom_ore", {
             ]
         }
     ]
-})
+).to_dict())
 ```
