@@ -167,7 +167,7 @@ def generate_ast_for_struct(
             key = field.get("key")
             if isinstance(key, dict) and key.get("kind") == "string":
                 key = key.get("value")
-            
+
             if not isinstance(key, str) or (not key.isidentifier() and not keyword.iskeyword(key)):
                 continue
 
@@ -389,19 +389,19 @@ else:
                                 base_name = get_class_name_from_path(spread_type.get("path"))
                                 if base_name in valid_classes or base_name in local_undefined:
                                     bases.append(base_name)
-                    
+
                     base_str = f"({', '.join(bases)})" if bases else ""
                     f.write(f"class {class_name}{base_str}:\n")
                     f.write("    def __init__(\n")
                     f.write("            self,\n")
-                    
+
                     comp_args = []
                     for field in node.get("fields", []):
                         if field.get("kind") == "pair":
                             key = field.get("key")
                             if isinstance(key, dict) and key.get("kind") == "string":
                                 key = key.get("value")
-                            
+
                             if not isinstance(key, str) or (not key.isidentifier() and not keyword.iskeyword(key)):
                                 continue
 
@@ -409,7 +409,8 @@ else:
                             if keyword.iskeyword(safe_name):
                                 safe_name += "_"
 
-                            type_str = map_mcdoc_type(field.get("type"), mcdoc, valid_classes, undefined_symbols, local_undefined)
+                            type_str = map_mcdoc_type(field.get("type"), mcdoc, valid_classes, undefined_symbols,
+                                                      local_undefined)
                             comp_args.append((safe_name, type_str, key))
                             f.write(f"            {safe_name}: Optional[Union[{type_str}, Any]] = None,\n")
 
@@ -420,7 +421,7 @@ else:
                     else:
                         f.write("        self.components = {}\n")
                         f.write("        self.components.update(kwargs)\n")
-                        
+
                     if comp_args:
                         for safe_name, _, key in comp_args:
                             f.write(f"        if {safe_name} is not None:\n")
@@ -496,10 +497,10 @@ def main():
         triggers = dispatcher.get("minecraft:trigger", {})
         for trigger_name in sorted(triggers.keys()):
             f.write(
-                f"def {trigger_name}_event(conditions=None, *, name=None, append=False, returns=None):\n"
+                f"def {trigger_name}_event(conditions=None, *, name=None, append=False, returns=None, auto_revoke: bool = True):\n"
             )
             f.write(
-                f'    return event("{trigger_name}", conditions, name=name, append=append, returns=returns)\n\n'
+                f'    return event("{trigger_name}", conditions, name=name, append=append, returns=returns, auto_revoke=auto_revoke)\n\n'
             )
     generated_modules.append("events")
 
@@ -541,10 +542,11 @@ def main():
     with open(resource_classes_path, "w", encoding="utf-8") as f:
         f.write("### AUTO GENERATED DO NOT EDIT ###\n")
         f.write("from typing import Optional, Union, Any\n")
-        
+
         f.write("from flare.generated.resource import *\n\n")
 
-        f.write("__all__ = [name for name in dir() if not name.startswith('_') and name not in ['Optional', 'Union', 'Any']]\n")
+        f.write(
+            "__all__ = [name for name in dir() if not name.startswith('_') and name not in ['Optional', 'Union', 'Any']]\n")
 
     generated_modules.append("resource_classes")
 
