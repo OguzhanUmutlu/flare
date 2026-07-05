@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import typing
 from typing import Generic, TypeVar
 
 from ..context import _runcmd
@@ -134,6 +135,9 @@ class selector(Generic[T]):
         self.__with__(lambda: body_func(selector("@s")))
         if orelse_func:
             orelse_func()
+
+    def __iter__(self) -> "typing.Iterator[selector]":
+        yield selector("@s")
 
     def _as(self):
         from ..execute_modifiers import _as

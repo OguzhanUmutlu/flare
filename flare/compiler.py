@@ -28,8 +28,17 @@ def _compile_relational(node, invert=False):
 
     left, right = node.left, node.right
 
-    left_leaf = left._best_leaf() if hasattr(left, "_best_leaf") else left
-    right_leaf = right._best_leaf() if hasattr(right, "_best_leaf") else right
+    def _peek_leaf(node):
+        if isinstance(node, BinaryOp):
+            return _peek_leaf(node.left)
+        if isinstance(node, UnaryOp):
+            return _peek_leaf(node.operand)
+        if is_lazy(node) and hasattr(node, "operand") and node.operand is not None:
+            return _peek_leaf(node.operand)
+        return node
+
+    left_leaf = _peek_leaf(left)
+    right_leaf = _peek_leaf(right)
 
     is_nbt_op = (
             isinstance(left_leaf, nbt)

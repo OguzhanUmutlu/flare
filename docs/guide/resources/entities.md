@@ -7,7 +7,7 @@ Flare natively generates these JSON definitions using the top-level `add_*` func
 ## Supported Generators
 
 > [!TIP]
-> **Typed Structs Supported:** You can use strongly-typed classes from `flare` (like `WolfVariant`, `TrialSpawner`) instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
+> **Typed Structs Supported:** You can use strongly-typed classes from `flare` (like `WolfVariant`, `TrialSpawnerConfig`) instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
 
 - `add_cat_variant()`
 - `add_chicken_variant()`
@@ -34,7 +34,7 @@ add_wolf_variant("husky", WolfVariant(
     tame_texture="my_namespace:entity/wolf/husky_tame",
     angry_texture="my_namespace:entity/wolf/husky_angry",
     biomes="#minecraft:is_snowy"
-).to_dict())
+))
 ```
 
 ## Example: Trial Spawners
@@ -44,7 +44,7 @@ You can completely replace the spawn pools and reward sets for trial spawners.
 ```python
 from flare import *
 
-add_trial_spawner("my_custom_spawner", TrialSpawner(
+add_trial_spawner("my_custom_spawner", TrialSpawnerConfig(
     spawn_range=4,
     total_mobs=10,
     simultaneous_mobs=3,
@@ -67,5 +67,5 @@ add_trial_spawner("my_custom_spawner", TrialSpawner(
             "weight": 1
         }
     ]
-).to_dict())
+))
 ```

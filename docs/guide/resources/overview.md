@@ -20,7 +20,7 @@ add_advancement("my_advancement", Advancement(
     criteria={
         "req": {"trigger": "minecraft:tick"}
     }
-).to_dict())
+))
 ```
 
 When you run your Flare script, this will automatically generate a valid JSON file at `data/<namespace>/advancement/my_advancement.json`.
@@ -33,11 +33,11 @@ All of the `add_*` functions (like `add_advancement`) use a powerful underlying 
 from flare import *
 
 # This does the exact same thing as add_advancement
-add_resource("advancement", "my_advancement", {
-    "display": {
-        "title": "Hello Flare!"
-    }
-})
+add_resource("advancement", "my_advancement", Advancement(
+    display=AdvancementDisplay(
+        title="Hello Flare!"
+    )
+))
 ```
 
 The first argument is the internal `type_path` of the resource. For example, `worldgen/biome` for biomes, `advancement` for advancements, or `tags/blocks` for block tags.
@@ -46,12 +46,15 @@ The first argument is the internal `type_path` of the resource. For example, `wo
 
 Instead of using raw dictionaries, Flare provides strongly typed Python classes for all 70+ JSON structures. You can import these directly from `flare` (they are exported automatically)!
 
-These **Typed Structs** will provide you with full IDE autocompletion and type-checking, preventing you from writing broken datapacks due to a typo. You can convert them to a dictionary simply by calling `.to_dict()`.
+These **Typed Structs** will provide you with full IDE autocompletion and type-checking, preventing you from writing broken datapacks due to a typo. You can pass these instances directly into the `add_*` functions!
+
+Additionally, every `add_*` function returns the full namespaced string of the resource you just created. This allows you to immediately assign it to a variable and use it throughout your codebase!
 
 ```python
 from flare import *
 
-add_advancement("my_typed_advancement", Advancement(
+# Create the advancement using strongly-typed fields
+my_adv = add_advancement("my_typed_advancement", Advancement(
     display={
         "title": "Typed Advancement!",
         "description": "Created with pure IDE autocompletion",
@@ -60,7 +63,12 @@ add_advancement("my_typed_advancement", Advancement(
     criteria={
         "req": {"trigger": "minecraft:tick"}
     }
-).to_dict())
+))
+
+@export
+def reward():
+    # my_adv is exactly "my_pack:my_typed_advancement"
+    run_command(f"advancement revoke @s only {my_adv}")
 ```
 
 ## Supported Features
@@ -86,5 +94,5 @@ add_recipe("minecraft:diamond_sword", Recipe(
         "/": {"item": "minecraft:stick"}
     },
     result={"item": "minecraft:diamond_sword"}
-).to_dict())
+))
 ```

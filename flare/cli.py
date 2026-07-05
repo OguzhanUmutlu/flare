@@ -481,7 +481,13 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
 def build_datapack(file_path: str, cli_overrides: dict | None = None):
     with build_lock:
-        return _build_datapack_inner(file_path, cli_overrides)
+        try:
+            return _build_datapack_inner(file_path, cli_overrides)
+        except Exception as e:
+            print(f"\033[91mBuild failed: {e}\033[0m")
+            tb_str = traceback.format_exc()
+            print(f"\033[91m{tb_str}\033[0m")
+            return False, {os.path.abspath(file_path)}, None
 
 
 class WatcherHandler(FileSystemEventHandler):

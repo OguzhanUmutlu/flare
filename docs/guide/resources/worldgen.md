@@ -35,15 +35,15 @@ from flare import *
 
 add_dimension("my_custom_dimension", Dimension(
     type="minecraft:overworld",
-    generator={
-        "type": "minecraft:noise",
-        "settings": "minecraft:overworld",
-        "biome_source": {
+    generator=ChunkGenerator(
+        type="minecraft:noise",
+        settings="minecraft:overworld",
+        biome_source={
             "type": "minecraft:fixed",
             "biome": "minecraft:plains"
         }
-    }
-).to_dict())
+    )
+))
 ```
 
 When this compiles, the JSON is automatically resolved into the correct path:
@@ -60,15 +60,15 @@ add_worldgen_biome("red_desert", Biome(
     has_precipitation=False,
     temperature=2.0,
     downfall=0.0,
-    effects={
-        "fog_color": 12638463,
-        "sky_color": 16724787,
-        "water_color": 4159204,
-        "water_fog_color": 329011
-    },
+    effects=BiomeEffects(
+        fog_color=12638463,
+        sky_color=16724787,
+        water_color=4159204,
+        water_fog_color=329011
+    ),
     spawners={},
     spawn_costs={},
     carvers={},
     features=[]
-).to_dict())
+))
 ```

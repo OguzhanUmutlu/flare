@@ -7,7 +7,7 @@ from typing import Any
 
 from .core import LazyOp
 from .core import UnsupportedOperandError, BinaryOp, addr, FlareValue, is_lazy, lazify
-from .core import ref as _ref
+from .core import _Ref as _ref
 from .score import score
 from .string import NBTStringMethods
 from .. import context as ctx

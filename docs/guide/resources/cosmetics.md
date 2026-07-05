@@ -25,7 +25,7 @@ from flare import *
 add_banner_pattern("flare_logo", BannerPattern(
     asset_id="my_namespace:flare_logo",
     translation_key="block.minecraft.banner.flare_logo"
-).to_dict())
+))
 ```
 
 ## Example: Trim Materials
@@ -43,5 +43,5 @@ add_trim_material("ruby", TrimMaterial(
         "translate": "trim_material.my_namespace.ruby",
         "color": "#FF0000"
     }
-).to_dict())
+))
 ```

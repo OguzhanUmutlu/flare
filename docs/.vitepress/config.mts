@@ -80,7 +80,8 @@ export default defineConfig({
                         {text: "Control Flow", link: "/guide/control-flow"},
                         {text: "Items & Data Components", link: "/guide/item"},
                         {text: "Exported Functions", link: "/guide/functions"},
-                        {text: "Events", link: "/guide/events"}
+                        {text: "Events", link: "/guide/events"},
+                        {text: "Custom Events", link: "/guide/custom_events"}
                     ]
                 },
                 {

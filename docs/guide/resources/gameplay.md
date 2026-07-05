@@ -14,6 +14,8 @@ Flare supports dynamically generating these JSON files inside your python script
 - `add_recipe()`
 - `add_predicate()`
 - `add_item_modifier()`
+- `add_enchantment()`
+- `add_enchantment_provider()`
 
 ## Advancements
 
@@ -23,23 +25,23 @@ Advancements can be used for guiding players, triggering specific reward logic, 
 from flare import *
 
 add_advancement("find_diamond", Advancement(
-    display={
-        "title": "Shiny!",
-        "description": "Find your first diamond.",
-        "icon": {"item": "minecraft:diamond"}
-    },
+    display=AdvancementDisplay(
+        title="Shiny!",
+        description="Find your first diamond.",
+        icon=AdvancementIcon(item="minecraft:diamond")
+    ),
     parent="minecraft:story/mine_stone",
     criteria={
-        "has_diamond": {
-            "trigger": "minecraft:inventory_changed",
-            "conditions": {
+        "has_diamond": AdvancementCriterion(
+            trigger="minecraft:inventory_changed",
+            conditions={
                 "items": [
                     {"items": ["minecraft:diamond"]}
                 ]
             }
-        }
+        )
     }
-).to_dict())
+))
 ```
 
 ## Recipes
@@ -61,7 +63,7 @@ add_recipe("custom_bread", Recipe(
         "item": "minecraft:bread",
         "count": 3
     }
-).to_dict())
+))
 ```
 
 ## Loot Tables
@@ -74,15 +76,55 @@ from flare import *
 add_loot_table("blocks/custom_ore", LootTable(
     type="minecraft:block",
     pools=[
-        {
-            "rolls": 1,
-            "entries": [
-                {
-                    "type": "minecraft:item",
-                    "name": "minecraft:diamond"
-                }
+        LootPool(
+            rolls=1,
+            entries=[
+                LootPoolEntry(
+                    type="minecraft:item",
+                    name="minecraft:diamond"
+                )
             ]
-        }
+        )
     ]
-).to_dict())
+))
+```
+
+## Enchantments
+
+You can build entirely custom enchantments defining everything from damage bonuses, post-attack logic, compatibility, and weights. 
+
+By capturing the string returned from `add_enchantment()`, you can instantly use it inside an `item()` block without ever typing its namespaced identifier!
+
+```python
+from flare import *
+
+# Create the enchantment
+wand_punch = add_enchantment("wand_punch", Enchantment(
+    description="Wand Punch",
+    supported_items="#minecraft:swords",
+    weight=1,
+    max_level=1,
+    min_cost={"base": 0, "per_level_above_first": 0},
+    max_cost={"base": 0, "per_level_above_first": 0},
+    anvil_cost=0,
+    slots=["hand"],
+    effects={
+        "minecraft:post_piercing_attack": [
+            {
+                "effect": {
+                    "type": "minecraft:run_function",
+                    "function": "my_pack:events/on_wand_punch"
+                }
+            }
+        ]
+    }
+))
+
+@export
+def give_wand():
+    # Pass our bound enchantment directly!
+    self.give_item(item(
+        "wooden_sword",
+        enchantments={wand_punch: 1}
+    ))
 ```

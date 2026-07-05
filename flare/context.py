@@ -379,6 +379,9 @@ def export(func=None, *, name=None, append=False, returns=None):
     class ProxyFunction:
         __name__ = actual_name
 
+        def __str__(self):
+            return func_name
+
         @property
         def returns(self):
             if func_name in return_targets:

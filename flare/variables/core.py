@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 from abc import ABC
+from typing import TypeVar, Generic
 
 
 def nostack(func):
@@ -604,12 +605,21 @@ def is_lazy(obj):
     )
 
 
-class ref:
-    def __init__(self, target):
+T = TypeVar("T")
+
+
+class _Ref(Generic[T]):
+    def __init__(self, target: T):
         self._target = target
 
     def __icopy__(self, varid: str):
         return self._target
+
+    def __getattr__(self, item):
+        return getattr(self._target, item)
+
+def ref(target: T) -> T:
+    return _Ref(target)
 
 
 from .string import NBTStringMethods

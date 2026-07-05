@@ -21,18 +21,19 @@ INT32_LIMIT = (2 ** 31) - 1
 
 def getscore(x: int | float, multiplier: float = 1.0):
     multiplier = float(multiplier)
-    if (x, multiplier) in constants:
-        return constants[(x, multiplier)]
-
     val = int(round(x / multiplier))
-    name = f"!_{x}_{multiplier}".replace(".", "_").replace("-", "n")
+    
+    if (val, multiplier) in constants:
+        return constants[(val, multiplier)]
+
+    name = f"!_{val}".replace("-", "n")
 
     ctx.ensure_constant(name, constant_obj, val)
-    constants[(x, multiplier)] = score(
+    constants[(val, multiplier)] = score(
         addr=f"{name} {constant_obj}", multiplier=multiplier
     )
-    constants[(x, multiplier)]._readonly = True
-    return constants[(x, multiplier)]
+    constants[(val, multiplier)]._readonly = True
+    return constants[(val, multiplier)]
 
 
 nbt: Any = lambda *_, **__: Any()
@@ -735,6 +736,9 @@ class score(FlareValue):
             adjusted_val = val / self._multiplier if self._multiplier != 0 else val
             return ScoreIfMatches(self, adjusted_val)
         return super().__eq__(other)
+
+    def reset(self):
+        _runcmd(f"scoreboard players reset {addr(self)}")
 
 
 class fixed(score):
