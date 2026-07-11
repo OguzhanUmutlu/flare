@@ -196,7 +196,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             "from flare import context as ctx\n"
             "from flare.command_parser import interpolate_command\n"
             "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
-            "from flare import fail, nbt, score, fixed, tagged, ref, getscore, storage, array, byte, boolean, short, long, double, compound, Objective\n"
+            "from flare import fail, nbt, score, fixed, ref, getscore, storage, array, byte, boolean, short, long, double, compound, Objective\n"
             "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray\n"
             "from flare import round_, floor, ceil\n"
             "from flare.math import *\n"
@@ -324,7 +324,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
     tags = {"tick": [], "load": []}
 
-    load_key = f"{context._current_namespace}:load"
+    load_key = f"{context._current_namespace}:__init__"
     if "main" in context.files:
         if load_key not in context.files:
             context.files[load_key] = []
@@ -339,7 +339,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
         if filename.endswith(":tick"):
             tags["tick"].append(filename)
-        elif filename.endswith(":load"):
+        elif filename.endswith(":load") or filename.endswith(":__init__") or filename.endswith(":__constants__"):
             tags["load"].append(filename)
 
         if ":" in filename:
@@ -351,7 +351,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                     "generated_" not in name
                     and "while_" not in name
                     and "with_" not in name
-                    and name not in ("main", "load")
+                    and name not in ("main", "load", "__init__", "__constants__")
             )
         else:
             file_p = os.path.join(
@@ -361,7 +361,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                     "generated_" not in filename
                     and "while_" not in filename
                     and "with_" not in filename
-                    and filename not in ("main", "load")
+                    and filename not in ("main", "load", "__init__", "__constants__")
             )
 
         if is_top_level and lines and lines[-1] in ("return 1", "return 0"):
@@ -390,7 +390,8 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
     for tag_name, tag_funcs in tags.items():
         if tag_funcs:
             if tag_name == "load":
-                tag_funcs.sort(key=lambda x: (x == load_key, x))
+                tag_funcs.sort(
+                    key=lambda x: (0 if x.endswith(":__constants__") else 2 if x.endswith(":__init__") else 1, x))
             write_if_changed(
                 os.path.join(tag_dir_str, f"{tag_name}.json"),
                 json.dumps({"values": tag_funcs}, indent=4),

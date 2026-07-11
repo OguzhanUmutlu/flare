@@ -98,9 +98,15 @@ from flare import is_dimension, success, predicate, stopwatch, selector, block
 if is_dimension("overworld"):
     pass
     
-# -> execute if function my_func run ...
-if success(my_func):
+# You can pass an entire command/block to success() lazily!
+# -> execute store success score !temp run say hi
+# -> execute if score !temp matches 1.. run ...
+if success(runcommand("say hi")):
     pass
+
+# Or store it directly!
+# -> execute store success score my_score __flare__vars__ run setblock ~ ~ ~ stone
+my_score = success(runcommand("setblock ~ ~ ~ stone"))
     
 # -> execute if predicate namespace:my_pred run ...
 if predicate("namespace:my_pred"):

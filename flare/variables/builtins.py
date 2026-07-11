@@ -41,6 +41,11 @@ class flare_range:
         else:
             self._args = [a if isinstance(a, FlareValue) else score(a) for a in args]
 
+    def __iter__(self):
+        if not self.is_flare:
+            return iter(self._native)
+        raise TypeError("Cannot iterate over a dynamic scoreboard range in Python.")
+
     def __for__(self, body_func, orelse_func=None, has_break=False, has_continue=False):
         from ..control_flow import _flare_for
         from .. import context as ctx

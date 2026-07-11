@@ -407,6 +407,7 @@ class ModelElement:
             faces: Optional[Union[dict, Any]] = None,
             rotation: Optional[Union['ModelElementRotation', Any]] = None,
             shade: Optional[Union[bool, Any]] = None,
+            shade_direction_override: Optional[Union[str, Any]] = None,
             light_emission: Optional[Union[int, Any]] = None,
             **kwargs
     ):
@@ -422,6 +423,8 @@ class ModelElement:
             self.components["rotation"] = rotation
         if shade is not None:
             self.components["shade"] = shade
+        if shade_direction_override is not None:
+            self.components["shade_direction_override"] = shade_direction_override
         if light_emission is not None:
             self.components["light_emission"] = light_emission
 
@@ -1676,6 +1679,8 @@ class LootTable:
                 res[k] = v
         return res
 
+NumberProvider = Union[Union[float, {'type': str}], Any]
+
 NonReferencePredicate = Union[Union['NonReferenceLootCondition', list['NonReferenceLootCondition']], Any]
 
 Predicate = Union[Union['LootCondition', list['LootCondition']], Any]
@@ -2144,8 +2149,6 @@ class TrimPattern:
             else:
                 res[k] = v
         return res
-
-NumberProvider = Union[Union[float, {'type': str}], Any]
 
 RandomIntGenerator = Union[Union[int, {'type': str}], Any]
 

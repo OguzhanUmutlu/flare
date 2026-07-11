@@ -2,6 +2,34 @@
 from typing import Optional, Union, Any
 from flare.generated.data_component import *
 
+class Brewing:
+    def __init__(
+            self,
+            input: Optional[Union['PotionIngredient', Any]] = None,
+            reagent: Optional[Union['PotionIngredient', Any]] = None,
+            output: Optional[Union['ItemStackTemplate', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if input is not None:
+            self.components["input"] = input
+        if reagent is not None:
+            self.components["reagent"] = reagent
+        if output is not None:
+            self.components["output"] = output
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class CookingBookInfo:
     def __init__(
             self,
@@ -241,6 +269,31 @@ class ItemResult:
                 res[k] = v
         return res
 
+class PotionIngredient:
+    def __init__(
+            self,
+            item: Optional[Union['Ingredient', Any]] = None,
+            potion_contents: Optional[Union['PotionsPredicate', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if item is not None:
+            self.components["item"] = item
+        if potion_contents is not None:
+            self.components["potion_contents"] = potion_contents
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Smelting(NotificationInfo, CookingBookInfo):
     def __init__(
             self,
@@ -377,6 +430,33 @@ class Stonecutting(NotificationInfo):
             self.components["result"] = result
         if count is not None:
             self.components["count"] = count
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+PotionTypeMatch = Union[Union[str, list[str]], Any]
+
+class PotionsPredicate:
+    def __init__(
+            self,
+            potions: Optional[Union['PotionTypeMatch', Any]] = None,
+            effects: Optional[Union['CollectionPredicate', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if potions is not None:
+            self.components["potions"] = potions
+        if effects is not None:
+            self.components["effects"] = effects
 
     def to_dict(self):
         res = {}

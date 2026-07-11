@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 import typing
 from typing import Generic, TypeVar
 
@@ -15,50 +16,6 @@ for _name, _obj in inspect.getmembers(gen_entities):
         for _child_name, _child_node in _obj.__flare_schema__["children"].items():
             if _child_name not in _global_entity_schema:
                 _global_entity_schema[_child_name] = _child_node
-
-
-class tagged:
-    def __init__(self, target: str, *, tag_name: str | None = None):
-        self._target = target
-        self.tag_name = tag_name
-
-    def __icopy__(self, varid: str):
-        _runcmd(f"tag @e remove {varid}")
-        _runcmd(f"tag {self._target} add {varid}")
-        return tagged(self._target, tag_name=varid)
-
-    def __iset__(self, other):
-        if isinstance(other, tagged):
-            target = other._target
-        elif isinstance(other, selector):
-            target = other._target_str
-        elif isinstance(other, str):
-            target = other
-        else:
-            raise ValueError(
-                "tagged can only be set to a string selector, selector object, or another tagged object"
-            )
-
-        _runcmd(f"tag @e remove {self.tag_name}")
-        _runcmd(f"tag {target} add {self.tag_name}")
-
-    def __setitem__(self, key, value):
-        if (
-                isinstance(key, slice)
-                and key.start is None
-                and key.stop is None
-                and key.step is None
-        ):
-            self.__iset__(value)
-            return
-        raise TypeError(
-            f"'{type(self).__name__}' object does not support item assignment"
-        )
-
-    def __str__(self):
-        if self.tag_name:
-            return f"@e[tag={self.tag_name}]"
-        return str(self._target)
 
 
 class _PrintableSelector:
@@ -121,7 +78,11 @@ class selector(Generic[T]):
             super().__setattr__(name, value)
             return
 
-        getattr(self, name).__iset__(value)
+        attr = getattr(self, name)
+        if inspect.ismethod(attr):
+            raise AttributeError(f"Cannot assign to method '{name}'. If you want to access the NBT tag '{name}', use `self['{name}']`.")
+        
+        attr.__iset__(value)
 
     def __getitem__(self, item):
         return self.__getattr__(str(item))
@@ -138,6 +99,16 @@ class selector(Generic[T]):
 
     def __iter__(self) -> "typing.Iterator[selector]":
         yield selector("@s")
+
+    def add_tag(self, tag: str):
+        from ..context import _runcmd
+
+        _runcmd(f"tag {self._target_str} add {tag}")
+
+    def remove_tag(self, tag: str):
+        from ..context import _runcmd
+
+        _runcmd(f"tag {self._target_str} remove {tag}")
 
     def _as(self):
         from ..execute_modifiers import _as
@@ -174,46 +145,57 @@ class selector(Generic[T]):
 
     def if_(self, condition):
         from ..execute_modifiers import _as
+
         return _as(self).if_(condition)
 
     def unless(self, condition):
         from ..execute_modifiers import _as
+
         return _as(self).unless(condition)
 
     def store(self, target):
         from ..execute_modifiers import _as
+
         return _as(self).store(target)
 
     def store_success(self, target):
         from ..execute_modifiers import _as
+
         return _as(self).store_success(target)
 
     def if_block(self, pos, target):
         from ..execute_modifiers import _as
+
         return _as(self).if_block(pos, target)
 
     def unless_block(self, pos, target):
         from ..execute_modifiers import _as
+
         return _as(self).unless_block(pos, target)
 
     def aligned(self, axes):
         from ..execute_modifiers import _as
+
         return _as(self).aligned(axes)
 
     def anchor(self, anchor_name):
         from ..execute_modifiers import _as
+
         return _as(self).anchor(anchor_name)
 
     def dimension(self, dim):
         from ..execute_modifiers import _as
+
         return _as(self).dimension(dim)
 
     def on(self, relation):
         from ..execute_modifiers import _as
+
         return _as(self).on(relation)
 
     def summon(self, entity):
         from ..execute_modifiers import _as
+
         return _as(self).summon(entity)
 
     def attacker(self):
@@ -267,6 +249,9 @@ class selector(Generic[T]):
         else:
             _runcmd(f"advancement revoke {self._target_str} {mode} {advancement}")
 
+    def kill(self):
+        _runcmd(f"kill {self._target_str}")
+
     def __branch__(self, invert=False):
         keyword = "unless" if invert else "if"
         return [f"{keyword} entity {self._target_str}"]
@@ -289,3 +274,38 @@ class selector(Generic[T]):
             if max_count is not None:
                 cmd += f" {max_count}"
         _runcmd(cmd)
+
+    def _format_text_components(self, args, kwargs):
+        from ..print import style
+
+        components = style(*args, **kwargs).__print__()
+        while isinstance(components, list) and len(components) == 1:
+            components = components[0]
+        if len(components) == 1 and isinstance(components, dict) and "text" in components:
+            return json.dumps(components["text"])
+        return json.dumps(components)
+
+    def print(self, *args, **kwargs):
+        cmd_text = self._format_text_components(args, kwargs)
+        _runcmd(f"tellraw {self._target_str} {cmd_text}")
+
+    def title(self, *args, **kwargs):
+        cmd_text = self._format_text_components(args, kwargs)
+        _runcmd(f"title {self._target_str} title {cmd_text}")
+
+    def subtitle(self, *args, **kwargs):
+        cmd_text = self._format_text_components(args, kwargs)
+        _runcmd(f"title {self._target_str} subtitle {cmd_text}")
+
+    def actionbar(self, *args, **kwargs):
+        cmd_text = self._format_text_components(args, kwargs)
+        _runcmd(f"title {self._target_str} actionbar {cmd_text}")
+
+    def clear_title(self):
+        _runcmd(f"title {self._target_str} clear")
+
+    def reset_title(self):
+        _runcmd(f"title {self._target_str} reset")
+
+    def time_title(self, fade_in: int, stay: int, fade_out: int):
+        _runcmd(f"title {self._target_str} times {fade_in} {stay} {fade_out}")

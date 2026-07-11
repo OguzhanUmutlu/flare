@@ -321,16 +321,58 @@ def store(target: Union["flare.variables.score", "flare.variables.nbt", str]) ->
     return ExecuteChain().store(target)
 
 
+def store_success(target: Union["flare.variables.score", "flare.variables.nbt", str]) -> ExecuteChain:
+    return ExecuteChain().store_success(target)
+
+
 def is_dimension(dim: str) -> InlineCondition:
     return InlineCondition(f"if dimension {dim}")
 
 
-def success(test) -> InlineCondition:
+from .variables.core import FlareValue
+
+
+class _SuccessCondition(FlareValue):
+    def __init__(self, lazy_func=None, func_name=None):
+        self.lazy_func = lazy_func
+        self.func_name = func_name
+        self._is_nbt_op = False
+
+    def __branch__(self, invert=False):
+        if self.func_name:
+            if invert:
+                return [f"unless function {self.func_name}"]
+            return [f"if function {self.func_name}"]
+        else:
+            from .variables.score import score
+
+            temp = score(addr=f"!succ_{ctx.next_temp_id()} {ctx.vars_obj}")
+            store_success(temp).__with__(self.lazy_func)
+
+            if invert:
+                return [f"unless score {temp._addr} matches 1.."]
+            return [f"if score {temp._addr} matches 1.."]
+
+    def _compile_into(self, target):
+        if self.lazy_func:
+            store_success(target).__with__(self.lazy_func)
+        elif self.func_name:
+            store_success(target).__with__(lambda: ctx._runcmd(f"function {self.func_name}"))
+
+    def _alloc_temp(self):
+        from .variables.score import score
+        return score(addr=f"!succ_{ctx.next_temp_id()} {ctx.vars_obj}")
+
+
+def success(test) -> _SuccessCondition:
+    if callable(test):
+        return _SuccessCondition(lazy_func=test)
+
     if hasattr(test, "__name__"):
         test = f"{ctx._current_namespace}:{test.__name__}"
     elif hasattr(test, "name"):
         test = test.name
-    return InlineCondition(f"if function {test}")
+    return _SuccessCondition(func_name=test)
 
 
 def predicate(name: str) -> InlineCondition:

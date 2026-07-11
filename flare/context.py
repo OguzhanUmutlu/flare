@@ -116,11 +116,11 @@ def reset_context():
 
 
 def ensure_objective(obj: str):
-    global _objective_offset, _constant_offset
+    global _objective_offset
     if not obj or obj in objectives:
         return
 
-    load_file = f"{_current_namespace}:load"
+    load_file = f"{_current_namespace}:__constants__"
     if load_file not in files:
         files[load_file] = []
 
@@ -128,44 +128,34 @@ def ensure_objective(obj: str):
     if cmd not in files[load_file]:
         files[load_file].insert(_objective_offset, cmd)
         _objective_offset += 1
-        _constant_offset += 1
         objectives.add(obj)
 
 
 def ensure_constant(name: str, obj: str, val: int):
-    global _constant_offset
     ensure_objective(obj)
 
-    load_file = f"{_current_namespace}:load"
+    load_file = f"{_current_namespace}:__constants__"
     cmd = f"scoreboard players set {name} {obj} {val}"
     if cmd not in files[load_file]:
-        files[load_file].insert(_constant_offset, cmd)
-        _constant_offset += 1
+        files[load_file].append(cmd)
 
 
 class _ContextManager:
     def __init__(self, new_file: str):
         self.new_file = new_file
         self.old_file = None
-        self.old_namespace = None
 
     def __enter__(self):
-        global current_file, _current_namespace
+        global current_file
         self.old_file = current_file
         current_file = self.new_file
-
-        if ":" in self.new_file:
-            self.old_namespace = _current_namespace
-            _current_namespace = self.new_file.split(":")[0]
 
         if self.new_file not in files:
             files[self.new_file] = []
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        global current_file, _current_namespace
+        global current_file
         current_file = self.old_file
-        if self.old_namespace is not None:
-            _current_namespace = self.old_namespace
 
 
 def push_context(name: str):
@@ -224,6 +214,9 @@ def combine_execute(prefix: str, cmd: str) -> str:
 
 
 def runcommand(command: str, local_vars=None, global_vars=None, validation: str = None):
+    if "$(" in command and not command.startswith("$"):
+        command = "$" + command
+
     if local_vars is not None and global_vars is not None:
         command = interpolate_command(command, local_vars, global_vars)
         if _cp._macro_substituted and not command.startswith("$"):
@@ -244,14 +237,7 @@ def runcommand(command: str, local_vars=None, global_vars=None, validation: str 
     files[current_file].append(command)
 
 
-_macro_substituted_raw = False
-
-
 def _runcmd(command: str):
-    global _macro_substituted_raw
-    if _macro_substituted_raw and not command.startswith("$"):
-        command = "$" + command
-    _macro_substituted_raw = False
     runcommand(command, validation="none")
 
 
@@ -327,7 +313,10 @@ def export(func=None, *, name=None, append=False, returns=None):
         return wrapper
 
     actual_name = name if name is not None else func.__name__
-    func_name = f"{_current_namespace}:{actual_name}"
+    if ":" in actual_name:
+        func_name = actual_name
+    else:
+        func_name = f"{_current_namespace}:{actual_name}"
     if func_name in files and not append:
         raise ValueError(f"Function {func_name} already exists. Use @export(append=True) to append.")
 
@@ -457,7 +446,10 @@ def export(func=None, *, name=None, append=False, returns=None):
                     return temp_ret
 
         def __call__(self, *args, **call_kwargs):
+            from .variables.nbt import nbt
+
             global _temp_id
+
             bound = sig.bind(*args, **call_kwargs)
             bound.apply_defaults()
 
@@ -484,12 +476,13 @@ def export(func=None, *, name=None, append=False, returns=None):
                             val_str = json.dumps(v)
                             _runcmd(
                                 f"data modify storage {storage_path} {call_key}.{k} set value {val_str}")
-                        elif isinstance(v, nbt):
-                            v._check_addr()
-                            _runcmd(f"data modify storage {storage_path} {call_key}.{k} set from {addr(v)}")
                         else:
-                            raise TypeError(
-                                f"Macro argument '{k}' must be a literal or NBT value, got {type(v).__name__}")
+                            try:
+                                temp_arg = nbt(addr=f"storage {storage_path} {call_key}.{k}")
+                                temp_arg.__iset__(v)
+                            except Exception as e:
+                                raise TypeError(
+                                    f"Macro argument '{k}' cannot be initialized from {type(v).__name__}: {str(e)}")
                     _runcmd(f"function {func_name} with storage {storage_path} {call_key}")
             else:
                 _runcmd(f"function {func_name}")

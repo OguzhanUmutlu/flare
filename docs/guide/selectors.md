@@ -69,22 +69,20 @@ For entirely custom NBT data paths that Flare's schema isn't aware of, you can s
 storage.my_data.test[int] = 10
 ```
 
-## The `tagged` Class
+## Tagging Selectors
 
-Use `tagged` to dynamically assign and manage entity tags:
+You can dynamically manage entity tags using the `.add_tag()` and `.remove_tag()` methods directly on any selector:
 
 ```python
-from flare import tagged
+# Add a tag to all players within distance 5
+close_players = selector("@a[distance=..5]")
+close_players.add_tag("my_custom_tag")
 
-# Tags all players within distance 5 with a unique generated tag
-# Emits: tag @e remove <tag>; tag @a[distance=..5] add <tag>
-close_players = tagged("@a[distance=..5]")
+# Target them later using the standard selector syntax
+kill @a[tag=my_custom_tag]
 
-# The preprocessor turns this into: kill @e[tag=<tag>]
-kill close_players
-
-# Reassign the tag to a new target
-close_players = "@p"
+# Remove the tag when done
+close_players.remove_tag("my_custom_tag")
 ```
 
 ## Selector Relations (`on`)

@@ -22,6 +22,7 @@ class item_base:
             can_break: Optional[Union['AdventureModePredicate', Any]] = None,
             can_place_on: Optional[Union['AdventureModePredicate', Any]] = None,
             charged_projectiles: Optional[Union[list['ItemStackTemplate'], Any]] = None,
+            compostable: Optional[Union['Compostable', Any]] = None,
             consumable: Optional[Union['Consumable', Any]] = None,
             container: Optional[Union[list['ContainerSlot'], Any]] = None,
             container_loot: Optional[Union['ContainerLoot', Any]] = None,
@@ -128,6 +129,8 @@ class item_base:
             self.components["can_place_on"] = can_place_on
         if charged_projectiles is not None:
             self.components["charged_projectiles"] = charged_projectiles
+        if compostable is not None:
+            self.components["compostable"] = compostable
         if consumable is not None:
             self.components["consumable"] = consumable
         if container is not None:

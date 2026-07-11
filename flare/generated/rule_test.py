@@ -2,28 +2,6 @@
 from typing import Optional, Union, Any
 from flare.generated.data_component import *
 
-class AllOfMatch:
-    def __init__(
-            self,
-            rules: Optional[Union[list['RuleTest'], Any]] = None,
-            **kwargs
-    ):
-        self.components = {}
-        self.components.update(kwargs)
-        if rules is not None:
-            self.components["rules"] = rules
-
-    def to_dict(self):
-        res = {}
-        for k, v in self.components.items():
-            if hasattr(v, 'to_dict'):
-                res[k] = v.to_dict()
-            elif isinstance(v, list):
-                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
-            else:
-                res[k] = v
-        return res
-
 class BlockMatch:
     def __init__(
             self,
@@ -68,6 +46,28 @@ class BlockStateMatch:
                 res[k] = v
         return res
 
+class CompositeMatch:
+    def __init__(
+            self,
+            rules: Optional[Union[list['RuleTest'], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if rules is not None:
+            self.components["rules"] = rules
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class HeightMatch:
     def __init__(
             self,
@@ -81,6 +81,28 @@ class HeightMatch:
             self.components["min_inclusive"] = min_inclusive
         if max_inclusive is not None:
             self.components["max_inclusive"] = max_inclusive
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+class InvertedMatch:
+    def __init__(
+            self,
+            rule: Optional[Union['RuleTest', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if rule is not None:
+            self.components["rule"] = rule
 
     def to_dict(self):
         res = {}

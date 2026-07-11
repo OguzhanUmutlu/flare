@@ -124,13 +124,13 @@ class BlockStateProvider:
 class CopyPropertiesProvider:
     def __init__(
             self,
-            source_block_state_provider: Optional[Union['BlockStateProvider', Any]] = None,
+            source: Optional[Union['BlockStateProvider', Any]] = None,
             **kwargs
     ):
         self.components = {}
         self.components.update(kwargs)
-        if source_block_state_provider is not None:
-            self.components["source_block_state_provider"] = source_block_state_provider
+        if source is not None:
+            self.components["source"] = source
 
     def to_dict(self):
         res = {}
@@ -227,6 +227,28 @@ class NoiseThresholdProvider(BaseNoiseProvider):
                 res[k] = v
         return res
 
+class RandomBlockStateProvider:
+    def __init__(
+            self,
+            blocks: Optional[Union[Union[str, list[str]], Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if blocks is not None:
+            self.components["blocks"] = blocks
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class RandomizedIntStateProvider:
     def __init__(
             self,
@@ -243,6 +265,31 @@ class RandomizedIntStateProvider:
             self.components["values"] = values
         if source is not None:
             self.components["source"] = source
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+class RotatedStateProvider:
+    def __init__(
+            self,
+            state: Optional[Union[Union['BlockState', 'BlockStateProvider'], Any]] = None,
+            direction: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if state is not None:
+            self.components["state"] = state
+        if direction is not None:
+            self.components["direction"] = direction
 
     def to_dict(self):
         res = {}

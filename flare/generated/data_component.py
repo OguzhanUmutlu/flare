@@ -134,6 +134,10 @@ class AttackRange:
     mob_factor: float
 
 @struct
+class Compostable:
+    layers: str
+
+@struct
 class Consumable:
     consume_seconds: float
     animation: str

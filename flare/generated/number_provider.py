@@ -51,6 +51,34 @@ class BinomialNumberProvider:
                 res[k] = v
         return res
 
+class ConditionalValueNumberProvider:
+    def __init__(
+            self,
+            condition: Optional[Union['Predicate', Any]] = None,
+            on_true: Optional[Union['NumberProvider', Any]] = None,
+            on_false: Optional[Union['NumberProvider', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if condition is not None:
+            self.components["condition"] = condition
+        if on_true is not None:
+            self.components["on_true"] = on_true
+        if on_false is not None:
+            self.components["on_false"] = on_false
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class ConstantNumberProvider:
     def __init__(
             self,
@@ -117,6 +145,31 @@ class EnvironmentAttributeNumberProvider:
                 res[k] = v
         return res
 
+class NumberDispatcher:
+    def __init__(
+            self,
+            cases: Optional[Union[list[{'condition': 'Predicate', 'number_provider': 'NumberProvider'}], Any]] = None,
+            default: Optional[Union['NumberProvider', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if cases is not None:
+            self.components["cases"] = cases
+        if default is not None:
+            self.components["default"] = default
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 NumberProvider = Union[Union[float, {'type': str}], Any]
 
 class ScoreNumberProvider:
@@ -146,8 +199,6 @@ class ScoreNumberProvider:
             else:
                 res[k] = v
         return res
-
-ScoreProvider = Union[Union[str, {'type': str}], Any]
 
 class StorageNumberProvider:
     def __init__(
@@ -220,4 +271,30 @@ class UniformNumberProvider:
             else:
                 res[k] = v
         return res
+
+class WeightedNumberProvider:
+    def __init__(
+            self,
+            distribution: Optional[Union['NonEmptyWeightedList', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if distribution is not None:
+            self.components["distribution"] = distribution
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+Predicate = Union[Union['LootCondition', list['LootCondition']], Any]
+
+ScoreProvider = Union[Union[str, {'type': str}], Any]
 

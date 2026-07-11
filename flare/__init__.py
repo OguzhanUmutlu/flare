@@ -24,17 +24,17 @@ from .math import round_, floor, ceil, sin, cos, tan, asin, acos, atan, atan2, e
 from .print import translate, keybind, click_event, hover_event
 from .resources import *
 from .types import NBTType, byte, boolean, short, long, double, array
-from .variables import score, nbt, fixed, tagged, ref, getscore, storage, nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, \
+from .variables import score, nbt, fixed, ref, getscore, storage, nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, \
     nbtfloat, nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray, selector, bigscore, \
     bigfixed, float64, float32, complex, macro, struct, compound, fail, Objective, block, item
 
-__all__ = ["round_", "floor", "ceil", "namespace", "export", "tick", "load", "score", "nbt", "fixed", "tagged", "ref",
-           "getscore", "storage", "_flare_print", "dbg", "nbtbyte", "nbtbool", "nbtshort", "nbtint", "nbtlong",
-           "nbtfloat", "nbtdouble", "nbtstr", "nbtlist", "nbtcompound", "nbtbytearray", "nbtintarray", "nbtlongarray",
-           "selector", "_as", "at", "positioned", "aligned", "facing", "anchored", "rotated", "dimension", "applyon",
-           "on", "summon", "store", "if_", "unless", "if_block", "unless_block", "ExecuteChain", "StoreExecuteChain",
-           "array", "bigscore", "bigfixed", "float32", "float64", "complex", "byte", "boolean", "short", "long",
-           "double", "expand", "event", "macro", "schedule", "print", "style", "translate", "keybind", "click_event",
+__all__ = ["round_", "floor", "ceil", "namespace", "export", "tick", "load", "score", "nbt", "fixed", "ref", "getscore",
+           "storage", "_flare_print", "dbg", "nbtbyte", "nbtbool", "nbtshort", "nbtint", "nbtlong", "nbtfloat",
+           "nbtdouble", "nbtstr", "nbtlist", "nbtcompound", "nbtbytearray", "nbtintarray", "nbtlongarray", "selector",
+           "_as", "at", "positioned", "aligned", "facing", "anchored", "rotated", "dimension", "applyon", "on",
+           "summon", "store", "if_", "unless", "if_block", "unless_block", "ExecuteChain", "StoreExecuteChain", "array",
+           "bigscore", "bigfixed", "float32", "float64", "complex", "byte", "boolean", "short", "long", "double",
+           "expand", "event", "macro", "schedule", "print", "style", "translate", "keybind", "click_event",
            "hover_event", "struct", "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "exp", "log", "ln", "pow_",
            "csc", "coth", "acsch", "asech", "acoth", "sqrt", "fastsin", "fastsqrt", "rsqrt", "min_", "max_", "block",
            "is_dimension", "success", "predicate", "stopwatch", "item", "right_click_event", "left_click_enchantment"]

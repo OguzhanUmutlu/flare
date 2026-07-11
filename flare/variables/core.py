@@ -250,6 +250,9 @@ class FlareValue(ABC):
     def __invert__(self):
         return UnaryOp(self, "not")
 
+    def __abs__(self):
+        return UnaryOp(self, "abs")
+
     def __truediv__(self, other):
         return BinaryOp(self, other, "truediv")
 
@@ -431,6 +434,10 @@ class UnaryOp(FlareValue):
         return like._alloc_temp(prefix=prefix)
 
     def _compile_into(self, dest):
+        from ..compiler import _compile_relational
+        from .. import context as ctx
+        from .score import getscore
+
         if self.op in ("not",):
             raise TypeError("Logical operators cannot be assigned directly.")
         iop = f"__i{self.op}__"
@@ -442,6 +449,17 @@ class UnaryOp(FlareValue):
             getattr(dest, iop)()
         elif self.op == "neg":
             dest *= -1
+        elif self.op == "abs":
+            if hasattr(dest, "_addr") and not hasattr(dest, "_store_type"):
+                m1 = getscore(-1)
+                ctx._runcmd(
+                    f"execute if score {ctx.addr(dest)} matches ..-1 run scoreboard players operation {ctx.addr(dest)} *= {ctx.addr(m1)}")
+            else:
+                temp = dest._alloc_temp()
+                temp[:] = dest
+                temp *= -1
+                cond = _compile_relational(dest < 0)
+                ctx._runcmd(f"execute if {cond} run data modify {ctx.addr(dest)} set from {ctx.addr(temp)}")
         else:
             raise TypeError(f"Operand does not support unary {self.op}")
         return dest
@@ -579,8 +597,6 @@ class macro:
         self.name = name
 
     def __str__(self):
-        from .. import context as ctx
-        ctx._macro_substituted_raw = True
         return f"$({self.name})"
 
     def __format__(self, format_spec):
@@ -612,11 +628,74 @@ class _Ref(Generic[T]):
     def __init__(self, target: T):
         self._target = target
 
+    @property
+    def __class__(self):
+        return self._target.__class__
+
     def __icopy__(self, varid: str):
+        if hasattr(self._target, "__icopy__"):
+            return self._target.__icopy__(varid)
         return self._target
 
     def __getattr__(self, item):
         return getattr(self._target, item)
+
+    def __setitem__(self, key, value):
+        self._target[key] = value
+
+    def __getitem__(self, item):
+        return self._target[item]
+
+    def __str__(self):
+        return str(self._target)
+
+    def __repr__(self):
+        return repr(self._target)
+
+    def __add__(self, other): return self._target + other
+
+    def __radd__(self, other): return other + self._target
+
+    def __sub__(self, other): return self._target - other
+
+    def __rsub__(self, other): return other - self._target
+
+    def __mul__(self, other): return self._target * other
+
+    def __rmul__(self, other): return other * self._target
+
+    def __truediv__(self, other): return self._target / other
+
+    def __rtruediv__(self, other): return other / self._target
+
+    def __mod__(self, other): return self._target % other
+
+    def __rmod__(self, other): return other % self._target
+
+    def __neg__(self): return -self._target
+
+    def __pos__(self): return +self._target
+
+    def __eq__(self, other): return self._target == other
+
+    def __ne__(self, other): return self._target != other
+
+    def __lt__(self, other): return self._target < other
+
+    def __le__(self, other): return self._target <= other
+
+    def __gt__(self, other): return self._target > other
+
+    def __ge__(self, other): return self._target >= other
+
+    def __and__(self, other): return self._target & other
+
+    def __or__(self, other): return self._target | other
+
+    def __invert__(self): return ~self._target
+
+    def __abs__(self): return abs(self._target)
+
 
 def ref(target: T) -> T:
     return _Ref(target)

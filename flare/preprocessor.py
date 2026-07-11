@@ -355,20 +355,60 @@ class FlareTransformer(ast.NodeTransformer):
 
     def visit_Assign(self, node):
         self.generic_visit(node)
-        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-            var_name = node.targets[0].id
-            is_local_val = self.in_flare_func
 
-            call_expr = ast.Call(func=ast.Name(id="_flare_assign", ctx=ast.Load()),
-                                 args=[ast.Constant(value=var_name), node.value,
-                                       ast.Call(func=ast.Name(id="locals", ctx=ast.Load()), args=[], keywords=[]),
-                                       ast.Call(func=ast.Name(id="globals", ctx=ast.Load()), args=[], keywords=[]),
-                                       ast.Constant(value=is_local_val)],
-                                 keywords=[])
+        if len(node.targets) == 1:
+            if isinstance(node.targets[0], ast.Name):
+                var_name = node.targets[0].id
+                is_local_val = self.in_flare_func
 
-            new_assign = ast.Assign(targets=[ast.Name(id=var_name, ctx=ast.Store())], value=call_expr)
-            ast.copy_location(new_assign, node)
-            return new_assign
+                call_expr = ast.Call(func=ast.Name(id="_flare_assign", ctx=ast.Load()),
+                                     args=[ast.Constant(value=var_name), node.value,
+                                           ast.Call(func=ast.Name(id="locals", ctx=ast.Load()), args=[], keywords=[]),
+                                           ast.Call(func=ast.Name(id="globals", ctx=ast.Load()), args=[], keywords=[]),
+                                           ast.Constant(value=is_local_val)],
+                                     keywords=[])
+
+                new_assign = ast.Assign(targets=[ast.Name(id=var_name, ctx=ast.Store())], value=call_expr)
+                ast.copy_location(new_assign, node)
+                return new_assign
+
+            elif isinstance(node.targets[0], ast.Tuple):
+                tmp_name = self.gen_name()
+                is_local_val = self.in_flare_func
+
+                assign_tmp = ast.Assign(targets=[ast.Name(id=tmp_name, ctx=ast.Store())], value=node.value)
+                ast.copy_location(assign_tmp, node)
+
+                new_assigns = [assign_tmp]
+
+                for i, elt in enumerate(node.targets[0].elts):
+                    if isinstance(elt, ast.Name):
+                        var_name = elt.id
+                        subscript = ast.Subscript(
+                            value=ast.Name(id=tmp_name, ctx=ast.Load()),
+                            slice=ast.Constant(value=i),
+                            ctx=ast.Load()
+                        )
+
+                        call_expr = ast.Call(
+                            func=ast.Name(id="_flare_assign", ctx=ast.Load()),
+                            args=[
+                                ast.Constant(value=var_name),
+                                subscript,
+                                ast.Call(func=ast.Name(id="locals", ctx=ast.Load()), args=[], keywords=[]),
+                                ast.Call(func=ast.Name(id="globals", ctx=ast.Load()), args=[], keywords=[]),
+                                ast.Constant(value=is_local_val)
+                            ],
+                            keywords=[]
+                        )
+
+                        new_assign = ast.Assign(targets=[ast.Name(id=var_name, ctx=ast.Store())], value=call_expr)
+                        ast.copy_location(new_assign, node)
+                        new_assigns.append(new_assign)
+                    else:
+                        return node
+
+                return new_assigns
 
         return node
 
@@ -389,8 +429,23 @@ class FlareTransformer(ast.NodeTransformer):
                 return expr
         return node
 
+    def visit_Call(self, node):
+        self.generic_visit(node)
+        if isinstance(node.func, ast.Name) and node.func.id == "success" and node.args:
+            arg = node.args[0]
+            if not isinstance(arg, ast.Lambda):
+                node.args[0] = ast.Lambda(
+                    args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
+                    body=arg
+                )
+                ast.copy_location(node.args[0], arg)
+        return node
+
     def visit_Return(self, node):
         self.generic_visit(node)
+
+        if not self.in_flare_func:
+            return node
 
         value = node.value if node.value is not None else ast.Constant(value=None)
 

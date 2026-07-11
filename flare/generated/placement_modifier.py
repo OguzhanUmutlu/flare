@@ -116,6 +116,37 @@ class CountOnEveryLayerModifier:
                 res[k] = v
         return res
 
+class CuboidModifier:
+    def __init__(
+            self,
+            xz_size: Optional[Union['IntProvider', Any]] = None,
+            y_size: Optional[Union['IntProvider', Any]] = None,
+            include_interior: Optional[Union[bool, Any]] = None,
+            include_edges: Optional[Union[bool, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if xz_size is not None:
+            self.components["xz_size"] = xz_size
+        if y_size is not None:
+            self.components["y_size"] = y_size
+        if include_interior is not None:
+            self.components["include_interior"] = include_interior
+        if include_edges is not None:
+            self.components["include_edges"] = include_edges
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class EnvironmentScanModifier:
     def __init__(
             self,
@@ -285,6 +316,28 @@ class OffsetModifier:
             self.components["y"] = y
         if z is not None:
             self.components["z"] = z
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+class RandomChanceModifier:
+    def __init__(
+            self,
+            chance: Optional[Union[float, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if chance is not None:
+            self.components["chance"] = chance
 
     def to_dict(self):
         res = {}

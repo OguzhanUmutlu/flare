@@ -112,6 +112,8 @@ def left_click_enchantment(func):
 def right_click_event(conditions=None, *, once=False, name=None, append=False, returns=None, auto_revoke: bool = True):
     from .generated.events import using_item_event, tick_event
     from .variables.score import score
+    from .control_flow import _flare_if
+
     if conditions is None:
         conditions = {}
 
@@ -142,13 +144,11 @@ def right_click_event(conditions=None, *, once=False, name=None, append=False, r
 
         @tick_event(name=f"{actual_name}_tick")
         def _tick():
-            from .control_flow import _flare_if
             _flare_if(lambda: cd_score != 2, lambda: cd_score.reset())
             _flare_if(lambda: cd_score == 2, lambda: cd_score.__iset__(1))
 
         @using_item_event(conditions, name=actual_name, append=append, returns=returns, auto_revoke=auto_revoke)
         def _use():
-            from .control_flow import _flare_if
             _flare_if(lambda: cd_score != 1, lambda: func())
             cd_score[:] = 2
 

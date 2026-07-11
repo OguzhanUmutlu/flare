@@ -15,6 +15,20 @@ else:
     Union = _DummyUnion()
 
 @struct
+class BlockPredicate:
+    block: str
+    blocks: Union[str, list[str]]
+    tag: str
+    state: 'BlockPredicateState'
+    nbt: Union[str, Any]
+    components: 'DataComponentExactPredicate'
+    predicates: 'DataComponentPredicate'
+
+@struct
+class BlockPredicateState:
+    pass
+
+@struct
 class PaintingVariant:
     asset_id: str
     width: int
@@ -147,6 +161,15 @@ class CustomDataMap:
     pass
 
 @struct
+class DataComponentExactPredicate:
+    pass
+
+@struct
+class DataComponentPredicate:
+    pass
+AdventureModePredicate = Union[{'predicates': list['BlockPredicate'], 'show_in_tooltip': bool}, list['BlockPredicate'], 'BlockPredicate']
+
+@struct
 class AnyEntity:
     id: str
 
@@ -173,6 +196,7 @@ class EntityBase:
     Passengers: list['AnyEntity']
     Glowing: bool
     Tags: list[str]
+    Team: str
     data: 'CustomData'
     TicksFrozen: int
 
@@ -214,6 +238,10 @@ class ChestBoat(Boat):
     LootTable: str
     LootTableSeed: long
     Items: list['SlottedItem']
+
+@struct
+class Cushion(BlockAttachedEntity):
+    color: 'DyeColor'
 
 @struct
 class AxisAngle:
@@ -938,6 +966,7 @@ class Player(LivingEntity, FallDamageLogicData):
     recipeBook: 'RecipeBook'
     warden_spawn_tracker: 'WardenSpawnTracker'
     ender_pearls: list['EnderPearl']
+    post_effects: list[str]
     last_explosion_impact_pos: list[double]
     spawn_extra_particles_on_fall: bool
     CustomName: Any
@@ -1120,6 +1149,7 @@ class ProjectileBase(EntityBase):
     HasBeenShot: bool
     Owner: Any
     LeftOwner: bool
+    can_break: 'AdventureModePredicate'
 
 @struct
 class LlamaSpit(ProjectileBase):

@@ -16,13 +16,13 @@ from ..context import (
     vars_obj,
 )
 
-INT32_LIMIT = (2 ** 31) - 1
+INT32_LIMIT = (2**31) - 1
 
 
 def getscore(x: int | float, multiplier: float = 1.0):
     multiplier = float(multiplier)
     val = int(round(x / multiplier))
-    
+
     if (val, multiplier) in constants:
         return constants[(val, multiplier)]
 
@@ -41,11 +41,11 @@ nbt: Any = lambda *_, **__: Any()
 
 class score(FlareValue):
     def __init__(
-            self,
-            value: Any = None,
-            *,
-            addr: str | True | None = None,
-            multiplier: float = 1.0,
+        self,
+        value: Any = None,
+        *,
+        addr: str | True | None = None,
+        multiplier: float = 1.0,
     ):
         global nbt
         from .nbt import nbt as _nbt
@@ -82,7 +82,9 @@ class score(FlareValue):
     def _alloc_temp(self, prefix="!temp"):
         if isinstance(prefix, score):
             prefix = prefix._name
-        return score(0, addr=f"{prefix}_{ctx.next_temp_id()}", multiplier=self._multiplier)
+        return score(
+            0, addr=f"{prefix}_{ctx.next_temp_id()}", multiplier=self._multiplier
+        )
 
     def _create_var(self, varid: str):
         return score(addr=f"{varid} {vars_obj}", multiplier=self._multiplier)
@@ -114,10 +116,14 @@ class score(FlareValue):
 
         return ExecuteChain().store(self)
 
-    def success(self):
+    def success(self, body_func=None):
         from ..execute_modifiers import ExecuteChain
 
-        return ExecuteChain().store_success(self)
+        chain = ExecuteChain().store_success(self)
+        if body_func:
+            chain.__with__(body_func)
+            return None
+        return chain
 
     def _check_addr(self):
         if self._addr is None:
@@ -137,11 +143,11 @@ class score(FlareValue):
     def __class_getitem__(cls, multiplier: int):
         class _PrecisionScore(cls):
             def __init__(
-                    self,
-                    value: int | float | None = None,
-                    *,
-                    addr: str | None = None,
-                    mult: float = multiplier,
+                self,
+                value: int | float | None = None,
+                *,
+                addr: str | None = None,
+                mult: float = multiplier,
             ):
                 super().__init__(value, addr=addr, multiplier=mult)
 
@@ -286,10 +292,16 @@ class score(FlareValue):
         is_gt_half_pi = score(0, addr="!sin_gt_half", multiplier=1.0)
 
         ScoreIfScore(result, ">", self._num(math.pi)).then(lambda: is_gt_pi.__iset__(1))
-        ScoreIfMatches(is_gt_pi, 1).then(lambda: [is_neg.__iset__(1), result.__isub__(math.pi)])
+        ScoreIfMatches(is_gt_pi, 1).then(
+            lambda: [is_neg.__iset__(1), result.__isub__(math.pi)]
+        )
 
-        ScoreIfScore(result, ">", self._num(math.pi / 2)).then(lambda: is_gt_half_pi.__iset__(1))
-        ScoreIfMatches(is_gt_half_pi, 1).then(lambda: [result.__imul__(-1), result.__iadd__(math.pi)])
+        ScoreIfScore(result, ">", self._num(math.pi / 2)).then(
+            lambda: is_gt_half_pi.__iset__(1)
+        )
+        ScoreIfMatches(is_gt_half_pi, 1).then(
+            lambda: [result.__imul__(-1), result.__iadd__(math.pi)]
+        )
 
         digit_precision = int(round(-log(self._multiplier, 10)))
         iterations = {1: 4, 2: 6, 3: 6, 4: 8, 5: 4, 6: 1}.get(digit_precision, 0)
@@ -743,11 +755,11 @@ class score(FlareValue):
 
 class fixed(score):
     def __init__(
-            self,
-            value: int | float | None = None,
-            *,
-            addr: str | True | None = None,
-            multiplier: float = 1e-4,
+        self,
+        value: int | float | None = None,
+        *,
+        addr: str | True | None = None,
+        multiplier: float = 1e-4,
     ):
         super().__init__(value, addr=addr, multiplier=multiplier)
 
@@ -756,4 +768,4 @@ class fixed(score):
 
     @classmethod
     def __class_getitem__(cls, precision: int):
-        return score[10 ** -precision]
+        return score[10**-precision]

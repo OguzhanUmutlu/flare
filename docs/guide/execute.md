@@ -86,23 +86,7 @@ Call arbitrary Minecraft commands directly on any selector as a method:
 @s.teleport(10, 20, 30)
 ```
 
-## Tagged Selectors
 
-The `tagged` class assigns and manages entity tags dynamically:
-
-```python
-from flare import tagged
-
-# Tags all players within distance 5 with a unique tag
-# Equivalent to: tag @e remove my_tag; tag @a[distance=..5] add my_tag
-close_players = tagged("@a[distance=..5]")
-
-# Preprocessor automatically turns this into: kill @e[tag=my_tag]
-kill close_players
-
-# Reassign to move the tag
-close_players = "@p"
-```
 
 ## Supported Modifiers
 

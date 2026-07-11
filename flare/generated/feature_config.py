@@ -200,6 +200,28 @@ class ConfiguredFeature:
 
 ConfiguredFeatureRef = Union[Union[str, str, 'ConfiguredFeature'], Any]
 
+class CoralConfig:
+    def __init__(
+            self,
+            feature: Optional[Union['PlacedFeatureRef', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if feature is not None:
+            self.components["feature"] = feature
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class DecoratedConfig:
     def __init__(
             self,
@@ -1151,7 +1173,7 @@ class RandomNeighborSpreadConfig:
             accepted_neighbors: Optional[Union[Union[str, list[str]], Any]] = None,
             can_replace: Optional[Union['BlockPredicate', Any]] = None,
             attempts: Optional[Union['IntProvider', Any]] = None,
-            xy_offset: Optional[Union['IntProvider', Any]] = None,
+            xz_offset: Optional[Union['IntProvider', Any]] = None,
             y_offset: Optional[Union['IntProvider', Any]] = None,
             **kwargs
     ):
@@ -1165,8 +1187,8 @@ class RandomNeighborSpreadConfig:
             self.components["can_replace"] = can_replace
         if attempts is not None:
             self.components["attempts"] = attempts
-        if xy_offset is not None:
-            self.components["xy_offset"] = xy_offset
+        if xz_offset is not None:
+            self.components["xz_offset"] = xz_offset
         if y_offset is not None:
             self.components["y_offset"] = y_offset
 

@@ -909,10 +909,14 @@ class nbt(FlareValue, NBTStringMethods):
 
         return ExecuteChain().store(self)
 
-    def success(self):
+    def success(self, body_func=None):
         from ..execute_modifiers import ExecuteChain
 
-        return ExecuteChain().store_success(self)
+        chain = ExecuteChain().store_success(self)
+        if body_func:
+            chain.__with__(body_func)
+            return None
+        return chain
 
     def __getattr__(self, name):
         self._check_addr()
@@ -1357,9 +1361,16 @@ class nbt(FlareValue, NBTStringMethods):
             if self._type is not None and not self.is_number():
                 type_name = self._type_name.lower()
                 raise TypeError(f"Cannot set {type_name} with score")
-            store_type = self._type_name.lower() if self._type else "int"
+            if self._type is not None:
+                store_type = self._type_name.lower()
+            else:
+                store_type = "double" if other._multiplier != 1.0 else "int"
+                
+            scale = other._multiplier
+            scale_str = f"{scale:g}" if scale % 1 != 0 else str(int(scale))
+            
             _runcmd(
-                f"execute store result {addr(self)} {store_type} {1 / other._multiplier} run scoreboard players get {addr(other)}")
+                f"execute store result {addr(self)} {store_type} {scale_str} run scoreboard players get {addr(other)}")
             return self
         if isinstance(other, str):
             if self._type == NBTType.String:
@@ -1683,8 +1694,11 @@ class nbt(FlareValue, NBTStringMethods):
 
         temp_self = score(addr="!mathp0", multiplier=multiplier)
 
+        scale = 1 / multiplier
+        scale_str = f"{scale:g}" if scale % 1 != 0 else str(int(scale))
+
         _runcmd(
-            f"execute store result score {addr(temp_self)} run data get {addr(self)} {multiplier}"
+            f"execute store result score {addr(temp_self)} run data get {addr(self)} {scale_str}"
         )
 
         if isinstance(other, (int, float)):
@@ -1724,7 +1738,7 @@ class nbt(FlareValue, NBTStringMethods):
                 raise TypeError("Cannot perform arithmetic on non-number NBT")
             temp_other = score(addr="!mathp1", multiplier=multiplier)
             _runcmd(
-                f"execute store result score {addr(temp_other)} run data get {addr(other)} {multiplier}"
+                f"execute store result score {addr(temp_other)} run data get {addr(other)} {scale_str}"
             )
             if op == "+":
                 temp_self += temp_other
@@ -1744,7 +1758,7 @@ class nbt(FlareValue, NBTStringMethods):
             raise TypeError("Unsupported operand type")
 
         _runcmd(
-            f"execute store result {addr(self)} {self._store_type} {1.0 / multiplier} run scoreboard players get {addr(temp_self)}"
+            f"execute store result {addr(self)} {self._store_type} {multiplier} run scoreboard players get {addr(temp_self)}"
         )
         return self
 
