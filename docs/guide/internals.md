@@ -256,25 +256,56 @@ for player in @a:
         setblock pos stone
 ```
 
-## Preprocessor Syntax Aliases
+## Non-Python Syntaxes
 
-To maintain a clean and Pythonic syntax while avoiding collisions with Python's reserved keywords, the Flare preprocessor automatically performs syntax aliasing under the hood for certain method calls.
+To maintain a clean and intuitive syntax that feels like native Minecraft, the Flare preprocessor automatically transforms several non-Pythonic patterns into valid Python calls before the AST is compiled.
 
-For example, Python forbids `if` from being used as a method name. While Flare internally maps this modifier to `_if()` or `if_()` in the `ExecuteChain` and `selector` classes, the preprocessor lets you write it natively:
+### Native Minecraft Commands
+
+Any line starting with `/` or a recognizable native Minecraft command (e.g., `summon`, `say`, `kill`) is automatically captured and wrapped into a `runcommand()` call:
 
 ```python
 # You write:
-with @a.if(block(~ ~-1 ~) == "water"): ...
+/kill @e[type=zombie]
+say Hello World!
 
 # The preprocessor seamlessly converts this to:
-with @a.if_(block("~ ~-1 ~") == "water"): ...
+runcommand("""kill @e[type=zombie]""", locals(), globals())
+runcommand("""say Hello World!""", locals(), globals())
 ```
 
-This aliasing allows you to chain `.if()` directly without resorting to awkward underscores in your actual codebase!
+### Selector Syntax
+
+Target selectors are a staple of Minecraft. Flare allows you to write raw selectors using `@`, which are parsed and translated into `selector()` function calls:
+
+```python
+# You write:
+@a[distance=..5]
+@e[type=armor_stand, tag=my_tag]
+
+# The preprocessor seamlessly converts this to:
+selector("@a[distance=..5]")
+selector("@e[type=armor_stand, tag=my_tag]")
+```
+*(Note: Flare is smart enough to differentiate between Python decorators like `@lazify` and selectors like `@a` by checking if they are placed before a definition!)*
+
+### NBT Literals
+
+Instead of constructing complex nested dictionaries for NBT data or writing string literals, Flare allows you to write raw SNBT directly in your code using `nbt{}` or `nbt[]`:
+
+```python
+# You write:
+tag = nbt{display: {Name: '"My Item"'}}
+arr = nbt[1, 2, 3]
+
+# The preprocessor seamlessly converts this to:
+tag = nbt('''{display: {Name: '"My Item"'}}''')
+arr = nbt('''[1, 2, 3]''')
+```
 
 ### Raw Block Coordinates
 
-Additionally, Flare's preprocessor auto-wraps native coordinate syntaxes in strings. If you provide a raw coordinate sequence (starting with `~`, `^`, `+`, `-`, or a number) into a `block()` call, it's silently wrapped into a string!
+Flare's preprocessor auto-wraps native coordinate syntaxes in strings. If you provide a raw coordinate sequence (starting with `~`, `^`, `+`, `-`, or a number) into a `block()` call, it's silently wrapped into a string!
 
 ```python
 # You write:
@@ -285,3 +316,17 @@ c = block(^ ^ ^5, mode="keep")
 b = block("~ ~-1 ~")
 c = block("^ ^ ^5", mode="keep")
 ```
+
+### Keyword Aliases
+
+To avoid collisions with Python's reserved keywords, the preprocessor aliases methods like `if`, `as`, and `with`:
+
+```python
+# You write:
+with @a.if(block(~ ~-1 ~) == "water").as(@s): ...
+
+# The preprocessor seamlessly converts this to:
+with @a.if_(block("~ ~-1 ~") == "water")._as(@s): ...
+```
+
+This aliasing allows you to chain methods like `.if()` and `.as()` directly without resorting to awkward underscores in your actual codebase!
