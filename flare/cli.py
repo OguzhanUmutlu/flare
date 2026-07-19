@@ -199,7 +199,12 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         tree = transformer.visit(tree)
         ast.fix_missing_locations(tree)
 
-        global_env = {"__name__": "__main__", "__file__": abs_path, "__package__": os.path.basename(project_dir)}
+        pkg_name = os.path.basename(project_dir)
+        global_env = {"__name__": "__main__", "__file__": abs_path, "__package__": pkg_name}
+
+        if pkg_name in sys.modules and hasattr(sys.modules[pkg_name], "__path__"):
+            if project_dir not in sys.modules[pkg_name].__path__:
+                sys.modules[pkg_name].__path__.append(project_dir)
 
         header_src = (
             "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_and, _flare_or, _flare_with, _flare_as_var, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin, _flare_enter_scope, _flare_exit_scope\n"

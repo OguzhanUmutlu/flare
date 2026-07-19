@@ -470,7 +470,11 @@ class UnaryOp(FlareValue):
                 temp[:] = dest
                 temp *= -1
                 cond = _compile_relational(dest < 0)
-                ctx._runcmd(f"execute if {cond} run data modify {ctx.addr(dest)} set from {ctx.addr(temp)}")
+                mod_cmd = ctx._emit_data_modify_from(ctx.addr(dest), "set", ctx.addr(temp))
+                if mod_cmd.startswith("execute "):
+                    ctx._runcmd(f"execute if {cond} {mod_cmd[8:]}")
+                else:
+                    ctx._runcmd(f"execute if {cond} run {mod_cmd}")
         else:
             raise TypeError(f"Operand does not support unary {self.op}")
         return dest

@@ -259,12 +259,12 @@ my_random_angle = flrand.random(type=MyAngle)
 
 When assigning variables via `with ... as var:`, Flare's preprocessor evaluates the context manager (e.g., `at(@s)`) and needs to resolve it to an appropriate local variable representing that context. By default, it will just assign the raw context manager object to `var`.
 
-However, objects can implement `__as_var__(self)` to provide a context-sensitive value. For instance, `ExecuteChain` objects (like `at(@s)`) implement this to yield a `block("~ ~ ~")`, accurately representing the context's local positional origin!
+However, objects can implement `__as_var__(self)` to provide a context-sensitive value. For instance, `ExecuteChain` objects (like `at(@s)`) implement this to yield a `b~ ~ ~` coordinate object, accurately representing the context's local positional origin!
 
 ```python
 for player in @a:
     with at(@s) as pos:
-        # 'pos' naturally resolves to block("~ ~ ~") instead of a raw ExecuteChain!
+        # 'pos' naturally resolves to b~ ~ ~ instead of a raw ExecuteChain!
         setblock pos stone
 ```
 
@@ -317,18 +317,20 @@ arr = interpolate_command('''[1, 2, 3]''', locals(), globals())
 
 *(Note: These evaluate to raw, minified Python strings, acting as inline macros rather than persistent `nbt` objects.)*
 
-### Raw Block Coordinates
+### Dynamic Block Coordinates
 
-Flare's preprocessor auto-wraps native coordinate syntaxes in strings. If you provide a raw coordinate sequence (starting with `~`, `^`, `+`, `-`, or a number) into a `block()` call, it's silently wrapped into a string!
+Flare's preprocessor natively handles Minecraft coordinate syntax by capturing the `b` prefix and greedily collecting valid coordinate tokens (numbers, `~`, `^`, and variables) into a complete `block(...)` constructor.
 
 ```python
 # You write:
-b = block(~ ~-1 ~)
-c = block(^ ^ ^5, mode="keep")
+my_pos = b~ ~-1 ~
+my_pos2 = b^ ^ ^5
+dynamic_pos = b~ my_var ~
 
 # The preprocessor seamlessly converts this to:
-b = block("~ ~-1 ~")
-c = block("^ ^ ^5", mode="keep")
+my_pos = block("~~~", 0, -1, 0)
+my_pos2 = block("^^^", 0, 0, 5)
+dynamic_pos = block("~ ~", 0, my_var, 0)
 ```
 
 ### Keyword Aliases
@@ -337,10 +339,10 @@ To avoid collisions with Python's reserved keywords, the preprocessor aliases me
 
 ```python
 # You write:
-with @a.if(block(~ ~-1 ~) == "water").as(@s): ...
+with @a.if(b~ ~-1 ~ == "water").as(@s): ...
 
 # The preprocessor seamlessly converts this to:
-with @a.if_(block("~ ~-1 ~") == "water")._as(@s): ...
+with @a.if_(b~ ~-1 ~ == "water")._as(@s): ...
 ```
 
 This aliasing allows you to chain methods like `.if()` and `.as()` directly without resorting to awkward underscores in your actual codebase!

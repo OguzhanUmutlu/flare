@@ -26,17 +26,40 @@ class block(FlareValue, Generic[T]):
     _place_stdlib_generated = False
     _generated_states = set()
 
-    def __init__(self, pos: str):
-        self.pos = str(pos)
+    def __init__(self, *args, ref=None, v=None):
+        if ref is not None and v is not None:
+            self.modifiers = ref
+            self.coords = list(v)
+            parts = []
+            for i, mod in enumerate(self.modifiers):
+                c = self.coords[i]
+                if mod == " ":
+                    parts.append(str(c))
+                else:
+                    parts.append(f"{mod}{str(c) if str(c) not in ('0', '0.0') else ''}")
+            self.pos = " ".join(parts)
+        elif len(args) == 1:
+            self.pos = str(args[0])
+        elif len(args) > 1:
+            self.modifiers = str(args[0])
+            self.coords = list(args[1:])
+            parts = []
+            for i, mod in enumerate(self.modifiers):
+                c = self.coords[i]
+                if mod == " ":
+                    parts.append(str(c))
+                else:
+                    parts.append(f"{mod}{str(c) if str(c) not in ('0', '0.0') else ''}")
+            self.pos = " ".join(parts)
+        else:
+            self.pos = "~ ~ ~"
 
     def _parse_pos(self):
         parts = self.pos.strip().split()
-        if len(parts) != 3:
-            raise ValueError(f"Invalid position string: {self.pos}")
 
-        relative = [0.0, 0.0, 0.0]
-        direction = [0.0, 0.0, 0.0]
-        absolute = [0.0, 0.0, 0.0]
+        relative = [0.0] * len(parts)
+        direction = [0.0] * len(parts)
+        absolute = [0.0] * len(parts)
 
         for i, p in enumerate(parts):
             if p.startswith("~"):
@@ -57,10 +80,20 @@ class block(FlareValue, Generic[T]):
         r1, d1, a1 = self._parse_pos()
         r2, d2, a2 = other._parse_pos()
 
+        part1_arr = self.pos.strip().split()
+        part2_arr = other.pos.strip().split()
+        length = max(len(part1_arr), len(part2_arr))
+
+        def pad(tup, l):
+            return tup + (0.0,) * (l - len(tup))
+
+        r1, d1, a1 = pad(r1, length), pad(d1, length), pad(a1, length)
+        r2, d2, a2 = pad(r2, length), pad(d2, length), pad(a2, length)
+
         new_parts = []
-        for i in range(3):
-            part1 = self.pos.strip().split()[i]
-            part2 = other.pos.strip().split()[i]
+        for i in range(length):
+            part1 = part1_arr[i] if i < len(part1_arr) else "0"
+            part2 = part2_arr[i] if i < len(part2_arr) else "0"
 
             is_d1 = part1.startswith("^")
             is_d2 = part2.startswith("^")
@@ -74,7 +107,7 @@ class block(FlareValue, Generic[T]):
             def format_num(v, prefix=""):
                 if v == 0 and prefix:
                     return prefix
-                return prefix + (str(int(v)) if v.is_integer() else str(v))
+                return prefix + (str(int(v)) if float(v).is_integer() else str(v))
 
             if is_d1 or is_d2:
                 raise TypeError(f"Directional coordinates (^) cannot be used in arithmetic operations on axis {i}.")
@@ -98,10 +131,20 @@ class block(FlareValue, Generic[T]):
         r1, d1, a1 = self._parse_pos()
         r2, d2, a2 = other._parse_pos()
 
+        part1_arr = self.pos.strip().split()
+        part2_arr = other.pos.strip().split()
+        length = max(len(part1_arr), len(part2_arr))
+
+        def pad(tup, l):
+            return tup + (0.0,) * (l - len(tup))
+
+        r1, d1, a1 = pad(r1, length), pad(d1, length), pad(a1, length)
+        r2, d2, a2 = pad(r2, length), pad(d2, length), pad(a2, length)
+
         new_parts = []
-        for i in range(3):
-            part1 = self.pos.strip().split()[i]
-            part2 = other.pos.strip().split()[i]
+        for i in range(length):
+            part1 = part1_arr[i] if i < len(part1_arr) else "0"
+            part2 = part2_arr[i] if i < len(part2_arr) else "0"
 
             is_d1 = part1.startswith("^")
             is_d2 = part2.startswith("^")
@@ -115,7 +158,7 @@ class block(FlareValue, Generic[T]):
             def format_num(v, prefix=""):
                 if v == 0 and prefix:
                     return prefix
-                return prefix + (str(int(v)) if v.is_integer() else str(v))
+                return prefix + (str(int(v)) if float(v).is_integer() else str(v))
 
             if is_d1 or is_d2:
                 raise TypeError(f"Directional coordinates (^) cannot be used in arithmetic operations on axis {i}.")
@@ -175,7 +218,7 @@ class block(FlareValue, Generic[T]):
         return nbt(addr=f"block {self.pos} {name}", datatype=datatype, schema_node=schema_node)
 
     def __setattr__(self, name, value):
-        if name == "pos":
+        if name in ("pos", "modifiers", "coords"):
             super().__setattr__(name, value)
             return
 

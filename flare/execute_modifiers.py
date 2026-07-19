@@ -57,7 +57,7 @@ class ExecuteChain:
             target_or_pos = " ".join(str(p) for p in target_or_pos)
         return self._add(f"facing {target_or_pos}")
 
-    def anchor(self, anchor: str) -> ExecuteChain:
+    def anchored(self, anchor: str) -> ExecuteChain:
         return self._add(f"anchored {anchor}")
 
     def rotated(self, rot: Union[str, tuple, list, selector], *args) -> ExecuteChain:

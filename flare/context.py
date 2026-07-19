@@ -284,6 +284,55 @@ def _runcmd(command: str):
     runcommand(command, validation="none")
 
 
+def _check_entity_nbt_transfer(addr1: str, addr2: str) -> bool:
+    if not isinstance(addr1, str) or not isinstance(addr2, str):
+        return False
+    if not addr1.startswith("entity ") or not addr2.startswith("entity "):
+        return False
+
+    def extract_selector(addr: str) -> str:
+        s = addr[len("entity "):]
+        if s.startswith("@") and len(s) > 2 and s[2] == "[":
+            bracket_count = 0
+            for i, c in enumerate(s):
+                if c == "[":
+                    bracket_count += 1
+                elif c == "]":
+                    bracket_count -= 1
+                    if bracket_count == 0:
+                        return s[:i + 1]
+        return s.split(" ")[0]
+
+    sel1 = extract_selector(addr1)
+    sel2 = extract_selector(addr2)
+
+    return sel1 and sel1 == sel2 and not sel1.startswith("@s")
+
+
+def _emit_data_modify_from(target_addr: str, action: str, source_addr: str) -> str:
+    if _check_entity_nbt_transfer(target_addr, source_addr):
+        def extract_selector(addr: str) -> str:
+            s = addr[len("entity "):]
+            if s.startswith("@") and len(s) > 2 and s[2] == "[":
+                bracket_count = 0
+                for i, c in enumerate(s):
+                    if c == "[":
+                        bracket_count += 1
+                    elif c == "]":
+                        bracket_count -= 1
+                        if bracket_count == 0:
+                            return s[:i + 1]
+            return s.split(" ")[0]
+
+        sel = extract_selector(target_addr)
+        t_path = target_addr[len("entity ") + len(sel):].strip()
+        s_path = source_addr[len("entity ") + len(sel):].strip()
+
+        return f"execute as {sel} run data modify entity @s {t_path} {action} from entity @s {s_path}"
+
+    return f"data modify {target_addr} {action} from {source_addr}"
+
+
 def dbg(*args):
     processed_str = " ".join(str(arg) for arg in args)
     builtins.print(processed_str)
@@ -442,6 +491,8 @@ def export(func=None, *, name=None, append=False, returns=None):
             self.returns.__iset__(value)
 
         def _write_non_macro_args(self, bound):
+            global _temp_id
+
             for arg_name, arg_val in bound.arguments.items():
                 target = kwargs[arg_name]
                 if isinstance(target, macro):
@@ -451,28 +502,28 @@ def export(func=None, *, name=None, append=False, returns=None):
                     if isinstance(arg_val, (int, float, str)):
                         _runcmd(f"data modify {base_addr} append value {json.dumps(arg_val)}")
                     elif isinstance(arg_val, nbt):
-                        _runcmd(f"data modify {base_addr} append from {addr(arg_val)}")
+                        _runcmd(_emit_data_modify_from(base_addr, "append", addr(arg_val)))
                     elif isinstance(arg_val, score):
                         _runcmd(f"data modify {base_addr} append value 0")
                         _runcmd(
                             f"execute store result {base_addr}[-1] int {1 / arg_val._multiplier} run scoreboard players get {addr(arg_val)}")
                     elif is_lazy(arg_val):
-                        global _temp_id
                         temp = nbt(addr=f"storage {temp_storage} !t{_temp_id}", datatype=target._type)
                         _temp_id += 1
                         arg_val._compile_into(temp)
-                        _runcmd(f"data modify {base_addr} append from {addr(temp)}")
+                        _runcmd(_emit_data_modify_from(base_addr, "append", addr(temp)))
                 else:
                     target.__iset__(arg_val)
 
         def _emit_return(self):
+            global _temp_id
+
             if func_name in return_targets:
                 return return_targets[func_name]
             ret_anno = return_types.get(func_name, sig.return_annotation)
             if ret_anno == "UNKNOWN":
                 return "UNKNOWN_RETURN"
             elif ret_anno is not inspect.Signature.empty and ret_anno is not None:
-                global _temp_id
                 if ret_anno == int or ret_anno == "int":
                     return IntReturn(func_name)
                 elif hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
@@ -484,8 +535,8 @@ def export(func=None, *, name=None, append=False, returns=None):
                 else:
                     temp_ret = nbt(addr=f"storage {temp_storage} !ret{_temp_id}")
                     _temp_id += 1
-                    _runcmd(
-                        f"data modify {addr(temp_ret)} set from storage {returns_storage} {func_name.replace(':', '_')}")
+                    _runcmd(_emit_data_modify_from(addr(temp_ret), "set",
+                                                   f"storage {returns_storage} {func_name.replace(':', '_')}"))
                     return temp_ret
 
         def __call__(self, *args, **call_kwargs):
@@ -570,6 +621,7 @@ def export(func=None, *, name=None, append=False, returns=None):
 
     def _evaluate():
         global _in_recursive_context, _logical_func
+
         prev_recursive_inner = _in_recursive_context
         _in_recursive_context = is_recursive
 

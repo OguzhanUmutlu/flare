@@ -1,9 +1,10 @@
 import json
 
 from flare.generated.item_base import item_base
+from flare.variables.core import FlareClassMeta
 
 
-class item(item_base):
+class item(item_base, metaclass=FlareClassMeta):
     def __str__(self):
         if not self.components:
             return self.id

@@ -7,7 +7,7 @@ Flare supports dynamically generating these JSON files inside your python script
 ## Supported Generators
 
 > [!TIP]
-> **Typed Structs Supported:** You can use strongly-typed classes from `flare` (like `Advancement`, `LootTable`) instead of raw dictionaries for all generator functions listed below! This provides full IDE autocompletion and type-checking.
+> **Raw JSON & Typed Structs Supported:** You can pass in raw JSON (as standard Python dictionaries) to any of these generators. Alternatively, you can use strongly-typed classes from `flare` (like `Advancement`, `LootTable`) for full IDE autocompletion and type-checking!
 
 - `add_advancement()`
 - `add_loot_table()`

@@ -743,6 +743,8 @@ class nbt(FlareValue, NBTStringMethods):
         self._check_math("ceil")
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
+        from ..context import _emit_data_modify_from
+
         if is_recursive:
             base_addr = f"storage {ctx._current_namespace}:vars {varid}"
 
@@ -766,7 +768,7 @@ class nbt(FlareValue, NBTStringMethods):
                     dest = nbt[self._inner_type](
                         addr=dest._addr, schema_node=dest._schema_node
                     )
-                _runcmd(f"data modify {base_addr} append from {addr(self)}")
+                _runcmd(_emit_data_modify_from(base_addr, "append", addr(self)))
                 return dest
 
         if self._addr is None:
@@ -776,7 +778,7 @@ class nbt(FlareValue, NBTStringMethods):
             return self
 
         dest = self._create_var(varid)
-        _runcmd(f"data modify {addr(dest)} set from {addr(self)}")
+        _runcmd(_emit_data_modify_from(addr(dest), "set", addr(self)))
         return dest
 
     def __for__(self, body_func, orelse_func=None, has_break=False, has_continue=False):
@@ -1311,6 +1313,8 @@ class nbt(FlareValue, NBTStringMethods):
         )
 
     def __iset__(self, other):
+        from ..context import _emit_data_modify_from
+
         self._check_addr()
         if hasattr(other, "_is_macro_param") and other._is_macro_param:
             if self._type is not None and self._type != NBTType.String:
@@ -1365,10 +1369,10 @@ class nbt(FlareValue, NBTStringMethods):
                 store_type = self._type_name.lower()
             else:
                 store_type = "double" if other._multiplier != 1.0 else "int"
-                
+
             scale = other._multiplier
             scale_str = f"{scale:g}" if scale % 1 != 0 else str(int(scale))
-            
+
             _runcmd(
                 f"execute store result {addr(self)} {store_type} {scale_str} run scoreboard players get {addr(other)}")
             return self
@@ -1488,7 +1492,7 @@ class nbt(FlareValue, NBTStringMethods):
                     or self._type == other._type
                     or (self.is_floaty() and other.is_integer())
             ):
-                _runcmd(f"data modify {addr(self)} set from {addr(other)}")
+                _runcmd(_emit_data_modify_from(addr(self), "set", addr(other)))
                 return self
         if self.is_number():
             exp_type = (float, int, score, nbt)
@@ -1669,6 +1673,8 @@ class nbt(FlareValue, NBTStringMethods):
         raise UnsupportedOperandError(self, "min", other)
 
     def __swap__(self, other):
+        from ..context import _emit_data_modify_from
+
         self._check_addr()
         if isinstance(other, (score, nbt)):
             other._check_addr()
@@ -1676,7 +1682,7 @@ class nbt(FlareValue, NBTStringMethods):
             _runcmd(
                 f"data modify storage flare:temp __swap_temp__ set from {addr(self)}"
             )
-            _runcmd(f"data modify {addr(self)} set from {addr(other)}")
+            _runcmd(_emit_data_modify_from(addr(self), "set", addr(other)))
             _runcmd(
                 f"data modify {addr(other)} set from storage flare:temp __swap_temp__"
             )
@@ -1791,6 +1797,7 @@ class nbt(FlareValue, NBTStringMethods):
         return self
 
     def append(self, other):
+        from ..context import _emit_data_modify_from
         from .string import NBTStringSlice
 
         self._check_addr()
@@ -1808,7 +1815,7 @@ class nbt(FlareValue, NBTStringMethods):
             other._check_addr()
         if self.is_sequence():
             if isinstance(other, nbt):
-                _runcmd(f"data modify {addr(self)} append from {addr(other)}")
+                _runcmd(_emit_data_modify_from(addr(self), "append", addr(other)))
                 return self
             if not isinstance(other, (bool, int, float, str, list, dict)):
                 type_name = "int"
@@ -1861,7 +1868,7 @@ class nbt(FlareValue, NBTStringMethods):
             other._check_addr()
         if self.is_sequence():
             if isinstance(other, nbt):
-                _runcmd(f"data modify {addr(self)} insert {index} from {addr(other)}")
+                _runcmd(_emit_data_modify_from(addr(self), f"insert {index}", addr(other)))
                 return self
             if not isinstance(other, (bool, int, float, str, list, dict)):
                 type_name = "int"
@@ -1904,12 +1911,14 @@ class nbt(FlareValue, NBTStringMethods):
         raise UnsupportedOperandError(self, "insert", other)
 
     def merge(self, other):
+        from ..context import _emit_data_modify_from
+
         self._check_addr()
         if hasattr(other, "_check_addr"):
             other._check_addr()
         if self._type == NBTType.Compound:
             if isinstance(other, nbt):
-                _runcmd(f"data modify {addr(self)} merge from {addr(other)}")
+                _runcmd(_emit_data_modify_from(addr(self), "merge", addr(other)))
                 return self
             if isinstance(other, dict):
                 if _is_runtime(other):
@@ -1980,6 +1989,8 @@ class stack(nbt):
             self._push(self._value_to_set)
 
     def _push(self, value=None):
+        from ..context import _emit_data_modify_from
+
         if self._stack_addr is None:
             raise ValueError("Cannot push to an NBT variable without a stack address.")
         if value is None:
@@ -1990,7 +2001,7 @@ class stack(nbt):
                 stop_str = f" {value.stop}" if value.stop is not None else ""
                 _runcmd(f"data modify {self._stack_addr} append string {addr(value.operand)} {start_str}{stop_str}")
             elif isinstance(value, nbt):
-                _runcmd(f"data modify {self._stack_addr} append from {addr(value)}")
+                _runcmd(_emit_data_modify_from(self._stack_addr, "append", addr(value)))
             elif hasattr(value, "_addr"):
                 _runcmd(f"data modify {self._stack_addr} append value 0")
                 _runcmd(f"execute store result {self._stack_addr}[-1] int 1 run scoreboard players get {addr(value)}")

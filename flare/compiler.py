@@ -8,6 +8,7 @@ from .variables.core import is_lazy, addr
 
 
 def _compile_relational(node, invert=False):
+    from .context import _emit_data_modify_from
     from .variables.nbt import nbt
     from .variables.core import is_lazy
 
@@ -93,7 +94,7 @@ def _compile_relational(node, invert=False):
                 stop_str = f" {source.stop}" if source.stop is not None else ""
                 return f"data modify {target} set string {addr(source.operand)} {start_str}{stop_str}"
             if isinstance(source, nbt):
-                return f"data modify {target} set from {addr(source)}"
+                return _emit_data_modify_from(target, "set", addr(source))
             elif isinstance(source, (dict, list, str, int, float, bool)):
                 return f"data modify {target} set value {json.dumps(source)}"
             elif hasattr(source, "_addr"):

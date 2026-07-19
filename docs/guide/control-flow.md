@@ -75,15 +75,15 @@ Flare provides intuitive syntax to check block states both in standard `if` stat
 from flare import block, at
 
 # Standard conditional checking
-if block("~ ~-1 ~") == "stone":
+if b~ ~-1 ~ == "stone":
     print("Standing on stone!")
 
 # Block checking inside an execute chain using .if() or .unless()
-with at("@a").if(block("~ ~-1 ~") == "diamond_block"):
+with at("@a").if(b~ ~-1 ~ == "diamond_block"):
     print("Player is rich!")
 
 # You can even chain multiple conditions together
-with at("@e[type=pig]").if(block("~ ~ ~") == "mud").unless(block("~ ~1 ~") == "water"):
+with at("@e[type=pig]").if(b~ ~ ~ == "mud").unless(b~ ~1 ~ == "water"):
     print("Muddy pig!")
 ```
 
@@ -122,7 +122,7 @@ if s:
     pass
 
 # Check block states
-b = block("~ ~ ~")
+b = b~ ~ ~
 if b.is_biome("plains"): pass
 if b.is_cloned(to="~ ~1 ~", source="~ ~2 ~", mode="all"): pass
 if b.is_loaded(): pass

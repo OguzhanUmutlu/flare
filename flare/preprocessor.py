@@ -772,74 +772,122 @@ def preprocess_minecraft_commands(source: str) -> str:
                         i = curr
                         continue
 
-        if tok.type == tokenize.NAME and tok.string in ("block", "positioned", "facing", "rotated"):
-            if i + 1 < len(tokens) and tokens[i + 1].type == tokenize.OP and tokens[i + 1].string == "(":
-                if i + 2 < len(tokens):
-                    next_tok = tokens[i + 2]
-                    is_pos = False
-                    if next_tok.string in ("~", "^", "+", "-"):
-                        is_pos = True
-                    elif next_tok.type == tokenize.NUMBER:
-                        is_pos = True
+        if tok.type == tokenize.NAME and tok.string.startswith("b"):
+            is_b_coord = False
+            rest = tok.string[1:]
 
-                    if is_pos:
-                        temp_i = i + 2
-                        temp_bracket = 1
-                        arg_tokens = []
-                        while temp_i < len(tokens) and temp_bracket > 0:
-                            t = tokens[temp_i]
-                            if t.type == tokenize.OP:
-                                if t.string in ("[", "{", "("):
-                                    temp_bracket += 1
-                                elif t.string in ("]", "}", ")"):
-                                    temp_bracket -= 1
+            if not rest:
+                if i + 1 < len(tokens):
+                    next_tok = tokens[i + 1]
+                    if next_tok.string in ("~", "^", "+", "-", "$") or next_tok.type == tokenize.NUMBER:
+                        is_b_coord = True
+            elif rest.isdigit():
+                is_b_coord = True
 
-                            if temp_bracket == 1 and t.type == tokenize.OP and t.string == ",":
-                                break
-                            if temp_bracket == 0:
-                                break
+            if is_b_coord:
+                temp_i = i
+                temp_bracket = 0
+                collected_tokens = []
+                while temp_i < len(tokens):
+                    t = tokens[temp_i]
+                    if t.type == tokenize.OP:
+                        if t.string in ("[", "{", "("):
+                            temp_bracket += 1
+                        elif t.string in ("]", "}", ")"):
+                            temp_bracket -= 1
 
-                            arg_tokens.append(t)
-                            temp_i += 1
+                    if temp_bracket < 0:
+                        break
+                    if temp_bracket == 0 and t.string == ",":
+                        break
+                    if temp_bracket <= 0 and t.type in (tokenize.NEWLINE, tokenize.NL, tokenize.COMMENT):
+                        break
 
-                        if arg_tokens:
-                            start_row, start_col = arg_tokens[0].start
-                            end_row, end_col = arg_tokens[-1].end
-                            lines_arr = intermediate_source.split("\n")
-                            if start_row == end_row:
-                                coord_str = lines_arr[start_row - 1][start_col:end_col]
-                            else:
-                                parts = [lines_arr[start_row - 1][start_col:]]
-                                for r in range(start_row, end_row - 1):
-                                    parts.append(lines_arr[r])
-                                parts.append(lines_arr[end_row - 1][:end_col])
-                                coord_str = " ".join(p.strip() for p in parts if p.strip())
+                    collected_tokens.append(t)
+                    temp_i += 1
 
-                            if tok.string != "block":
-                                out_tokens.append((tokenize.NAME, tok.string))
-                                out_tokens.append((tokenize.OP, "("))
+                k = 1
+                modifiers = ""
+                coords = []
 
-                            out_tokens.append((tokenize.NAME, "block"))
-                            out_tokens.append((tokenize.OP, "("))
-                            escaped = coord_str.replace('"', '\\"')
-                            out_tokens.append((tokenize.NAME, "interpolate_command"))
-                            out_tokens.append((tokenize.OP, "("))
-                            out_tokens.append((tokenize.STRING, f'"{escaped}"'))
-                            out_tokens.append((tokenize.OP, ","))
-                            out_tokens.append((tokenize.NAME, "locals"))
-                            out_tokens.append((tokenize.OP, "("))
-                            out_tokens.append((tokenize.OP, ")"))
-                            out_tokens.append((tokenize.OP, ","))
-                            out_tokens.append((tokenize.NAME, "globals"))
-                            out_tokens.append((tokenize.OP, "("))
-                            out_tokens.append((tokenize.OP, ")"))
-                            out_tokens.append((tokenize.OP, ")"))
+                first_tok = collected_tokens[0]
+                if first_tok.string != "b":
+                    num_str = first_tok.string[1:]
+                    modifiers += " "
+                    coords.append(num_str)
 
-                            if tok.string != "block":
-                                out_tokens.append((tokenize.OP, ")"))
+                while k < len(collected_tokens):
+                    t = collected_tokens[k]
+                    if t.string in ("~", "^"):
+                        mod = t.string
+                        k += 1
+                        num_str = "0"
+                        if k < len(collected_tokens):
+                            t2 = collected_tokens[k]
+                            if t2.start == t.end:
+                                if t2.type in (tokenize.NUMBER, tokenize.NAME):
+                                    num_str = t2.string
+                                    k += 1
+                                elif t2.string in ("+", "-"):
+                                    if k + 1 < len(collected_tokens) and collected_tokens[k + 1].start == t2.end and \
+                                            collected_tokens[k + 1].type in (tokenize.NUMBER, tokenize.NAME):
+                                        num_str = t2.string + collected_tokens[k + 1].string
+                                        k += 2
+                                elif t2.string == "$":
+                                    if k + 3 < len(collected_tokens) and collected_tokens[k + 1].start == t2.end and \
+                                            collected_tokens[k + 1].string == "(" and collected_tokens[
+                                        k + 2].type == tokenize.NAME and collected_tokens[k + 3].string == ")":
+                                        num_str = f"$({collected_tokens[k + 2].string})"
+                                        k += 4
+                        modifiers += mod
+                        coords.append(num_str)
+                    elif t.type in (tokenize.NUMBER, tokenize.NAME):
+                        modifiers += " "
+                        coords.append(t.string)
+                        k += 1
+                    elif t.string in ("+", "-"):
+                        if k + 1 < len(collected_tokens) and collected_tokens[k + 1].start == t.end and \
+                                collected_tokens[k + 1].type in (tokenize.NUMBER, tokenize.NAME):
+                            modifiers += " "
+                            coords.append(t.string + collected_tokens[k + 1].string)
+                            k += 2
+                        else:
+                            break
+                    elif t.string == "$":
+                        if k + 3 < len(collected_tokens) and collected_tokens[k + 1].start == t.end and \
+                                collected_tokens[k + 1].string == "(" and collected_tokens[
+                            k + 2].type == tokenize.NAME and collected_tokens[k + 3].string == ")":
+                            modifiers += " "
+                            coords.append(f"$({collected_tokens[k + 2].string})")
+                            k += 4
+                        else:
+                            break
+                    else:
+                        break
 
-                            i = temp_i
-                            continue
+                out_tokens.append((tokenize.NAME, "block"))
+                out_tokens.append((tokenize.OP, "("))
+                out_tokens.append((tokenize.NAME, "ref"))
+                out_tokens.append((tokenize.OP, "="))
+                out_tokens.append((tokenize.STRING, f'"{modifiers}"'))
+                out_tokens.append((tokenize.OP, ","))
+                out_tokens.append((tokenize.NAME, "v"))
+                out_tokens.append((tokenize.OP, "="))
+                out_tokens.append((tokenize.OP, "["))
+                for i, c in enumerate(coords):
+                    if i > 0:
+                        out_tokens.append((tokenize.OP, ","))
+                    if c.startswith("$("):
+                        out_tokens.append((tokenize.STRING, f'"{c}"'))
+                    elif c.replace('.', '', 1).replace('-', '', 1).replace('+', '', 1).isdigit():
+                        out_tokens.append((tokenize.NUMBER, c))
+                    else:
+                        out_tokens.append((tokenize.NAME, c))
+                out_tokens.append((tokenize.OP, "]"))
+                out_tokens.append((tokenize.OP, ")"))
+
+                i += k
+                continue
 
         if tok.type == tokenize.NAME and tok.string == "as":
             is_func_or_attr = False
@@ -887,47 +935,51 @@ def preprocess_minecraft_commands(source: str) -> str:
                     selector_str = "@" + name_tok.string
                     i += 2
 
-                    if i < len(tokens) and tokens[i].type == tokenize.OP and tokens[i].string == "[":
-                        has_selector_arg = False
-                        temp_i = i + 1
-                        temp_bracket = 1
-                        while temp_i < len(tokens) and temp_bracket > 0:
-                            t = tokens[temp_i]
-                            if t.type == tokenize.OP:
-                                if t.string in ("[", "{", "("):
-                                    temp_bracket += 1
-                                elif t.string in ("]", "}", ")"):
-                                    temp_bracket -= 1
-                                elif t.string == "=" and temp_bracket == 1:
-                                    has_selector_arg = True
-                                elif t.string == "$" and temp_i + 1 < len(tokens) and tokens[temp_i + 1].string == "(":
-                                    has_selector_arg = True
-                            temp_i += 1
-
-                        is_empty = (temp_i == i + 2)
-                        if has_selector_arg or is_empty:
-                            bracket_count = 1
-                            selector_str += "["
-                            i += 1
-                            while i < len(tokens) and bracket_count > 0:
-                                tok2 = tokens[i]
-                                if tok2.type == tokenize.STRING:
-                                    selector_str += tok2.string
-                                else:
-                                    selector_str += tok2.string
-                                if tok2.type == tokenize.OP:
-                                    if tok2.string == "[":
-                                        bracket_count += 1
-                                    elif tok2.string == "]":
-                                        bracket_count -= 1
-                                i += 1
-
                     out_tokens.append((tokenize.NAME, "selector"))
                     out_tokens.append((tokenize.OP, "("))
                     escaped = selector_str.replace('"', '\\"')
                     out_tokens.append((tokenize.STRING, f'"{escaped}"'))
                     out_tokens.append((tokenize.OP, ")"))
                     continue
+
+        if tok.type == tokenize.OP and tok.string == "[":
+            has_selector_arg = False
+            temp_i = i + 1
+            temp_bracket = 1
+            matching_bracket_i = -1
+            while temp_i < len(tokens) and temp_bracket > 0:
+                t = tokens[temp_i]
+                if t.type == tokenize.OP:
+                    if t.string in ("[", "{", "("):
+                        temp_bracket += 1
+                    elif t.string in ("]", "}", ")"):
+                        temp_bracket -= 1
+                        if temp_bracket == 0 and t.string == "]":
+                            matching_bracket_i = temp_i
+                    elif t.string == "=" and temp_bracket == 1:
+                        if temp_i - 1 >= 0 and tokens[temp_i - 1].type == tokenize.NAME:
+                            has_selector_arg = True
+                    elif t.string == "$" and temp_bracket == 1 and temp_i + 1 < len(tokens) and tokens[
+                        temp_i + 1].string == "(":
+                        has_selector_arg = True
+                temp_i += 1
+
+            is_empty = (matching_bracket_i == i + 1)
+
+            if (has_selector_arg or is_empty) and matching_bracket_i != -1:
+                inner_str = ""
+                for j in range(i + 1, matching_bracket_i):
+                    inner_str += tokens[j].string
+
+                out_tokens.append((tokenize.OP, "."))
+                out_tokens.append((tokenize.NAME, "__selector_index__"))
+                out_tokens.append((tokenize.OP, "("))
+                escaped = inner_str.replace('"', '\\"')
+                out_tokens.append((tokenize.STRING, f'"{escaped}"'))
+                out_tokens.append((tokenize.OP, ")"))
+
+                i = matching_bracket_i + 1
+                continue
 
         out_tokens.append((tok.type, tok.string))
         i += 1

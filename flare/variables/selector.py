@@ -48,6 +48,39 @@ class selector(Generic[T]):
     def sep(self, separator):
         return _PrintableSelector(self._target_str, separator)
 
+    def __selector_index__(self, args: str):
+        if not args:
+            return self
+
+        if "[" in self._target_str and self._target_str.endswith("]"):
+            new_target = self._target_str[:-1] + "," + args + "]"
+        else:
+            new_target = self._target_str + "[" + args + "]"
+
+        s = type(self)(new_target)
+        if hasattr(self, "__orig_class__"):
+            s.__orig_class__ = self.__orig_class__
+        return s
+
+    def rotate(self, target, anchor: typing.Optional[str] = None):
+        from .block import block
+
+        if isinstance(target, block):
+            parts = target.pos.strip().split()
+            if len(parts) == 2:
+                _runcmd(f"rotate {self._target_str} {target.pos}")
+            elif len(parts) == 3:
+                _runcmd(f"rotate {self._target_str} facing {target.pos}")
+            else:
+                raise ValueError("block coordinates for rotate must be either 2D (rotation) or 3D (facing location)")
+        elif isinstance(target, selector) or (isinstance(target, str) and target.startswith("@")):
+            cmd = f"rotate {self._target_str} facing entity {target}"
+            if anchor:
+                cmd += f" {anchor}"
+            _runcmd(cmd)
+        else:
+            raise TypeError("rotate target must be a block coordinate or an entity selector")
+
     def __getattr__(self, name):
         from .nbt import nbt
 
