@@ -95,6 +95,17 @@ def flare(ctx: Context, opts: FlareOptions) -> None:
 def _find_entry(ctx: Context) -> Path:
     candidates: list[Path] = []
 
+    default_names = ["main.fl", "main.py"]
+    flare_json_path = ctx.directory / "flare.json"
+    if flare_json_path.exists():
+        try:
+            with open(flare_json_path) as f:
+                data = json.load(f)
+                if "input" in data:
+                    default_names.insert(0, data["input"])
+        except Exception:
+            pass
+
     try:
         config = load_config(locate_config(ctx.directory, parents=True))
         for item in config.data_pack.load.entries():
@@ -114,9 +125,9 @@ def _find_entry(ctx: Context) -> Path:
     candidates.append(ctx.directory)
 
     for directory in candidates:
-        for name in ("main.fl", "main.py"):
+        for name in default_names:
             candidate = directory / name
             if candidate.exists():
                 return candidate
 
-    return ctx.directory / "main.fl"
+    return ctx.directory / default_names[0]

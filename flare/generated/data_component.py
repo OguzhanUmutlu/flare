@@ -122,6 +122,14 @@ class DataComponentPredicate:
 class ContainerLoot:
     loot_table: str
     seed: long
+SignLines = Union[list[str], list['Text']]
+
+@struct
+class SignText:
+    messages: 'SignLines'
+    filtered_messages: 'SignLines'
+    color: 'DyeColor'
+    has_glowing_text: bool
 AdventureModePredicate = Union[{'predicates': list['BlockPredicate'], 'show_in_tooltip': bool}, list['BlockPredicate'], 'BlockPredicate']
 
 @struct
@@ -132,6 +140,11 @@ class AttackRange:
     max_creative_reach: float
     hitbox_margin: float
     mob_factor: float
+
+@struct
+class BrewingFuel:
+    uses: str
+    speed_multiplier: str
 
 @struct
 class Compostable:
@@ -148,6 +161,11 @@ class Consumable:
 @struct
 class ConsumeEffect:
     type: str
+
+@struct
+class CookingFuel:
+    burn_time: str
+    speed_multiplier: str
 
 @struct
 class DamageReduction:
@@ -255,6 +273,11 @@ class MapDecorations:
     pass
 
 @struct
+class MobVisibility:
+    targeting_entity_types: Union[str, list[str]]
+    visibility: float
+
+@struct
 class PiercingWeapon:
     deals_knockback: bool
     dismounts: bool
@@ -308,6 +331,10 @@ class UseEffects:
     can_sprint: bool
     speed_multiplier: float
     interact_vibrations: bool
+
+@struct
+class VillagerFood:
+    nutrition: int
 
 @struct
 class Weapon:

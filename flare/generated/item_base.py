@@ -17,6 +17,7 @@ class item_base:
             block_transformer: Optional[Union[list['BlockTransformer'], Any]] = None,
             blocks_attacks: Optional[Union['blocks_attacks', Any]] = None,
             break_sound: Optional[Union['SoundEventRef', Any]] = None,
+            brewing_fuel: Optional[Union['BrewingFuel', Any]] = None,
             bucket_entity_data: Optional[Union[Union['BucketEntityData', str], Any]] = None,
             bundle_contents: Optional[Union[list['ItemStackTemplate'], Any]] = None,
             can_break: Optional[Union['AdventureModePredicate', Any]] = None,
@@ -26,6 +27,7 @@ class item_base:
             consumable: Optional[Union['Consumable', Any]] = None,
             container: Optional[Union[list['ContainerSlot'], Any]] = None,
             container_loot: Optional[Union['ContainerLoot', Any]] = None,
+            cooking_fuel: Optional[Union['CookingFuel', Any]] = None,
             creative_slot_lock: Optional[Union[dict, Any]] = None,
             custom_data: Optional[Union['CustomData', Any]] = None,
             custom_model_data: Optional[Union[Union[int, 'CustomModelData'], Any]] = None,
@@ -65,6 +67,7 @@ class item_base:
             max_damage: Optional[Union[int, Any]] = None,
             max_stack_size: Optional[Union[int, Any]] = None,
             minimum_attack_charge: Optional[Union[float, Any]] = None,
+            mob_visibility: Optional[Union['MobVisibility', Any]] = None,
             note_block_sound: Optional[Union[Union[str], Any]] = None,
             ominous_bottle_amplifier: Optional[Union[int, Any]] = None,
             piercing_weapon: Optional[Union['PiercingWeapon', Any]] = None,
@@ -79,6 +82,8 @@ class item_base:
             recipes: Optional[Union[list[str], Any]] = None,
             repair_cost: Optional[Union[int, Any]] = None,
             repairable: Optional[Union['Repairable', Any]] = None,
+            sign_text_back: Optional[Union['SignText', Any]] = None,
+            sign_text_front: Optional[Union['SignText', Any]] = None,
             stored_enchantments: Optional[Union[Union['Enchantments', 'EnchantmentLevels'], Any]] = None,
             sulfur_cube_content: Optional[Union['ItemStackTemplate', Any]] = None,
             suspicious_stew_effects: Optional[Union[list['SuspiciousStewEffect'], Any]] = None,
@@ -91,6 +96,8 @@ class item_base:
             use_cooldown: Optional[Union['UseCooldown', Any]] = None,
             use_effects: Optional[Union['UseEffects', Any]] = None,
             use_remainder: Optional[Union['ItemStackTemplate', Any]] = None,
+            villager_food: Optional[Union['VillagerFood', Any]] = None,
+            waxed: Optional[Union[dict, Any]] = None,
             weapon: Optional[Union['Weapon', Any]] = None,
             writable_book_content: Optional[Union['WritableBookContent', Any]] = None,
             written_book_content: Optional[Union['WrittenBookContent', Any]] = None,
@@ -119,6 +126,8 @@ class item_base:
             self.components["blocks_attacks"] = blocks_attacks
         if break_sound is not None:
             self.components["break_sound"] = break_sound
+        if brewing_fuel is not None:
+            self.components["brewing_fuel"] = brewing_fuel
         if bucket_entity_data is not None:
             self.components["bucket_entity_data"] = bucket_entity_data
         if bundle_contents is not None:
@@ -137,6 +146,8 @@ class item_base:
             self.components["container"] = container
         if container_loot is not None:
             self.components["container_loot"] = container_loot
+        if cooking_fuel is not None:
+            self.components["cooking_fuel"] = cooking_fuel
         if creative_slot_lock is not None:
             self.components["creative_slot_lock"] = creative_slot_lock
         if custom_data is not None:
@@ -215,6 +226,8 @@ class item_base:
             self.components["max_stack_size"] = max_stack_size
         if minimum_attack_charge is not None:
             self.components["minimum_attack_charge"] = minimum_attack_charge
+        if mob_visibility is not None:
+            self.components["mob_visibility"] = mob_visibility
         if note_block_sound is not None:
             self.components["note_block_sound"] = note_block_sound
         if ominous_bottle_amplifier is not None:
@@ -243,6 +256,10 @@ class item_base:
             self.components["repair_cost"] = repair_cost
         if repairable is not None:
             self.components["repairable"] = repairable
+        if sign_text_back is not None:
+            self.components["sign_text_back"] = sign_text_back
+        if sign_text_front is not None:
+            self.components["sign_text_front"] = sign_text_front
         if stored_enchantments is not None:
             self.components["stored_enchantments"] = stored_enchantments
         if sulfur_cube_content is not None:
@@ -267,6 +284,10 @@ class item_base:
             self.components["use_effects"] = use_effects
         if use_remainder is not None:
             self.components["use_remainder"] = use_remainder
+        if villager_food is not None:
+            self.components["villager_food"] = villager_food
+        if waxed is not None:
+            self.components["waxed"] = waxed
         if weapon is not None:
             self.components["weapon"] = weapon
         if writable_book_content is not None:

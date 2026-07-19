@@ -42,6 +42,8 @@ from .item_model import *
 from .level_based_value import *
 from .list_operation import *
 from .location_based_effect import *
+from .loot_condition import *
+from .loot_function import *
 from .loot_pool_entry import *
 from .material_condition import *
 from .material_rule import *
@@ -63,6 +65,7 @@ from .rule_block_entity_modifier import *
 from .rule_test import *
 from .score_provider import *
 from .select_item_property import *
+from .slot_source import *
 from .spawn_condition import *
 from .special_item_model import *
 from .sprite_source import *

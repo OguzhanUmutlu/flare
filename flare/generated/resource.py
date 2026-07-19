@@ -2,6 +2,8 @@
 from typing import Optional, Union, Any
 from flare.generated.data_component import *
 
+class FlatWeightedList: pass
+
 class Atlas:
     def __init__(
             self,
@@ -1321,7 +1323,7 @@ class AdvancementRewards:
     def __init__(
             self,
             experience: Optional[Union[int, Any]] = None,
-            loot: Optional[Union[list[str], Any]] = None,
+            loot: Optional[Union['LootTableListRef', Any]] = None,
             recipes: Optional[Union[list[str], Any]] = None,
             function: Optional[Union[str, Any]] = None,
             **kwargs
@@ -1588,18 +1590,14 @@ class TestEnvironment:
                 res[k] = v
         return res
 
-ItemModifier = Union[Union['LootFunction', list['LootFunction']], Any]
-
-NonReferenceItemModifier = Union[Union['NonReferenceLootFunction', list['NonReferenceLootFunction']], Any]
+ItemModifier = Union[Union['LootFunction', list['LootFunction'], list['ItemModifier'], str], Any]
 
 class LootPool:
     def __init__(
             self,
-            rolls: Optional[Union[Union['RandomIntGenerator', 'NumberProvider'], Any]] = None,
-            bonus_rolls: Optional[Union[Union['MinMaxBounds', 'NumberProvider'], Any]] = None,
+            rolls: Optional[Union[Union['RandomIntGenerator', 'NumberProviderRef'], Any]] = None,
+            bonus_rolls: Optional[Union[Union['MinMaxBounds', 'NumberProviderRef'], Any]] = None,
             entries: Optional[Union[list['LootPoolEntry'], Any]] = None,
-            functions: Optional[Union[list['LootFunction'], Any]] = None,
-            conditions: Optional[Union[list['LootCondition'], Any]] = None,
             **kwargs
     ):
         self.components = {}
@@ -1610,10 +1608,6 @@ class LootPool:
             self.components["bonus_rolls"] = bonus_rolls
         if entries is not None:
             self.components["entries"] = entries
-        if functions is not None:
-            self.components["functions"] = functions
-        if conditions is not None:
-            self.components["conditions"] = conditions
 
     def to_dict(self):
         res = {}
@@ -1654,6 +1648,7 @@ class LootTable:
             type: Optional[Union[str, Any]] = None,
             pools: Optional[Union[list['LootPool'], Any]] = None,
             functions: Optional[Union[list['LootFunction'], Any]] = None,
+            modifier: Optional[Union['ItemModifier', Any]] = None,
             random_sequence: Optional[Union[str, Any]] = None,
             **kwargs
     ):
@@ -1665,6 +1660,8 @@ class LootTable:
             self.components["pools"] = pools
         if functions is not None:
             self.components["functions"] = functions
+        if modifier is not None:
+            self.components["modifier"] = modifier
         if random_sequence is not None:
             self.components["random_sequence"] = random_sequence
 
@@ -1679,13 +1676,91 @@ class LootTable:
                 res[k] = v
         return res
 
-NumberProvider = Union[Union[float, {'type': str}], Any]
+LootTableListRef = Union[Union['LootTable', list['LootTable'], str, list[str]], Any]
 
-NonReferencePredicate = Union[Union['NonReferenceLootCondition', list['NonReferenceLootCondition']], Any]
+class LootCondition:
+    def __init__(
+            self,
+            condition: Optional[Union[Union[str, str], Any]] = None,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if condition is not None:
+            self.components["condition"] = condition
+        if type is not None:
+            self.components["type"] = type
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+class LootFunction:
+    def __init__(
+            self,
+            function: Optional[Union[Union[str, str], Any]] = None,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if function is not None:
+            self.components["function"] = function
+        if type is not None:
+            self.components["type"] = type
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+NumberProvider = Union[Union[float, {'type': str}, {'type': str}], Any]
+
+NumberProviderRef = Union[Union['NumberProvider', str], Any]
 
 Predicate = Union[Union['LootCondition', list['LootCondition']], Any]
 
+PredicateRef = Union[Union['Predicate', str], Any]
+
 class Recipe:
+    def __init__(
+            self,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if type is not None:
+            self.components["type"] = type
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+SlotSource = Union[Union['TypedSlotSource', list['SlotSource'], str], Any]
+
+class TypedSlotSource:
     def __init__(
             self,
             type: Optional[Union[str, Any]] = None,
@@ -2581,11 +2656,12 @@ class VillagerTrade:
             wants: Optional[Union['TradeCost', Any]] = None,
             additional_wants: Optional[Union['TradeCost', Any]] = None,
             gives: Optional[Union['ItemStackTemplate', Any]] = None,
-            given_item_modifiers: Optional[Union[list['NonReferenceItemModifier'], Any]] = None,
+            given_item_modifiers: Optional[Union[list['ItemModifier'], Any]] = None,
+            given_item_modifier: Optional[Union['ItemModifier', Any]] = None,
             max_uses: Optional[Union['NumberProvider', Any]] = None,
             reputation_discount: Optional[Union['NumberProvider', Any]] = None,
             xp: Optional[Union['NumberProvider', Any]] = None,
-            merchant_predicate: Optional[Union['NonReferencePredicate', Any]] = None,
+            merchant_predicate: Optional[Union['Predicate', Any]] = None,
             double_trade_price_enchantments: Optional[Union[Union[str, list[str]], Any]] = None,
             **kwargs
     ):
@@ -2599,6 +2675,8 @@ class VillagerTrade:
             self.components["gives"] = gives
         if given_item_modifiers is not None:
             self.components["given_item_modifiers"] = given_item_modifiers
+        if given_item_modifier is not None:
+            self.components["given_item_modifier"] = given_item_modifier
         if max_uses is not None:
             self.components["max_uses"] = max_uses
         if reputation_discount is not None:
@@ -2621,7 +2699,38 @@ class VillagerTrade:
                 res[k] = v
         return res
 
-class Biome:
+class NaturalMobSpawns:
+    def __init__(
+            self,
+            creature_spawn_probability: Optional[Union[float, Any]] = None,
+            spawners: Optional[Union['SpawnerDataMap', Any]] = None,
+            spawns_by_category: Optional[Union['SpawnerDataMap', Any]] = None,
+            spawn_costs: Optional[Union[dict, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if creature_spawn_probability is not None:
+            self.components["creature_spawn_probability"] = creature_spawn_probability
+        if spawners is not None:
+            self.components["spawners"] = spawners
+        if spawns_by_category is not None:
+            self.components["spawns_by_category"] = spawns_by_category
+        if spawn_costs is not None:
+            self.components["spawn_costs"] = spawn_costs
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+class Biome(NaturalMobSpawns):
     def __init__(
             self,
             attributes: Optional[Union['PositionalEnvironmentAttributeMap', Any]] = None,
@@ -2634,18 +2743,14 @@ class Biome:
             has_precipitation: Optional[Union[bool, Any]] = None,
             temperature_modifier: Optional[Union[str, Any]] = None,
             player_spawn_friendly: Optional[Union[bool, Any]] = None,
-            creature_spawn_probability: Optional[Union[float, Any]] = None,
             effects: Optional[Union['BiomeEffects', Any]] = None,
             surface_builder: Optional[Union['ConfiguredSurfaceBuilderRef', Any]] = None,
             starts: Optional[Union[list['StructureRef'], Any]] = None,
-            spawners: Optional[Union[dict, Any]] = None,
-            spawn_costs: Optional[Union[dict, Any]] = None,
             carvers: Optional[Union[Union[dict, Union[list['CarverRef'], str, str]], Any]] = None,
             features: Optional[Union[Union[list[list['ConfiguredFeatureRef']], list[Union[list['PlacedFeatureRef'], str]]], Any]] = None,
             **kwargs
     ):
-        self.components = {}
-        self.components.update(kwargs)
+        super().__init__(**kwargs)
         if attributes is not None:
             self.components["attributes"] = attributes
         if category is not None:
@@ -2666,18 +2771,12 @@ class Biome:
             self.components["temperature_modifier"] = temperature_modifier
         if player_spawn_friendly is not None:
             self.components["player_spawn_friendly"] = player_spawn_friendly
-        if creature_spawn_probability is not None:
-            self.components["creature_spawn_probability"] = creature_spawn_probability
         if effects is not None:
             self.components["effects"] = effects
         if surface_builder is not None:
             self.components["surface_builder"] = surface_builder
         if starts is not None:
             self.components["starts"] = starts
-        if spawners is not None:
-            self.components["spawners"] = spawners
-        if spawn_costs is not None:
-            self.components["spawn_costs"] = spawn_costs
         if carvers is not None:
             self.components["carvers"] = carvers
         if features is not None:
@@ -2808,25 +2907,13 @@ class MobSpawnCost:
                 res[k] = v
         return res
 
-class SpawnerData:
+class SpawnerDataMap:
     def __init__(
             self,
-            type: Optional[Union[str, Any]] = None,
-            weight: Optional[Union[int, Any]] = None,
-            minCount: Optional[Union[int, Any]] = None,
-            maxCount: Optional[Union[int, Any]] = None,
             **kwargs
     ):
         self.components = {}
         self.components.update(kwargs)
-        if type is not None:
-            self.components["type"] = type
-        if weight is not None:
-            self.components["weight"] = weight
-        if minCount is not None:
-            self.components["minCount"] = minCount
-        if maxCount is not None:
-            self.components["maxCount"] = maxCount
 
     def to_dict(self):
         res = {}
@@ -3325,6 +3412,43 @@ class MaterialRule:
 
 MaterialRuleRef = Union[Union[str, 'MaterialRule'], Any]
 
+class Aquifer:
+    def __init__(
+            self,
+            barrier: Optional[Union['DensityFunctionRef', Any]] = None,
+            fluid_level_floodedness: Optional[Union['DensityFunctionRef', Any]] = None,
+            fluid_level_spread: Optional[Union['DensityFunctionRef', Any]] = None,
+            lava: Optional[Union['DensityFunctionRef', Any]] = None,
+            exclusion: Optional[Union['DensityFunctionRef', Any]] = None,
+            surface_level: Optional[Union['DensityFunctionRef', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if barrier is not None:
+            self.components["barrier"] = barrier
+        if fluid_level_floodedness is not None:
+            self.components["fluid_level_floodedness"] = fluid_level_floodedness
+        if fluid_level_spread is not None:
+            self.components["fluid_level_spread"] = fluid_level_spread
+        if lava is not None:
+            self.components["lava"] = lava
+        if exclusion is not None:
+            self.components["exclusion"] = exclusion
+        if surface_level is not None:
+            self.components["surface_level"] = surface_level
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class NoiseGeneratorSettings:
     def __init__(
             self,
@@ -3335,6 +3459,8 @@ class NoiseGeneratorSettings:
             sea_level: Optional[Union[Union[int, int], Any]] = None,
             min_surface_level: Optional[Union[int, Any]] = None,
             disable_mob_generation: Optional[Union[bool, Any]] = None,
+            aquifers: Optional[Union['Aquifer', Any]] = None,
+            ore_veins: Optional[Union[list['OreVeinifier'], Any]] = None,
             legacy_random_source: Optional[Union[bool, Any]] = None,
             noise: Optional[Union['NoiseSettings', Any]] = None,
             noise_router: Optional[Union['NoiseRouter', Any]] = None,
@@ -3360,6 +3486,10 @@ class NoiseGeneratorSettings:
             self.components["min_surface_level"] = min_surface_level
         if disable_mob_generation is not None:
             self.components["disable_mob_generation"] = disable_mob_generation
+        if aquifers is not None:
+            self.components["aquifers"] = aquifers
+        if ore_veins is not None:
+            self.components["ore_veins"] = ore_veins
         if legacy_random_source is not None:
             self.components["legacy_random_source"] = legacy_random_source
         if noise is not None:
@@ -3576,6 +3706,46 @@ class NoiseSlideSettings:
                 res[k] = v
         return res
 
+class OreVeinifier:
+    def __init__(
+            self,
+            ore_block: Optional[Union['BlockState', Any]] = None,
+            raw_ore_block: Optional[Union['BlockState', Any]] = None,
+            filler_block: Optional[Union['BlockState', Any]] = None,
+            raw_ore_chance: Optional[Union[float, Any]] = None,
+            density: Optional[Union['DensityFunctionRef', Any]] = None,
+            richness: Optional[Union['DensityFunctionRef', Any]] = None,
+            filler_gap: Optional[Union['DensityFunctionRef', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if ore_block is not None:
+            self.components["ore_block"] = ore_block
+        if raw_ore_block is not None:
+            self.components["raw_ore_block"] = raw_ore_block
+        if filler_block is not None:
+            self.components["filler_block"] = filler_block
+        if raw_ore_chance is not None:
+            self.components["raw_ore_chance"] = raw_ore_chance
+        if density is not None:
+            self.components["density"] = density
+        if richness is not None:
+            self.components["richness"] = richness
+        if filler_gap is not None:
+            self.components["filler_gap"] = filler_gap
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class SpawnTargetPoint:
     def __init__(
             self,
@@ -3676,7 +3846,7 @@ class SpawnOverride:
     def __init__(
             self,
             bounding_box: Optional[Union[str, Any]] = None,
-            spawns: Optional[Union[list['SpawnerData'], Any]] = None,
+            spawns: Optional[Union['FlatWeightedList', Any]] = None,
             **kwargs
     ):
         self.components = {}

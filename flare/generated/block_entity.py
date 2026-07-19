@@ -177,8 +177,11 @@ class LegacyBee:
 @struct
 class BrewingStand(BlockEntity, Nameable, Lockable):
     Items: list['SlottedItem']
-    BrewTime: short
-    Fuel: byte
+    BrewTime: Union[short, int]
+    Fuel: Union[byte, int]
+    total_brew_time: int
+    total_fuel: int
+    speed_multiplier: float
 
 @struct
 class BrushableBlock(BlockEntity):

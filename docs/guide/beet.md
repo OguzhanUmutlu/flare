@@ -85,8 +85,7 @@ Options are resolved in this order, with later entries winning out:
 2. **`flare.json`:** If present in the project root, this is the same file used by the standalone `flare` CLI.
 3. **`meta.flare`:** Settings in `beet.json` always take precedence over `flare.json`.
 
-This hierarchy allows you to maintain a `flare.json` for solo CLI use, while layering `meta.flare` overrides strictly
-for Beet-specific build steps.
+**Note:** If there are conflicting properties between your `beet.json` (under `meta.flare`) and `flare.json`, the `beet.json` configuration will explicitly override `flare.json`. This hierarchy allows you to maintain a `flare.json` for solo CLI use, while layering `meta.flare` overrides strictly for Beet-specific build steps.
 
 ## How It Works
 

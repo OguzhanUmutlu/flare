@@ -7,16 +7,17 @@ generate a basic configuration file by running `flare init` in your project dire
 
 Below is a list of all available properties you can define in your `flare.json`.
 
-| Property             | Type      | Default              | Description                                                                                                        |
-|----------------------|-----------|----------------------|--------------------------------------------------------------------------------------------------------------------|
-| `namespace`          | `string`  | `"flare"`            | The primary namespace used for your datapack's functions and resources.                                            |
-| `pack_format`        | `integer` | `15`                 | The target datapack format version included in your `pack.mcmeta`.                                                 |
-| `description`        | `string`  | `"A Flare datapack"` | The description of the datapack shown in-game.                                                                     |
-| `build_dir`          | `string`  | `"dist"`             | The directory where the compiled datapack will be output. This can be a relative or absolute path.                 |
-| `validation_level`   | `string`  | `"strict"`           | Sets the internal Minecraft command schema validation level (`strict`, `warning`, `none`).                         |
-| `minecraft_version`  | `string`  | `"1.20.4"`           | The Minecraft version to use for schema validation.                                                                |
-| `nbt_schema_missing` | `string`  | `"error"`            | Action to take when indexing an NBT path that doesn't exist in the attached schema (`error`, `warning`, `ignore`). |
-| `autoreload`         | `string`/`boolean`| `false`      | World URI (or `true` for `world://_last`) to automatically setup an autoreload background pack to trigger `/reload`.|
+| Property             | Type               | Default              | Description                                                                                                          |
+|----------------------|--------------------|----------------------|----------------------------------------------------------------------------------------------------------------------|
+| `namespace`          | `string`           | `"flare"`            | The primary namespace used for your datapack's functions and resources.                                              |
+| `input`              | `string`           | `"main.fl"`          | The default input file to compile when running the CLI on the project directory.                                     |
+| `pack_format`        | `integer`          | `15`                 | The target datapack format version included in your `pack.mcmeta`.                                                   |
+| `description`        | `string`           | `"A Flare datapack"` | The description of the datapack shown in-game.                                                                       |
+| `build_dir`          | `string`           | `"dist"`             | The directory where the compiled datapack will be output. This can be a relative or absolute path.                   |
+| `validation_level`   | `string`           | `"strict"`           | Sets the internal Minecraft command schema validation level (`strict`, `warning`, `none`).                           |
+| `minecraft_version`  | `string`           | `"1.20.4"`           | The Minecraft version to use for schema validation.                                                                  |
+| `nbt_schema_missing` | `string`           | `"error"`            | Action to take when indexing an NBT path that doesn't exist in the attached schema (`error`, `warning`, `ignore`).   |
+| `autoreload`         | `string`/`boolean` | `false`              | World URI (or `true` for `world://_last`) to automatically setup an autoreload background pack to trigger `/reload`. |
 
 ---
 

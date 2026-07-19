@@ -239,6 +239,43 @@ class MaterialRule:
 
 MaterialRuleRef = Union[Union[str, 'MaterialRule'], Any]
 
+class Aquifer:
+    def __init__(
+            self,
+            barrier: Optional[Union['DensityFunctionRef', Any]] = None,
+            fluid_level_floodedness: Optional[Union['DensityFunctionRef', Any]] = None,
+            fluid_level_spread: Optional[Union['DensityFunctionRef', Any]] = None,
+            lava: Optional[Union['DensityFunctionRef', Any]] = None,
+            exclusion: Optional[Union['DensityFunctionRef', Any]] = None,
+            surface_level: Optional[Union['DensityFunctionRef', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if barrier is not None:
+            self.components["barrier"] = barrier
+        if fluid_level_floodedness is not None:
+            self.components["fluid_level_floodedness"] = fluid_level_floodedness
+        if fluid_level_spread is not None:
+            self.components["fluid_level_spread"] = fluid_level_spread
+        if lava is not None:
+            self.components["lava"] = lava
+        if exclusion is not None:
+            self.components["exclusion"] = exclusion
+        if surface_level is not None:
+            self.components["surface_level"] = surface_level
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class NoiseGeneratorSettings:
     def __init__(
             self,
@@ -249,6 +286,8 @@ class NoiseGeneratorSettings:
             sea_level: Optional[Union[Union[int, int], Any]] = None,
             min_surface_level: Optional[Union[int, Any]] = None,
             disable_mob_generation: Optional[Union[bool, Any]] = None,
+            aquifers: Optional[Union['Aquifer', Any]] = None,
+            ore_veins: Optional[Union[list['OreVeinifier'], Any]] = None,
             legacy_random_source: Optional[Union[bool, Any]] = None,
             noise: Optional[Union['NoiseSettings', Any]] = None,
             noise_router: Optional[Union['NoiseRouter', Any]] = None,
@@ -274,6 +313,10 @@ class NoiseGeneratorSettings:
             self.components["min_surface_level"] = min_surface_level
         if disable_mob_generation is not None:
             self.components["disable_mob_generation"] = disable_mob_generation
+        if aquifers is not None:
+            self.components["aquifers"] = aquifers
+        if ore_veins is not None:
+            self.components["ore_veins"] = ore_veins
         if legacy_random_source is not None:
             self.components["legacy_random_source"] = legacy_random_source
         if noise is not None:
@@ -480,6 +523,46 @@ class NoiseSlideSettings:
             self.components["size"] = size
         if offset is not None:
             self.components["offset"] = offset
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+class OreVeinifier:
+    def __init__(
+            self,
+            ore_block: Optional[Union['BlockState', Any]] = None,
+            raw_ore_block: Optional[Union['BlockState', Any]] = None,
+            filler_block: Optional[Union['BlockState', Any]] = None,
+            raw_ore_chance: Optional[Union[float, Any]] = None,
+            density: Optional[Union['DensityFunctionRef', Any]] = None,
+            richness: Optional[Union['DensityFunctionRef', Any]] = None,
+            filler_gap: Optional[Union['DensityFunctionRef', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if ore_block is not None:
+            self.components["ore_block"] = ore_block
+        if raw_ore_block is not None:
+            self.components["raw_ore_block"] = raw_ore_block
+        if filler_block is not None:
+            self.components["filler_block"] = filler_block
+        if raw_ore_chance is not None:
+            self.components["raw_ore_chance"] = raw_ore_chance
+        if density is not None:
+            self.components["density"] = density
+        if richness is not None:
+            self.components["richness"] = richness
+        if filler_gap is not None:
+            self.components["filler_gap"] = filler_gap
 
     def to_dict(self):
         res = {}

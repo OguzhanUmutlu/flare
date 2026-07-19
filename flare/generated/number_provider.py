@@ -26,11 +26,36 @@ class LevelBasedValueMap:
                 res[k] = v
         return res
 
+class LootCondition:
+    def __init__(
+            self,
+            condition: Optional[Union[Union[str, str], Any]] = None,
+            type: Optional[Union[str, Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if condition is not None:
+            self.components["condition"] = condition
+        if type is not None:
+            self.components["type"] = type
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class BinomialNumberProvider:
     def __init__(
             self,
-            n: Optional[Union['NumberProvider', Any]] = None,
-            p: Optional[Union['NumberProvider', Any]] = None,
+            n: Optional[Union['NumberProviderRef', Any]] = None,
+            p: Optional[Union['NumberProviderRef', Any]] = None,
             **kwargs
     ):
         self.components = {}
@@ -54,9 +79,9 @@ class BinomialNumberProvider:
 class ConditionalValueNumberProvider:
     def __init__(
             self,
-            condition: Optional[Union['Predicate', Any]] = None,
-            on_true: Optional[Union['NumberProvider', Any]] = None,
-            on_false: Optional[Union['NumberProvider', Any]] = None,
+            condition: Optional[Union['PredicateRef', Any]] = None,
+            on_true: Optional[Union['NumberProviderRef', Any]] = None,
+            on_false: Optional[Union['NumberProviderRef', Any]] = None,
             **kwargs
     ):
         self.components = {}
@@ -148,8 +173,8 @@ class EnvironmentAttributeNumberProvider:
 class NumberDispatcher:
     def __init__(
             self,
-            cases: Optional[Union[list[{'condition': 'Predicate', 'number_provider': 'NumberProvider'}], Any]] = None,
-            default: Optional[Union['NumberProvider', Any]] = None,
+            cases: Optional[Union[list[{'condition': 'PredicateRef', 'number_provider': 'NumberProviderRef'}], Any]] = None,
+            default: Optional[Union['NumberProviderRef', Any]] = None,
             **kwargs
     ):
         self.components = {}
@@ -170,7 +195,9 @@ class NumberDispatcher:
                 res[k] = v
         return res
 
-NumberProvider = Union[Union[float, {'type': str}], Any]
+NumberProvider = Union[Union[float, {'type': str}, {'type': str}], Any]
+
+NumberProviderRef = Union[Union['NumberProvider', str], Any]
 
 class ScoreNumberProvider:
     def __init__(
@@ -228,7 +255,7 @@ class StorageNumberProvider:
 class SumNumberProvider:
     def __init__(
             self,
-            summands: Optional[Union[list['NumberProvider'], Any]] = None,
+            summands: Optional[Union[list['NumberProviderRef'], Any]] = None,
             **kwargs
     ):
         self.components = {}
@@ -250,8 +277,8 @@ class SumNumberProvider:
 class UniformNumberProvider:
     def __init__(
             self,
-            min: Optional[Union['NumberProvider', Any]] = None,
-            max: Optional[Union['NumberProvider', Any]] = None,
+            min: Optional[Union['NumberProviderRef', Any]] = None,
+            max: Optional[Union['NumberProviderRef', Any]] = None,
             **kwargs
     ):
         self.components = {}
@@ -295,6 +322,8 @@ class WeightedNumberProvider:
         return res
 
 Predicate = Union[Union['LootCondition', list['LootCondition']], Any]
+
+PredicateRef = Union[Union['Predicate', str], Any]
 
 ScoreProvider = Union[Union[str, {'type': str}], Any]
 

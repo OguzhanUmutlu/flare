@@ -34,12 +34,15 @@ class Constant:
     def __init__(
             self,
             argument: Optional[Union['NoiseRange', Any]] = None,
+            value: Optional[Union['NoiseRange', Any]] = None,
             **kwargs
     ):
         self.components = {}
         self.components.update(kwargs)
         if argument is not None:
             self.components["argument"] = argument
+        if value is not None:
+            self.components["value"] = value
 
     def to_dict(self):
         res = {}
@@ -105,6 +108,34 @@ class InvervalSelect:
             self.components["thresholds"] = thresholds
         if functions is not None:
             self.components["functions"] = functions
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
+class Lerp:
+    def __init__(
+            self,
+            alpha: Optional[Union['DensityFunctionRef', Any]] = None,
+            first: Optional[Union['DensityFunctionRef', Any]] = None,
+            second: Optional[Union['DensityFunctionRef', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if alpha is not None:
+            self.components["alpha"] = alpha
+        if first is not None:
+            self.components["first"] = first
+        if second is not None:
+            self.components["second"] = second
 
     def to_dict(self):
         res = {}
@@ -183,12 +214,15 @@ class OneArgument:
     def __init__(
             self,
             argument: Optional[Union['DensityFunctionRef', Any]] = None,
+            input: Optional[Union['DensityFunctionRef', Any]] = None,
             **kwargs
     ):
         self.components = {}
         self.components.update(kwargs)
         if argument is not None:
             self.components["argument"] = argument
+        if input is not None:
+            self.components["input"] = input
 
     def to_dict(self):
         res = {}
@@ -235,16 +269,44 @@ class RangeChoice:
                 res[k] = v
         return res
 
+class Round:
+    def __init__(
+            self,
+            input: Optional[Union['DensityFunctionRef', Any]] = None,
+            multiple: Optional[Union['DensityFunctionRef', Any]] = None,
+            **kwargs
+    ):
+        self.components = {}
+        self.components.update(kwargs)
+        if input is not None:
+            self.components["input"] = input
+        if multiple is not None:
+            self.components["multiple"] = multiple
+
+    def to_dict(self):
+        res = {}
+        for k, v in self.components.items():
+            if hasattr(v, 'to_dict'):
+                res[k] = v.to_dict()
+            elif isinstance(v, list):
+                res[k] = [x.to_dict() if hasattr(x, 'to_dict') else x for x in v]
+            else:
+                res[k] = v
+        return res
+
 class Shift:
     def __init__(
             self,
             argument: Optional[Union[str, Any]] = None,
+            noise: Optional[Union[str, Any]] = None,
             **kwargs
     ):
         self.components = {}
         self.components.update(kwargs)
         if argument is not None:
             self.components["argument"] = argument
+        if noise is not None:
+            self.components["noise"] = noise
 
     def to_dict(self):
         res = {}
@@ -382,6 +444,8 @@ class TwoArguments:
             self,
             argument1: Optional[Union['DensityFunctionRef', Any]] = None,
             argument2: Optional[Union['DensityFunctionRef', Any]] = None,
+            left: Optional[Union['DensityFunctionRef', Any]] = None,
+            right: Optional[Union['DensityFunctionRef', Any]] = None,
             **kwargs
     ):
         self.components = {}
@@ -390,6 +454,10 @@ class TwoArguments:
             self.components["argument1"] = argument1
         if argument2 is not None:
             self.components["argument2"] = argument2
+        if left is not None:
+            self.components["left"] = left
+        if right is not None:
+            self.components["right"] = right
 
     def to_dict(self):
         res = {}

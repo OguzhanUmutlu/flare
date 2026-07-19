@@ -729,11 +729,23 @@ def main():
             return
 
     if os.path.isdir(args.target):
-        file_path = os.path.join(args.target, "main.fl")
-        if not os.path.exists(file_path) and os.path.exists(
-                os.path.join(args.target, "main.py")
-        ):
-            file_path = os.path.join(args.target, "main.py")
+        file_path = None
+        json_path = os.path.join(args.target, "flare.json")
+        if os.path.exists(json_path):
+            try:
+                with open(json_path, "r") as f:
+                    config = json.load(f)
+                    if "input" in config:
+                        file_path = os.path.join(args.target, config["input"])
+            except Exception:
+                pass
+
+        if not file_path:
+            file_path = os.path.join(args.target, "main.fl")
+            if not os.path.exists(file_path) and os.path.exists(
+                    os.path.join(args.target, "main.py")
+            ):
+                file_path = os.path.join(args.target, "main.py")
     else:
         if args.target.endswith(".fl") or args.target.endswith(".py"):
             file_path = args.target
