@@ -80,6 +80,18 @@ To drastically speed up compile times, the Flare compiler uses automatic memoiza
 
 When Flare processes a raw Minecraft command, it compiles the template string into an internal operations list. If that exact command template is encountered again, Flare bypasses its internal string parser entirely and simply swaps in the new variable values. This optimization applies even when using a massive `for` loop where Python variables are constantly changing (like `say i`). Because the operations cache isolates variable injection from static text, you don't need to manually optimize your command loops. Write clean, readable generation logic, and Flare will ensure it compiles instantly.
 
+## Binary I/O Cache
+
+In addition to fast memory processing, Flare drastically reduces the filesystem overhead by utilizing a Binary I/O Cache.
+
+Whenever Flare finishes compiling your project, it serializes a tiny binary dictionary (using Python's ultra-fast `marshal` module) into a `.flare_iocache.dat` file at the root of your output directory. This cache stores the MD5 hash of every single generated `.mcfunction` and `.json` file from your project.
+
+During the next compilation run:
+1. **Delta Updates:** Flare generates all files in memory but checks their MD5 hash against the binary cache before writing to disk. If the hash matches and the file already exists on disk, Flare skips the write entirely!
+2. **Garbage Collection:** Flare compares the list of newly generated files against the previous run's `__files__` list stored in the cache. Any "stale" files that were generated previously but no longer exist in the new compile are automatically deleted from the filesystem, keeping your datapack completely clean.
+
+This guarantees near-instant delta-compilations, as your SSD only performs write operations for the exact functions that actually changed.
+
 ## `FlareValue` and Lazy Operations
 
 Flare's internal `FlareValue` class is the foundational base class for all compiler operations. It provides a standardized framework for deferring evaluations. By overriding Python's standard math operators, it allows operations to be "chained" at compile-time and then resolved into a series of Minecraft commands only when the user assigns the variable or evaluates it.
