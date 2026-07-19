@@ -350,13 +350,13 @@ class _SuccessCondition(FlareValue):
         self._is_nbt_op = False
 
     def __branch__(self, invert=False):
+        from .variables.score import score
+
         if self.func_name:
             if invert:
                 return [f"unless function {self.func_name}"]
             return [f"if function {self.func_name}"]
         else:
-            from .variables.score import score
-
             temp = score(addr=f"!succ_{ctx.next_temp_id()} {ctx.vars_obj}")
             store_success(temp).__with__(self.lazy_func)
 

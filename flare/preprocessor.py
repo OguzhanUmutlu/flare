@@ -469,20 +469,15 @@ class FlareTransformer(ast.NodeTransformer):
 
         name_body = self.gen_name()
 
-        body_func = ast.FunctionDef(name=name_body,
-                                    args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
-                                                       defaults=[]), body=node.body if node.body else [ast.Pass()],
-                                    decorator_list=[])
-        ast.copy_location(body_func, node)
-
         call_args = []
-        assigns = []
+        assigns_outer = []
+        assigns_inner = []
         for item in node.items:
             tmp_name = self.gen_name()
-            assigns.append(ast.Assign(targets=[ast.Name(id=tmp_name, ctx=ast.Store())], value=item.context_expr))
+            assigns_outer.append(ast.Assign(targets=[ast.Name(id=tmp_name, ctx=ast.Store())], value=item.context_expr))
 
             if item.optional_vars:
-                assigns.append(ast.Assign(
+                assigns_inner.append(ast.Assign(
                     targets=[item.optional_vars],
                     value=ast.Call(
                         func=ast.Name(id="_flare_as_var", ctx=ast.Load()),
@@ -493,13 +488,20 @@ class FlareTransformer(ast.NodeTransformer):
 
             call_args.append(ast.Name(id=tmp_name, ctx=ast.Load()))
 
+        body_func = ast.FunctionDef(name=name_body,
+                                    args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
+                                                       defaults=[]),
+                                    body=assigns_inner + (node.body if node.body else [ast.Pass()]),
+                                    decorator_list=[])
+        ast.copy_location(body_func, node)
+
         call_args.append(ast.Name(id=name_body, ctx=ast.Load()))
 
         call_expr = ast.Expr(
             value=ast.Call(func=ast.Name(id="_flare_with", ctx=ast.Load()), args=call_args, keywords=[]))
         ast.copy_location(call_expr, node)
 
-        return assigns + [body_func, call_expr]
+        return assigns_outer + [body_func, call_expr]
 
 
 COMMAND_KEYWORDS = "advancement|attribute|ban|ban-ip|banlist|bossbar|clear|clone|damage|data|datapack|debug|defaultgamemode|deop|dialog|difficulty|effect|enchant|execute|experience|fetchprofile|fill|fillbiome|forceload|function|gamemode|gamerule|give|help|item|jfr|kick|kill|list|locate|loot|me|msg|op|pardon|pardon-ip|particle|perf|place|playsound|publish|random|recipe|reload|ride|rotate|save-all|save-off|save-on|say|schedule|scoreboard|seed|setblock|setidletimeout|setworldspawn|spawnpoint|spectate|spreadplayers|stop|stopsound|stopwatch|summon|swing|tag|team|teammsg|teleport|tell|tellraw|test|tick|time|title|tm|tp|transfer|trigger|unpublish|version|w|waypoint|weather|whitelist|worldborder|xp"
@@ -770,7 +772,7 @@ def preprocess_minecraft_commands(source: str) -> str:
                         i = curr
                         continue
 
-        if tok.type == tokenize.NAME and tok.string == "block":
+        if tok.type == tokenize.NAME and tok.string in ("block", "positioned", "facing", "rotated"):
             if i + 1 < len(tokens) and tokens[i + 1].type == tokenize.OP and tokens[i + 1].string == "(":
                 if i + 2 < len(tokens):
                     next_tok = tokens[i + 2]
@@ -813,10 +815,29 @@ def preprocess_minecraft_commands(source: str) -> str:
                                 parts.append(lines_arr[end_row - 1][:end_col])
                                 coord_str = " ".join(p.strip() for p in parts if p.strip())
 
+                            if tok.string != "block":
+                                out_tokens.append((tokenize.NAME, tok.string))
+                                out_tokens.append((tokenize.OP, "("))
+
                             out_tokens.append((tokenize.NAME, "block"))
                             out_tokens.append((tokenize.OP, "("))
                             escaped = coord_str.replace('"', '\\"')
+                            out_tokens.append((tokenize.NAME, "interpolate_command"))
+                            out_tokens.append((tokenize.OP, "("))
                             out_tokens.append((tokenize.STRING, f'"{escaped}"'))
+                            out_tokens.append((tokenize.OP, ","))
+                            out_tokens.append((tokenize.NAME, "locals"))
+                            out_tokens.append((tokenize.OP, "("))
+                            out_tokens.append((tokenize.OP, ")"))
+                            out_tokens.append((tokenize.OP, ","))
+                            out_tokens.append((tokenize.NAME, "globals"))
+                            out_tokens.append((tokenize.OP, "("))
+                            out_tokens.append((tokenize.OP, ")"))
+                            out_tokens.append((tokenize.OP, ")"))
+
+                            if tok.string != "block":
+                                out_tokens.append((tokenize.OP, ")"))
+
                             i = temp_i
                             continue
 

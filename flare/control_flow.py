@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from math import isinf
 from typing import Callable
 
@@ -400,9 +401,83 @@ class schedule:
         _runcmd(f"schedule clear {self._func_name}")
 
 
+class _MacroGroup:
+    def __init__(self, macros):
+        self.macros = macros
+
+    def __with__(self, body_func):
+        from . import context as ctx
+        from .variables.nbt import nbt
+
+        func_name = f"{ctx._current_namespace}:macro_group_{ctx.next_func_id()}"
+
+        common_base = None
+        can_use_common_base = True
+
+        for m in self.macros:
+            if m.value is None:
+                raise ValueError("macro() must be initialized with a value to be used as a context manager.")
+            if not hasattr(m.value, "_addr"):
+                can_use_common_base = False
+                break
+
+            addr_str = m.value._addr
+            if not (addr_str.startswith("storage ") or addr_str.startswith("entity ") or addr_str.startswith("block ")):
+                can_use_common_base = False
+                break
+
+            parts = addr_str.rsplit(".", 1)
+            if len(parts) != 2:
+                can_use_common_base = False
+                break
+
+            parent, child = parts
+            if not re.match(r'^[a-zA-Z0-9_\-]+$', child):
+                can_use_common_base = False
+                break
+
+            if common_base is None:
+                common_base = parent
+            elif common_base != parent:
+                can_use_common_base = False
+                break
+
+        if can_use_common_base and common_base is not None:
+            for m in self.macros:
+                child_key = m.value._addr.rsplit(".", 1)[1]
+                m.name = child_key
+
+            with ctx.push_context(func_name):
+                body_func()
+
+            if ctx.files.get(func_name):
+                ctx._runcmd(f"function {func_name} with {common_base}")
+        else:
+            for m in self.macros:
+                temp_nbt = nbt(addr=f"storage flare:macro {m.name}")
+                temp_nbt[:] = m.value
+
+            with ctx.push_context(func_name):
+                body_func()
+
+            if ctx.files.get(func_name):
+                ctx._runcmd(f"function {func_name} with storage flare:macro")
+
+
 def _flare_with(*args):
     body_func = args[-1]
-    chains = args[:-1]
+    chains = list(args[:-1])
+
+    i = 0
+    while i < len(chains):
+        if type(chains[i]).__name__ == "macro":
+            j = i + 1
+            while j < len(chains) and type(chains[j]).__name__ == "macro":
+                j += 1
+            if j - i > 1:
+                group = _MacroGroup(chains[i:j])
+                chains = chains[:i] + [group] + chains[j:]
+        i += 1
 
     def wrap(idx):
         if idx == len(chains):

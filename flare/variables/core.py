@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import functools
 import inspect
+import types
 from abc import ABC, ABCMeta
 from typing import TypeVar, Generic
 
@@ -12,6 +14,7 @@ def nostack(func):
 def lazify(temp="!temp", datatype=None, self=True, copy=None):
     from .. import context as ctx
     def decorator(func):
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             from .nbt import nbt
 
@@ -601,8 +604,43 @@ def addr(var):
 class macro:
     _is_macro_param = True
 
-    def __init__(self, name: str):
-        self.name = name
+    def __init__(self, name_or_value=None, name: str = None):
+        from .nbt import nbt
+        from .. import context as ctx
+
+        if isinstance(name_or_value, types.MethodType) and hasattr(name_or_value.__self__, "_addr"):
+            name_or_value = nbt(addr=f"{name_or_value.__self__._addr}.{name_or_value.__name__}")
+
+        if name is not None:
+            self.value = name_or_value
+            self.name = name
+        elif isinstance(name_or_value, str) and not hasattr(name_or_value, "_is_flare_value"):
+            self.name = name_or_value
+            self.value = None
+        else:
+            self.value = name_or_value
+            self.name = f"arg_{ctx.next_temp_id()}"
+
+    def __with__(self, body_func):
+        from .. import context as ctx
+        from .nbt import nbt
+
+        if self.value is None:
+            raise ValueError("macro() must be initialized with a value to be used as a context manager.")
+
+        func_name = f"{ctx._current_namespace}:macro_{ctx.next_func_id()}"
+
+        temp_nbt = nbt(addr=f"storage flare:macro {self.name}")
+        temp_nbt[:] = self.value
+
+        with ctx.push_context(func_name):
+            body_func()
+
+        if ctx.files.get(func_name):
+            ctx._runcmd(f"function {func_name} with storage flare:macro")
+
+    def __as_var__(self):
+        return macro(name=self.name)
 
     def __str__(self):
         return f"$({self.name})"

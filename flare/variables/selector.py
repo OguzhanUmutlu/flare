@@ -51,7 +51,7 @@ class selector(Generic[T]):
     def __getattr__(self, name):
         from .nbt import nbt
 
-        if name.startswith("__") and name.endswith("__"):
+        if name.startswith("_"):
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
         orig = getattr(self, "__orig_class__", None)
@@ -80,8 +80,9 @@ class selector(Generic[T]):
 
         attr = getattr(self, name)
         if inspect.ismethod(attr):
-            raise AttributeError(f"Cannot assign to method '{name}'. If you want to access the NBT tag '{name}', use `self['{name}']`.")
-        
+            raise AttributeError(
+                f"Cannot assign to method '{name}'. If you want to access the NBT tag '{name}', use `self['{name}']`.")
+
         attr.__iset__(value)
 
     def __getitem__(self, item):
@@ -251,6 +252,12 @@ class selector(Generic[T]):
 
     def kill(self):
         _runcmd(f"kill {self._target_str}")
+
+    def tp(self, target):
+        _runcmd(f"tp {self._target_str} {target}")
+
+    def teleport(self, target):
+        _runcmd(f"teleport {self._target_str} {target}")
 
     def __branch__(self, invert=False):
         keyword = "unless" if invert else "if"

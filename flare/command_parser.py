@@ -2,6 +2,7 @@ import json
 import re
 
 _macro_substituted = False
+_dynamic_macros = []
 
 _static_interp_cache: dict[str, tuple[str, bool]] = {}
 
@@ -16,8 +17,9 @@ TOKEN_REGEX = re.compile(r'(?P<FSTRING>f\"(?:\\\\.|[^\\"])*\"|f\'(?:\\\\.|[^\\\'
                          r'(?P<WHITESPACE>\s+)')
 
 
-def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> str:
+def interpolate_command(command: str, local_vars: dict, global_vars: dict, dynamic_macros: list = None) -> str:
     global _macro_substituted
+    from .context import next_temp_id
 
     cached = _static_interp_cache.get(command)
     if cached is not None:
@@ -119,15 +121,25 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
                 output.append(f"$({_resolved_val.name})")
                 _macro_substituted = True
                 _any_var_resolved = True
+            elif _resolved_val is not None and dynamic_macros is not None and type(_resolved_val).__name__ in ("score",
+                                                                                                               "nbt",
+                                                                                                               "_TypedNBT",
+                                                                                                               "fixed",
+                                                                                                               "_PrecisionScore"):
+                temp_name = f"arg_{next_temp_id()}"
+                dynamic_macros.append((temp_name, _resolved_val))
+                output.append(f"$({temp_name})")
+                _macro_substituted = True
+                _any_var_resolved = True
             elif ident in local_vars:
                 val = local_vars[ident]
                 _any_var_resolved = True
                 if output and output[-1].endswith("**"):
                     if isinstance(val, dict) or (hasattr(val, "_value_to_set") and isinstance(val._value_to_set, dict)):
                         output[-1] = output[-1][:-2]
-                        
+
                         val_dict = val if isinstance(val, dict) else val._value_to_set
-                        
+
                         items = []
                         for k, v in val_dict.items():
                             if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):
@@ -149,16 +161,16 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict) -> st
                 elif hasattr(val, "target") and type(val).__name__ != "_Storage":
                     output.append(val.target)
                 else:
-                        output.append(str(val))
+                    output.append(str(val))
             elif ident in global_vars:
                 val = global_vars[ident]
                 _any_var_resolved = True
                 if output and output[-1].endswith("**"):
                     if isinstance(val, dict) or (hasattr(val, "_value_to_set") and isinstance(val._value_to_set, dict)):
                         output[-1] = output[-1][:-2]
-                        
+
                         val_dict = val if isinstance(val, dict) else val._value_to_set
-                        
+
                         items = []
                         for k, v in val_dict.items():
                             if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):

@@ -232,13 +232,29 @@ def combine_execute(prefix: str, cmd: str) -> str:
 
 
 def runcommand(command: str, local_vars=None, global_vars=None, validation: str = None):
+    dynamic_macros = []
+
     if "$(" in command and not command.startswith("$"):
         command = "$" + command
 
     if local_vars is not None and global_vars is not None:
-        command = interpolate_command(command, local_vars, global_vars)
+        command = interpolate_command(command, local_vars, global_vars, dynamic_macros)
         if _cp._macro_substituted and not command.startswith("$"):
             command = "$" + command
+
+    if dynamic_macros:
+        func_name = f"{_current_namespace}:macro_{next_func_id()}"
+        from .variables.nbt import nbt
+
+        for name, val in dynamic_macros:
+            temp_nbt = nbt(addr=f"storage flare:macro {name}")
+            temp_nbt[:] = val
+
+        with push_context(func_name):
+            runcommand(command, validation=validation)
+
+        _runcmd(f"function {func_name} with storage flare:macro")
+        return
 
     command = _optimize_execute(command)
 
@@ -464,9 +480,8 @@ def export(func=None, *, name=None, append=False, returns=None):
                     return temp_ret
 
         def __call__(self, *args, **call_kwargs):
-            from .variables.nbt import nbt
-
             global _temp_id
+            from .variables.nbt import nbt
 
             bound = sig.bind(*args, **call_kwargs)
             bound.apply_defaults()
