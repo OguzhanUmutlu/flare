@@ -89,6 +89,26 @@ add_loot_table("blocks/custom_ore", LootTable(
 ))
 ```
 
+## Predicates
+
+Predicates are reusable condition checks that are evaluated securely on the server. Flare makes it easy to construct predicates and evaluate them directly!
+
+When you call `add_predicate()`, it returns a lazy boolean condition (a `predicate(...)` instance). This means you can drop it seamlessly into a standard `if` statement without needing to manually wrap it!
+
+```python
+from flare import *
+
+# Create the predicate
+is_raining = add_predicate("is_raining", {
+    "condition": "minecraft:weather_check",
+    "raining": True
+})
+
+# Use it seamlessly in your logic!
+if is_raining:
+    print("Don't forget your umbrella!")
+```
+
 ## Enchantments
 
 You can build entirely custom enchantments defining everything from damage bonuses, post-attack logic, compatibility, and weights. 

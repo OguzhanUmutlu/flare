@@ -67,8 +67,12 @@ def event(trigger: str, conditions: dict = None, *, name=None, append=False, ret
         else:
             exported_func = func
 
-        if auto_revoke and func_name in context.files:
-            context.files[func_name].insert(0, f"advancement revoke @s only {adv_name}")
+        if auto_revoke:
+            def prepend_revoke():
+                if func_name in context.files:
+                    context.files[func_name].insert(0, f"advancement revoke @s only {adv_name}")
+
+            context._pending_exports.append(prepend_revoke)
 
         setattr(exported_func, f"{safe_trigger}_event", BoundEvent(adv_name))
 

@@ -173,7 +173,8 @@ def add_pig_variant(name: str, data: Union[dict, "PigVariant"]):
 
 
 def add_predicate(name: str, data: Union[dict, "Predicate"]):
-    return add_resource("predicate", name, data)
+    from .execute_modifiers import predicate
+    return predicate(add_resource("predicate", name, data))
 
 
 def add_recipe(name: str, data: Union[dict, "Recipe"]):
