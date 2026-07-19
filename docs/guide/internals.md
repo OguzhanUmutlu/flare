@@ -1,4 +1,4 @@
-# Internal Naming Convention
+# Internals
 
 ## Attribute Interception
 
@@ -299,9 +299,11 @@ tag = nbt{display: {Name: '"My Item"'}}
 arr = nbt[1, 2, 3]
 
 # The preprocessor seamlessly converts this to:
-tag = nbt('''{display: {Name: '"My Item"'}}''')
-arr = nbt('''[1, 2, 3]''')
+tag = interpolate_command('''{display: {Name: '"My Item"'}}''', locals(), globals())
+arr = interpolate_command('''[1, 2, 3]''', locals(), globals())
 ```
+
+*(Note: These evaluate to raw, minified Python strings, acting as inline macros rather than persistent `nbt` objects.)*
 
 ### Raw Block Coordinates
 
