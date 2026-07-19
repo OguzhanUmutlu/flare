@@ -568,10 +568,6 @@ def export(func=None, *, name=None, append=False, returns=None):
 
     proxy = ProxyFunction()
 
-    func_globals = getattr(func, "__globals__", {})
-    prev_func = func_globals.get(func.__name__)
-    func_globals[func.__name__] = proxy
-
     def _evaluate():
         global _in_recursive_context, _logical_func
         prev_recursive_inner = _in_recursive_context
@@ -585,11 +581,6 @@ def export(func=None, *, name=None, append=False, returns=None):
 
         _in_recursive_context = prev_recursive_inner
         _logical_func = prev_logical_inner
-
-        if prev_func is not None:
-            func_globals[func.__name__] = prev_func
-        else:
-            func_globals.pop(func.__name__, None)
 
         if return_types[func_name] == "UNKNOWN":
             if has_returns.get(func_name, False):
