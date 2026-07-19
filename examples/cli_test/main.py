@@ -101,7 +101,7 @@ print(cos(m_f))
 
 
 @export
-def test(x: score):
+def test(x: score) -> score:
     return x + 5
 
 print(test(5))

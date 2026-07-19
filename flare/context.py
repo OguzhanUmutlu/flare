@@ -56,6 +56,8 @@ _constant_offset = 0
 has_returns = {}
 return_types = {}
 
+_pending_exports = []
+
 tick_funcs = set()
 load_funcs = set()
 objectives = set()
@@ -113,6 +115,13 @@ def reset_context():
     _logical_func = None
     memoized_math.clear()
     _regex_cache.clear()
+    _pending_exports.clear()
+
+
+def evaluate_pending_exports():
+    while _pending_exports:
+        eval_fn = _pending_exports.pop(0)
+        eval_fn()
 
 
 def ensure_objective(obj: str, obj_type: str = "dummy", display="", add: bool = True):
@@ -563,23 +572,33 @@ def export(func=None, *, name=None, append=False, returns=None):
     prev_func = func_globals.get(func.__name__)
     func_globals[func.__name__] = proxy
 
-    with push_context(func_name):
-        func(**kwargs)
+    def _evaluate():
+        global _in_recursive_context, _logical_func
+        prev_recursive_inner = _in_recursive_context
+        _in_recursive_context = is_recursive
 
-    _in_recursive_context = prev_recursive
-    _logical_func = prev_logical
+        prev_logical_inner = _logical_func
+        _logical_func = func_name
 
-    if prev_func is not None:
-        func_globals[func.__name__] = prev_func
-    else:
-        func_globals.pop(func.__name__, None)
+        with push_context(func_name):
+            func(**kwargs)
 
-    if return_types[func_name] == "UNKNOWN":
-        if has_returns.get(func_name, False):
-            raise TypeError(
-                f"Function {func_name} has returns but return type could not be auto-detected. Please add an explicit return type annotation.")
+        _in_recursive_context = prev_recursive_inner
+        _logical_func = prev_logical_inner
+
+        if prev_func is not None:
+            func_globals[func.__name__] = prev_func
         else:
-            return_types[func_name] = None
+            func_globals.pop(func.__name__, None)
+
+        if return_types[func_name] == "UNKNOWN":
+            if has_returns.get(func_name, False):
+                raise TypeError(
+                    f"Function {func_name} has returns but return type could not be auto-detected. Please add an explicit return type annotation.")
+            else:
+                return_types[func_name] = None
+
+    _pending_exports.append(_evaluate)
 
     return proxy
 

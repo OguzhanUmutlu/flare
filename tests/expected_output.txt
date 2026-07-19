@@ -44,7 +44,7 @@ e
 --- Structs ---
 15
 --- Schedule ---
-Scheduled pack:__flare__schedule__/sched_20 to run at tick 20
+Scheduled pack:__flare__schedule__/sched_19 to run at tick 20
 10
 [Server] 10
 Successfully loaded datapack: dist

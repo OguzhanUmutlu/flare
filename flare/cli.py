@@ -1,6 +1,9 @@
 import argparse
 import ast
 import hashlib
+import importlib.abc
+import importlib.machinery
+import importlib.util
 import json
 import marshal
 import os
@@ -173,7 +176,10 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
     try:
         abs_path = os.path.abspath(file_path)
-        sys.path.insert(0, os.path.dirname(abs_path))
+        project_dir = os.path.dirname(abs_path)
+        parent_dir = os.path.dirname(project_dir)
+        sys.path.insert(0, parent_dir)
+        sys.path.insert(0, project_dir)
 
         with open(abs_path, "r") as f:
             source = f.read()
@@ -193,8 +199,9 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         tree = transformer.visit(tree)
         ast.fix_missing_locations(tree)
 
-        global_env = {"__name__": "__main__", "__file__": abs_path}
-        exec(
+        global_env = {"__name__": "__main__", "__file__": abs_path, "__package__": os.path.basename(project_dir)}
+
+        header_src = (
             "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_and, _flare_or, _flare_with, _flare_as_var, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin, _flare_enter_scope, _flare_exit_scope\n"
             "from flare import context as ctx\n"
             "from flare.command_parser import interpolate_command\n"
@@ -203,9 +210,9 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray\n"
             "from flare import round_, floor, ceil\n"
             "from flare.math import *\n"
-            "from flare import dbg, export, namespace, tick, load, nostack",
-            global_env,
+            "from flare import dbg, export, namespace, tick, load, nostack"
         )
+        exec(header_src, global_env)
 
         global_env["range"] = flare_range
         global_env["ord"] = flare_ord
@@ -213,8 +220,69 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         global_env["len"] = flare_len
         global_env["re"] = re_patch
 
-        exec(compile(tree, abs_path, "exec"), global_env)
+        class FlareLoader(importlib.abc.Loader):
+            def __init__(self, filename):
+                self.filename = filename
+
+            def create_module(self, spec):
+                return None
+
+            def exec_module(self, module):
+                with open(self.filename, 'r', encoding='utf-8') as f:
+                    mod_source = f.read()
+
+                mod_source = preprocess_minecraft_commands(mod_source)
+                mod_tree = ast.parse(mod_source, self.filename)
+
+                mod_analyzer = CallGraphAnalyzer()
+                mod_analyzer.visit(mod_tree)
+                context._recursive_functions.update(mod_analyzer.get_recursive_functions())
+
+                mod_transformer = FlareTransformer()
+                mod_tree = mod_transformer.visit(mod_tree)
+                ast.fix_missing_locations(mod_tree)
+
+                exec(header_src, module.__dict__)
+                module.__dict__["range"] = flare_range
+                module.__dict__["ord"] = flare_ord
+                module.__dict__["bin"] = flare_bin
+                module.__dict__["len"] = flare_len
+                module.__dict__["re"] = re_patch
+
+                exec(compile(mod_tree, self.filename, 'exec'), module.__dict__)
+
+        class FlareMetaFinder(importlib.abc.MetaPathFinder):
+            def find_spec(self, fullname, path, target=None):
+                spec = importlib.machinery.PathFinder.find_spec(fullname, path, target)
+                if spec and spec.origin and spec.origin.endswith('.py'):
+                    if spec.origin.startswith(project_dir) or spec.origin.startswith(parent_dir):
+                        spec.loader = FlareLoader(spec.origin)
+
+                if spec is None:
+                    search_paths = path if path is not None else sys.path
+                    module_name = fullname.split('.')[-1]
+                    for p in search_paths:
+                        if not isinstance(p, str):
+                            continue
+                        fl_path = os.path.join(p, module_name + '.fl')
+                        if os.path.exists(fl_path):
+                            loader = FlareLoader(fl_path)
+                            spec = importlib.util.spec_from_file_location(fullname, fl_path, loader=loader)
+                            break
+
+                return spec
+
+        meta_finder = FlareMetaFinder()
+        sys.meta_path.insert(0, meta_finder)
+
+        try:
+            exec(compile(tree, abs_path, "exec"), global_env)
+            context.evaluate_pending_exports()
+        finally:
+            sys.meta_path.remove(meta_finder)
+
         comp_end = time.time()
+        sys.path.pop(0)
         sys.path.pop(0)
     except Exception as e:
         print(f"\033[91mBuild failed: {e}\033[0m")
