@@ -98,3 +98,26 @@ named_score = my_obj["my_fake_player"]
 
 my_score += 10
 ```
+
+*Note: Flare automatically hoists `Objective` declarations into the global `#minecraft:load` tag, so they only run once at startup, even if you define them inside a tick function!*
+
+### Assuming Existing Objectives (`add=False`)
+
+If you want to manipulate an objective that already exists in the world (e.g. from a different datapack or built-in game mechanic), you can pass `add=False`. This registers the objective in Flare's internal compiler to prevent it from emitting creation commands, but doesn't emit any `scoreboard objectives add` command itself:
+
+```python
+kills = Objective("player_kills", type="playerKillCount", add=False)
+```
+
+### Direct Score Access
+
+If you prefer, you can also bypass `Objective` entirely and access a score by explicitly defining the `addr` property:
+
+```python
+my_score = score(addr="@s my_obj")
+my_score += 10
+
+# Dynamic targets via f-strings
+target = "@p"
+dynamic_score = score(addr=f"{target} my_obj")
+```

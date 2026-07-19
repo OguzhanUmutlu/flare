@@ -115,20 +115,38 @@ def reset_context():
     _regex_cache.clear()
 
 
-def ensure_objective(obj: str):
+def ensure_objective(obj: str, obj_type: str = "dummy", display="", add: bool = True):
     global _objective_offset
     if not obj or obj in objectives:
+        return
+
+    objectives.add(obj)
+
+    if not add:
         return
 
     load_file = f"{_current_namespace}:__constants__"
     if load_file not in files:
         files[load_file] = []
 
-    cmd = f"scoreboard objectives add {obj} dummy"
+    cmd = f"scoreboard objectives add {obj} {obj_type}"
+    if display:
+        if isinstance(display, str):
+            if display.startswith("{") and display.endswith("}"):
+                display_str = display
+            elif display.startswith('"') and display.endswith('"'):
+                display_str = display
+            else:
+                display_str = json.dumps(display)
+        elif hasattr(display, "__print__"):
+            display_str = json.dumps(display.__print__())
+        else:
+            display_str = json.dumps(display)
+        cmd += f" {display_str}"
+
     if cmd not in files[load_file]:
         files[load_file].insert(_objective_offset, cmd)
         _objective_offset += 1
-        objectives.add(obj)
 
 
 def ensure_constant(name: str, obj: str, val: int):

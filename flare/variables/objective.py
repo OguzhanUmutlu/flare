@@ -1,29 +1,12 @@
-import json
-
 from .score import score
 from .selector import selector
 
 
 class Objective:
-    def __init__(self, name: str, type: str = "dummy", display=""):
-        from ..context import _runcmd, objectives
+    def __init__(self, name: str, type: str = "dummy", display="", add: bool = True):
+        from ..context import ensure_objective
         self.name = name
-        cmd = f"scoreboard objectives add {name} {type}"
-        if display:
-            if isinstance(display, str):
-                if display.startswith("{") and display.endswith("}"):
-                    display_str = display
-                elif display.startswith('"') and display.endswith('"'):
-                    display_str = display
-                else:
-                    display_str = json.dumps(display)
-            elif hasattr(display, "__print__"):
-                display_str = json.dumps(display.__print__())
-            else:
-                display_str = json.dumps(display)
-            cmd += f" {display_str}"
-        _runcmd(cmd)
-        objectives.add(name)
+        ensure_objective(name, obj_type=type, display=display, add=add)
 
     def __getitem__(self, item) -> score:
         if isinstance(item, selector):
@@ -31,3 +14,9 @@ class Objective:
         else:
             target = str(item)
         return score(addr=f"{target} {self.name}")
+
+    def __setitem__(self, item, value):
+        s = self[item]
+        if getattr(s, "_addr", None) == getattr(value, "_addr", None):
+            return
+        s[:] = value

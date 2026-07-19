@@ -131,9 +131,9 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
     if "out_dir" in config:
         if isinstance(config["out_dir"], list):
-            build_dirs_raw.extend(config["out_dir"])
+            build_dirs_raw = config["out_dir"]
         else:
-            build_dirs_raw.append(config["out_dir"])
+            build_dirs_raw = [config["out_dir"]]
 
     resolved_build_dirs = resolve_build_targets(build_dirs_raw, p, namespace)
 
@@ -153,7 +153,10 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                 break
 
     if build_dir is None:
-        build_dir = p / "dist"
+        if resolved_build_dirs:
+            build_dir = resolved_build_dirs[0]
+        else:
+            build_dir = p / "dist"
 
     from flare.utils import pack_format_to_minecraft_version
     context.validation_level = config.get("validation_level", "strict")
