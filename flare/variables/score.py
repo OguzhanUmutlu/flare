@@ -16,7 +16,7 @@ from ..context import (
     vars_obj,
 )
 
-INT32_LIMIT = (2**31) - 1
+INT32_LIMIT = (2 ** 31) - 1
 
 
 def getscore(x: int | float, multiplier: float = 1.0):
@@ -41,11 +41,11 @@ nbt: Any = lambda *_, **__: Any()
 
 class score(FlareValue):
     def __init__(
-        self,
-        value: Any = None,
-        *,
-        addr: str | True | None = None,
-        multiplier: float = 1.0,
+            self,
+            value: Any = None,
+            *,
+            addr: str | True | None = None,
+            multiplier: float = 1.0,
     ):
         global nbt
         from .nbt import nbt as _nbt
@@ -83,7 +83,7 @@ class score(FlareValue):
         if isinstance(prefix, score):
             prefix = prefix._name
         return score(
-            0, addr=f"{prefix}_{ctx.next_temp_id()}", multiplier=self._multiplier
+            addr=f"{prefix}_{ctx.next_temp_id()}", multiplier=self._multiplier
         )
 
     def _create_var(self, varid: str):
@@ -143,11 +143,11 @@ class score(FlareValue):
     def __class_getitem__(cls, multiplier: int):
         class _PrecisionScore(cls):
             def __init__(
-                self,
-                value: int | float | None = None,
-                *,
-                addr: str | None = None,
-                mult: float = multiplier,
+                    self,
+                    value: int | float | None = None,
+                    *,
+                    addr: str | None = None,
+                    mult: float = multiplier,
             ):
                 super().__init__(value, addr=addr, multiplier=mult)
 
@@ -755,11 +755,11 @@ class score(FlareValue):
 
 class fixed(score):
     def __init__(
-        self,
-        value: int | float | None = None,
-        *,
-        addr: str | True | None = None,
-        multiplier: float = 1e-4,
+            self,
+            value: int | float | None = None,
+            *,
+            addr: str | True | None = None,
+            multiplier: float = 1e-4,
     ):
         super().__init__(value, addr=addr, multiplier=multiplier)
 
@@ -768,4 +768,4 @@ class fixed(score):
 
     @classmethod
     def __class_getitem__(cls, precision: int):
-        return score[10**-precision]
+        return score[10 ** -precision]

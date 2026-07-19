@@ -66,6 +66,15 @@ print(x, y, z)  # Output: 20 20 10
 
 Use `ref()` whenever you want to pass a variable around in Python *without* emitting a copy command.
 
+`ref()` can also be used to store mathematical operations lazily! If you wrap a math operation in `ref()`, Flare will remember the operation instead of immediately generating commands for it. The commands will only be generated when the reference is actually used or assigned:
+
+```python
+# No commands are generated here!
+double_x = ref(x * 2)
+
+# Now Flare generates the operations to calculate x * 2 and print it
+print(double_x)
+```
 ## Reassigning Variables (`__iset__`)
 
 Thanks to Flare's AST preprocessor, assigning to an already-existing variable automatically updates its value in-place without creating a new variable:

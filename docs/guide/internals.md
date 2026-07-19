@@ -344,3 +344,17 @@ with @a.if_(block("~ ~-1 ~") == "water")._as(@s): ...
 ```
 
 This aliasing allows you to chain methods like `.if()` and `.as()` directly without resorting to awkward underscores in your actual codebase!
+
+### `success()` and `store()` Auto-Lambdas
+
+When you pass a raw Minecraft command directly into `success()` or `store()`, Flare's preprocessor automatically wraps it in a lambda so it can be evaluated lazily at compile-time instead of causing immediate syntax errors.
+
+```python
+# You write:
+x = success(clear @s)
+y = store(data get entity @s Health)
+
+# The preprocessor seamlessly converts this to:
+x = success(lambda: runcommand("clear @s", locals(), globals()))
+y = store(lambda: runcommand("data get entity @s Health", locals(), globals()))
+```

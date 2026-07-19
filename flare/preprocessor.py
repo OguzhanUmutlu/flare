@@ -503,6 +503,7 @@ class FlareTransformer(ast.NodeTransformer):
 
 
 COMMAND_KEYWORDS = "advancement|attribute|ban|ban-ip|banlist|bossbar|clear|clone|damage|data|datapack|debug|defaultgamemode|deop|dialog|difficulty|effect|enchant|execute|experience|fetchprofile|fill|fillbiome|forceload|function|gamemode|gamerule|give|help|item|jfr|kick|kill|list|locate|loot|me|msg|op|pardon|pardon-ip|particle|perf|place|playsound|publish|random|recipe|reload|ride|rotate|save-all|save-off|save-on|say|schedule|scoreboard|seed|setblock|setidletimeout|setworldspawn|spawnpoint|spectate|spreadplayers|stop|stopsound|stopwatch|summon|swing|tag|team|teammsg|teleport|tell|tellraw|test|tick|time|title|tm|tp|transfer|trigger|unpublish|version|w|waypoint|weather|whitelist|worldborder|xp"
+COMMAND_KEYWORDS_SET = set(COMMAND_KEYWORDS.split("|"))
 
 COMMAND_RE = re.compile(r"^(\s*)(/?(?:" + COMMAND_KEYWORDS + r")\b|/\S*)(.*)$")
 
@@ -666,6 +667,66 @@ def preprocess_minecraft_commands(source: str) -> str:
     i = 0
     while i < len(tokens):
         tok = tokens[i]
+
+        if tok.type == tokenize.NAME and tok.string in ("success", "store"):
+            j = i + 1
+            while j < len(tokens) and tokens[j].type in (tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
+                                                         tokenize.DEDENT):
+                j += 1
+            if j < len(tokens) and tokens[j].type == tokenize.OP and tokens[j].string == "(":
+                k = j + 1
+                while k < len(tokens) and tokens[k].type in (tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
+                                                             tokenize.DEDENT):
+                    k += 1
+                if k < len(tokens) and tokens[k].type == tokenize.NAME and tokens[k].string in COMMAND_KEYWORDS_SET:
+                    bracket_count = 1
+                    curr = k + 1
+                    arg_tokens = [tokens[k]]
+                    while curr < len(tokens) and bracket_count > 0:
+                        inner_tok = tokens[curr]
+                        if inner_tok.type == tokenize.OP:
+                            if inner_tok.string in ("(", "{", "["):
+                                bracket_count += 1
+                            elif inner_tok.string in (")", "}", "]"):
+                                bracket_count -= 1
+                                if bracket_count == 0:
+                                    break
+                        arg_tokens.append(inner_tok)
+                        curr += 1
+
+                    if bracket_count == 0 and arg_tokens:
+                        start_row, start_col = arg_tokens[0].start
+                        end_row, end_col = arg_tokens[-1].end
+                        lines_arr = intermediate_source.split("\n")
+                        if start_row == end_row:
+                            cmd_str = lines_arr[start_row - 1][start_col:end_col]
+                        else:
+                            parts = [lines_arr[start_row - 1][start_col:]]
+                            for r in range(start_row, end_row - 1):
+                                parts.append(lines_arr[r])
+                            parts.append(lines_arr[end_row - 1][:end_col])
+                            cmd_str = " ".join(p.strip() for p in parts if p.strip())
+
+                        out_tokens.append((tokenize.NAME, tok.string))
+                        out_tokens.append((tokenize.OP, "("))
+                        out_tokens.append((tokenize.NAME, "lambda"))
+                        out_tokens.append((tokenize.OP, ":"))
+                        out_tokens.append((tokenize.NAME, "runcommand"))
+                        out_tokens.append((tokenize.OP, "("))
+                        cmd_str_esc = cmd_str.replace('"""', '\\"\\"\\"')
+                        out_tokens.append((tokenize.STRING, f'"""{cmd_str_esc}"""'))
+                        out_tokens.append((tokenize.OP, ","))
+                        out_tokens.append((tokenize.NAME, "locals"))
+                        out_tokens.append((tokenize.OP, "("))
+                        out_tokens.append((tokenize.OP, ")"))
+                        out_tokens.append((tokenize.OP, ","))
+                        out_tokens.append((tokenize.NAME, "globals"))
+                        out_tokens.append((tokenize.OP, "("))
+                        out_tokens.append((tokenize.OP, ")"))
+                        out_tokens.append((tokenize.OP, ")"))
+
+                        i = curr
+                        continue
 
         if tok.type == tokenize.NAME and tok.string == "nbt":
             j = i + 1

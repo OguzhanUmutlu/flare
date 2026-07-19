@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from abc import ABC
+from abc import ABC, ABCMeta
 from typing import TypeVar, Generic
 
 
@@ -109,7 +109,15 @@ def lazify(temp="!temp", datatype=None, self=True, copy=None):
     return decorator
 
 
-class FlareValue(ABC):
+class FlareClassMeta(ABCMeta):
+    def __str__(cls):
+        return cls.__name__
+
+    def __repr__(cls):
+        return cls.__name__
+
+
+class FlareValue(ABC, metaclass=FlareClassMeta):
     def __iset__(self, other):
         raise NotImplementedError()
 

@@ -317,11 +317,22 @@ def unless_block(pos: Union[str, tuple, list, "selector"], target: str) -> Execu
     return ExecuteChain().unless_block(pos, target)
 
 
-def store(target: Union["flare.variables.score", "flare.variables.nbt", str]) -> ExecuteChain:
+def store(target: Union["flare.variables.score", "flare.variables.nbt", str, Any]) -> Union[
+    ExecuteChain, "flare.variables.score", "_StoreCondition"]:
+    from .variables.core import FlareValue
+    if callable(target) and not isinstance(target, FlareValue):
+        return _StoreCondition(lazy_func=target)
     return ExecuteChain().store(target)
 
 
-def store_success(target: Union["flare.variables.score", "flare.variables.nbt", str]) -> ExecuteChain:
+def store_success(target: Union["flare.variables.score", "flare.variables.nbt", str, Any]) -> Union[
+    ExecuteChain, "flare.variables.score"]:
+    from .variables.core import FlareValue
+    if callable(target) and not isinstance(target, FlareValue):
+        from .variables.score import score
+        temp = score(addr=f"!succ_{ctx.next_temp_id()} {ctx.vars_obj}")
+        ExecuteChain().store_success(temp).__with__(target)
+        return temp
     return ExecuteChain().store_success(target)
 
 
@@ -362,6 +373,35 @@ class _SuccessCondition(FlareValue):
     def _alloc_temp(self):
         from .variables.score import score
         return score(addr=f"!succ_{ctx.next_temp_id()} {ctx.vars_obj}")
+
+    def __icopy__(self, varid: str, is_recursive: bool = False):
+        from .variables.score import score
+        dest = score(addr=f"{varid} {ctx.vars_obj}")
+        self._compile_into(dest)
+        return dest
+
+
+class _StoreCondition(FlareValue):
+    def __init__(self, lazy_func=None, func_name=None):
+        self.lazy_func = lazy_func
+        self.func_name = func_name
+        self._is_nbt_op = False
+
+    def _compile_into(self, target):
+        if self.lazy_func:
+            ExecuteChain().store(target).__with__(self.lazy_func)
+        elif self.func_name:
+            ExecuteChain().store(target).__with__(lambda: ctx._runcmd(f"function {self.func_name}"))
+
+    def _alloc_temp(self):
+        from .variables.score import score
+        return score(addr=f"!res_{ctx.next_temp_id()} {ctx.vars_obj}")
+
+    def __icopy__(self, varid: str, is_recursive: bool = False):
+        from .variables.score import score
+        dest = score(addr=f"{varid} {ctx.vars_obj}")
+        self._compile_into(dest)
+        return dest
 
 
 def success(test) -> _SuccessCondition:
