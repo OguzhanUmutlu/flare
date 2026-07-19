@@ -1,3 +1,5 @@
+from typing import Any, Union, Optional  # noqa
+
 from . import context
 from .generated import resource_classes as rc
 from .generated.resource_classes import *
@@ -308,4 +310,4 @@ def add_function_tag(name: str, data: Union[dict, list[str]]):
 
 
 def add_game_event_tag(name: str, data: Union[dict, list[str]]):
-    _write_json("tags/game_events", name, data)
+    return add_resource("tags/game_events", name, data)
