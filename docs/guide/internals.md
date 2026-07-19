@@ -328,9 +328,21 @@ my_pos2 = b^ ^ ^5
 dynamic_pos = b~ my_var ~
 
 # The preprocessor seamlessly converts this to:
-my_pos = block("~~~", 0, -1, 0)
-my_pos2 = block("^^^", 0, 0, 5)
-dynamic_pos = block("~ ~", 0, my_var, 0)
+my_pos = block(ref="~~~", v=[0, -1, 0])
+my_pos2 = block(ref="^^^", v=[0, 0, 5])
+dynamic_pos = block(ref="~ ~", v=[0, my_var, 0])
+```
+
+Flare also features **Implicit Coordinate Parsing** inside function arguments and lists. It uses lookahead heuristics to detect valid coordinates enclosed within `(`, `[`, `{`, or `,` and parses them automatically without requiring the `b` prefix:
+
+```python
+# You write:
+tp(10 20 30, ^ ^ ^, ~ ~ ~)
+foo([~ ~-1 ~, 5 10 15])
+
+# The preprocessor dynamically expands them exactly like the 'b' prefix:
+tp(block(ref="   ", v=[10, 20, 30]), block(ref="^^^", v=[0, 0, 0]), block(ref="~~~", v=[0, 0, 0]))
+foo([block(ref="~~~", v=[0, -1, 0]), block(ref="   ", v=[5, 10, 15])])
 ```
 
 ### Keyword Aliases

@@ -11,6 +11,9 @@ my_block = b~ ~-1 ~
 specific_block = b0 64 0
 ```
 
+> [!TIP]
+> **Implicit Coordinates:** You don't even need the `b` prefix if you are inside a function argument or an array! Flare intelligently detects raw coordinate sequences like `(~ ~ ~, ^ ^ ^)` and automatically parses them!
+
 ## Block Checking
 
 You can check the identity of a block using standard equality operators (`==`, `!=`). Flare seamlessly translates this into `execute if block` and `execute unless block` instructions.

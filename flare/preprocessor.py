@@ -565,6 +565,50 @@ def process_nbt_literals(source: str) -> str:
     return "".join(out)
 
 
+def evaluate_implicit_coord(seq) -> bool:
+    if not seq:
+        return False
+
+    if seq[0].string not in ("~", "^", "+", "-", "$") and seq[0].type not in (tokenize.NUMBER, tokenize.NAME):
+        return False
+
+    if seq[0].type == tokenize.NAME and len(seq) > 1 and seq[1].string == "(":
+        return False
+
+    if seq[0].string == "^":
+        return True
+
+    if len(seq) > 1 and seq[0].type in (tokenize.NUMBER, tokenize.NAME):
+        if seq[1].type in (tokenize.NUMBER, tokenize.NAME):
+            return True
+        if seq[1].string in ("~", "^"):
+            return True
+
+    seen_tilde = False
+    seen_caret_or_tilde = False
+
+    for j, t in enumerate(seq):
+        if t.string == "~":
+            if seen_tilde:
+                return True
+            seen_tilde = True
+            seen_caret_or_tilde = True
+
+        if t.string == "^":
+            if seen_caret_or_tilde:
+                return True
+            seen_caret_or_tilde = True
+
+        if j > 0:
+            prev = seq[j - 1]
+            if t.type in (tokenize.NUMBER, tokenize.NAME) and prev.type in (tokenize.NUMBER, tokenize.NAME):
+                return True
+            if t.string == "~" and prev.type in (tokenize.NUMBER, tokenize.NAME):
+                return True
+
+    return False
+
+
 def preprocess_minecraft_commands(source: str) -> str:
     source = process_nbt_literals(source)
     lines = source.split("\n")
@@ -887,6 +931,106 @@ def preprocess_minecraft_commands(source: str) -> str:
                 out_tokens.append((tokenize.OP, ")"))
 
                 i += k
+                continue
+
+        if tok.type == tokenize.OP and tok.string in ("[", "{", "(", ","):
+            seq = []
+            temp_i = i + 1
+            depth = 0
+            while temp_i < len(tokens):
+                t = tokens[temp_i]
+                if depth == 0 and t.type in (tokenize.NEWLINE, tokenize.NL, tokenize.COMMENT):
+                    break
+                if t.type == tokenize.OP:
+                    if t.string in ("[", "{", "("):
+                        depth += 1
+                    elif t.string in ("]", "}", ")"):
+                        if depth == 0:
+                            break
+                        depth -= 1
+                    elif t.string == ",":
+                        if depth == 0:
+                            break
+                seq.append(t)
+                temp_i += 1
+
+            if evaluate_implicit_coord(seq):
+                out_tokens.append(tok)
+
+                modifiers = ""
+                coords = []
+                k = 0
+                while k < len(seq):
+                    t = seq[k]
+                    if t.string in ("~", "^"):
+                        mod = t.string
+                        k += 1
+                        num_str = "0"
+                        if k < len(seq):
+                            t2 = seq[k]
+                            if t2.start == t.end:
+                                if t2.type in (tokenize.NUMBER, tokenize.NAME):
+                                    num_str = t2.string
+                                    k += 1
+                                elif t2.string in ("+", "-"):
+                                    if k + 1 < len(seq) and seq[k + 1].start == t2.end and \
+                                            seq[k + 1].type in (tokenize.NUMBER, tokenize.NAME):
+                                        num_str = t2.string + seq[k + 1].string
+                                        k += 2
+                                elif t2.string == "$":
+                                    if k + 3 < len(seq) and seq[k + 1].start == t2.end and \
+                                            seq[k + 1].string == "(" and seq[
+                                        k + 2].type == tokenize.NAME and seq[k + 3].string == ")":
+                                        num_str = f"$({seq[k + 2].string})"
+                                        k += 4
+                        modifiers += mod
+                        coords.append(num_str)
+                    elif t.type in (tokenize.NUMBER, tokenize.NAME):
+                        modifiers += " "
+                        coords.append(t.string)
+                        k += 1
+                    elif t.string in ("+", "-"):
+                        if k + 1 < len(seq) and seq[k + 1].start == t.end and \
+                                seq[k + 1].type in (tokenize.NUMBER, tokenize.NAME):
+                            modifiers += " "
+                            coords.append(t.string + seq[k + 1].string)
+                            k += 2
+                        else:
+                            break
+                    elif t.string == "$":
+                        if k + 3 < len(seq) and seq[k + 1].start == t.end and \
+                                seq[k + 1].string == "(" and seq[
+                            k + 2].type == tokenize.NAME and seq[k + 3].string == ")":
+                            modifiers += " "
+                            coords.append(f"$({seq[k + 2].string})")
+                            k += 4
+                        else:
+                            break
+                    else:
+                        break
+
+                out_tokens.append((tokenize.NAME, "block"))
+                out_tokens.append((tokenize.OP, "("))
+                out_tokens.append((tokenize.NAME, "ref"))
+                out_tokens.append((tokenize.OP, "="))
+                out_tokens.append((tokenize.STRING, f'"{modifiers}"'))
+                out_tokens.append((tokenize.OP, ","))
+                out_tokens.append((tokenize.NAME, "v"))
+                out_tokens.append((tokenize.OP, "="))
+                out_tokens.append((tokenize.OP, "["))
+                for i_coord, c in enumerate(coords):
+                    if i_coord > 0:
+                        out_tokens.append((tokenize.OP, ","))
+                    if c.startswith("$("):
+                        out_tokens.append((tokenize.STRING, f'"{c}"'))
+                    elif c.replace('.', '', 1).replace('-', '', 1).replace('+', '', 1).isdigit():
+                        out_tokens.append((tokenize.NUMBER, c))
+                    else:
+                        out_tokens.append((tokenize.NAME, c))
+                out_tokens.append((tokenize.OP, "]"))
+                out_tokens.append((tokenize.OP, ")"))
+
+                i += 1 + k
                 continue
 
         if tok.type == tokenize.NAME and tok.string == "as":
