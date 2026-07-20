@@ -149,11 +149,7 @@ def run_flare(ns, src):
 
         exec(compile(tree, "<playground>", "exec"), global_env)
 
-        load_key = f"{ns}:load"
-        if "main" in context.files:
-            if load_key not in context.files:
-                context.files[load_key] = []
-            context.files[load_key].extend(context.files.pop("main"))
+        load_key = f"{ns}:__init__"
 
         output_files = {}
         tags = {"tick": [], "load": []}
@@ -168,21 +164,21 @@ def run_flare(ns, src):
 
         # 2. Process functions and strip top-level returns
         for filename, lines in context.files.items():
-            if not lines and filename != "main":
+            if not lines and filename != load_key:
                 continue
                 
             if filename.endswith(":tick"):
                 tags["tick"].append(filename)
-            elif filename.endswith(":load"):
+            elif filename.endswith(":load") or filename.endswith(":__init__") or filename.endswith(":__constants__"):
                 tags["load"].append(filename)
 
             if ":" in filename:
                 rel_ns, name = filename.split(":", 1)
                 path = f"data/{rel_ns}/functions/{name}.mcfunction"
-                is_top_level = "generated_" not in name and "while_" not in name and name not in ("main", "load")
+                is_top_level = "generated_" not in name and "while_" not in name and name not in ("load", "__init__", "__constants__")
             else:
                 path = f"data/{ns}/functions/{filename}.mcfunction"
-                is_top_level = "generated_" not in filename and "while_" not in filename and filename not in ("main", "load")
+                is_top_level = "generated_" not in filename and "while_" not in filename and filename not in ("load", "__init__", "__constants__")
 
             if is_top_level and lines and lines[-1] in ("return 1", "return 0"):
                 lines.pop()

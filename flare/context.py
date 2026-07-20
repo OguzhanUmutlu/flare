@@ -6,10 +6,10 @@ import sys
 from . import command_parser as _cp
 from .command_parser import interpolate_command
 
-files = {"main": []}
-json_files = {}
-current_file = "main"
 _current_namespace: str = "flare"
+files = {f"{_current_namespace}:__init__": []}
+json_files = {}
+current_file = f"{_current_namespace}:__init__"
 functions = {}
 constants = {}
 return_targets = {}
@@ -111,8 +111,8 @@ def reset_context():
     global current_file, _current_namespace, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, system_command_validation, minecraft_version, nbt_schema_missing, _in_recursive_context, _logical_func, memoized_math
     files.clear()
     json_files.clear()
-    files["main"] = []
-    current_file = "main"
+    files[f"{_current_namespace}:__init__"] = []
+    current_file = f"{_current_namespace}:__init__"
     _current_namespace = "flare"
     functions.clear()
     constants.clear()
@@ -206,9 +206,15 @@ def push_context(name: str):
 
 
 def namespace(name: str | None = None):
-    global _current_namespace
+    global _current_namespace, current_file
     if name is not None:
+        old_init = f"{_current_namespace}:__init__"
+        new_init = f"{name}:__init__"
         _current_namespace = name
+        if old_init in files:
+            files[new_init] = files.pop(old_init)
+        if current_file == old_init:
+            current_file = new_init
     return _current_namespace
 
 

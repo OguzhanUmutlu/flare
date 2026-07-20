@@ -27,11 +27,7 @@ except ImportError:
     HAS_WATCHDOG = False
 
 from . import context
-from .preprocessor import (
-    FlareTransformer,
-    CallGraphAnalyzer,
-    preprocess_minecraft_commands,
-)
+from .preprocessor import (FlareTransformer, CallGraphAnalyzer, preprocess_minecraft_commands, )
 from .utils import resolve_build_targets, resolve_uri
 from .setup_autoreload import setup_autoreload
 from .variables.builtins import flare_range, flare_ord, flare_bin, flare_len
@@ -53,9 +49,7 @@ def init_project(path: str):
     try:
         namespace = input("Namespace [flare]: ").strip() or "flare"
         pack_format = input("Pack format [15]: ").strip() or "15"
-        description = (
-                input("Description [A Flare datapack]: ").strip() or "A Flare datapack"
-        )
+        description = (input("Description [A Flare datapack]: ").strip() or "A Flare datapack")
         from flare.utils import minecraft_version_to_pack_format
         pack_format_val = pack_format
         ver = minecraft_version_to_pack_format(pack_format)
@@ -73,12 +67,8 @@ def init_project(path: str):
         print("\nInitialization cancelled.")
         return
 
-    config = {
-        "namespace": namespace,
-        "pack_format": pack_format_val,
-        "description": description,
-        "build_dir": ["dist"],
-    }
+    config = {"namespace": namespace, "pack_format": pack_format_val, "description": description,
+        "build_dir": ["dist"], }
 
     with open(json_path, "w") as f:
         json.dump(config, f, indent=4)
@@ -100,14 +90,8 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                 print(f"\033[91m{e.msg} at line {e.lineno}, column {e.colno}\033[0m")
                 sys.exit(1)
     else:
-        config = {
-            "namespace": "flare",
-            "pack_format": 15,
-            "description": "A Flare datapack",
-            "build_dir": ["dist"],
-            "validation_level": "strict",
-            "system_command_validation": "none"
-        }
+        config = {"namespace": "flare", "pack_format": 15, "description": "A Flare datapack", "build_dir": ["dist"],
+            "validation_level": "strict", "system_command_validation": "none"}
 
     if cli_overrides:
         config.update(cli_overrides)
@@ -217,8 +201,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray\n"
             "from flare import round_, floor, ceil\n"
             "from flare.math import *\n"
-            "from flare import dbg, export, namespace, tick, load, nostack"
-        )
+            "from flare import dbg, export, namespace, tick, load, nostack")
         exec(header_src, global_env)
 
         global_env["range"] = flare_range
@@ -306,11 +289,8 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         mod = sys.modules.get(mod_name)
         if mod and getattr(mod, "__file__", None):
             mod_file = os.path.abspath(str(mod.__file__))
-            if (
-                    (mod_file.endswith(".fl") or mod_file.endswith(".py"))
-                    and "site-packages" not in mod_file
-                    and "lib/python" not in mod_file
-            ):
+            if ((mod_file.endswith(".fl") or mod_file.endswith(
+                ".py")) and "site-packages" not in mod_file and "lib/python" not in mod_file):
                 watch_files.add(mod_file)
 
     _created_dirs = set()
@@ -343,13 +323,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                     cache = marshal.load(f)
             except Exception:
                 pass
-        target_caches[t] = {
-            "path": cache_path,
-            "old": cache,
-            "new": {},
-            "written": 0,
-            "time": 0.0,
-        }
+        target_caches[t] = {"path": cache_path, "old": cache, "new": {}, "written": 0, "time": 0.0, }
 
     if not use_cache:
         for target_dir_str in unique_targets:
@@ -387,32 +361,19 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
     os.makedirs(build_dir_str, exist_ok=True)
 
-    write_if_changed(
-        os.path.join(build_dir_str, "pack.mcmeta"),
-        json.dumps(
-            {
-                "pack": {
-                    "pack_format": config.get("pack_format", 15),
-                    "description": config.get("description", "A Flare datapack"),
-                }
-            },
-            indent=4,
-        ),
-    )
+    write_if_changed(os.path.join(build_dir_str, "pack.mcmeta"), json.dumps({
+        "pack": {"pack_format": config.get("pack_format", 15),
+            "description": config.get("description", "A Flare datapack"), }}, indent=4, ), )
 
     tags = {"tick": [], "load": []}
 
     load_key = f"{context._current_namespace}:__init__"
-    if "main" in context.files:
-        if load_key not in context.files:
-            context.files[load_key] = []
-        context.files[load_key].extend(context.files.pop("main"))
 
     func_dir_name = "function" if config.get("pack_format", 15) >= 45 else "functions"
     ns_str = str(context._current_namespace)
 
     for filename, lines in context.files.items():
-        if not lines and filename != "main":
+        if not lines and filename != load_key:
             continue
 
         if filename.endswith(":tick"):
@@ -422,25 +383,16 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
         if ":" in filename:
             ns, name = filename.split(":", 1)
-            file_p = os.path.join(
-                build_dir_str, "data", ns, func_dir_name, f"{name}.mcfunction"
-            )
+            file_p = os.path.join(build_dir_str, "data", ns, func_dir_name, f"{name}.mcfunction")
             is_top_level = (
-                    "generated_" not in name
-                    and "while_" not in name
-                    and "with_" not in name
-                    and name not in ("main", "load", "__init__", "__constants__")
-            )
+                    "generated_" not in name and "while_" not in name and "with_" not in name and name not in ("load",
+                                                                                                               "__init__",
+                                                                                                               "__constants__"))
         else:
-            file_p = os.path.join(
-                build_dir_str, "data", ns_str, func_dir_name, f"{filename}.mcfunction"
-            )
+            file_p = os.path.join(build_dir_str, "data", ns_str, func_dir_name, f"{filename}.mcfunction")
             is_top_level = (
-                    "generated_" not in filename
-                    and "while_" not in filename
-                    and "with_" not in filename
-                    and filename not in ("main", "load", "__init__", "__constants__")
-            )
+                    "generated_" not in filename and "while_" not in filename and "with_" not in filename and filename not in (
+                "load", "__init__", "__constants__"))
 
         if is_top_level and lines and lines[-1] in ("return 1", "return 0"):
             lines.pop()
@@ -470,10 +422,8 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             if tag_name == "load":
                 tag_funcs.sort(
                     key=lambda x: (0 if x.endswith(":__constants__") else 2 if x.endswith(":__init__") else 1, x))
-            write_if_changed(
-                os.path.join(tag_dir_str, f"{tag_name}.json"),
-                json.dumps({"values": tag_funcs}, indent=4),
-            )
+            write_if_changed(os.path.join(tag_dir_str, f"{tag_name}.json"),
+                json.dumps({"values": tag_funcs}, indent=4), )
 
     for t in unique_targets:
         t0 = time.perf_counter()
@@ -507,9 +457,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         c["time"] += time.perf_counter() - t0
 
     home_dir = str(Path.home())
-    simplify_path = lambda p: (
-        ("~" + p[len(home_dir):]) if p.startswith(home_dir) else p
-    )
+    simplify_path = lambda p: (("~" + p[len(home_dir):]) if p.startswith(home_dir) else p)
 
     io_time_sum = sum(c["time"] for c in target_caches.values())
     total_time_ms = ((pre_end - pre_start) + (comp_end - comp_start) + io_time_sum) * 1000
@@ -524,19 +472,14 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         color = "" if i == 0 else "\033[90m"
         reset = "\033[0m"
         print(
-            f"{color}  Wrote {written} files in {c['time'] * 1000:.2f}ms ({cached} cached, {total_files} total) ({simplify_path(t)}){reset}"
-        )
+            f"{color}  Wrote {written} files in {c['time'] * 1000:.2f}ms ({cached} cached, {total_files} total) ({simplify_path(t)}){reset}")
 
     if config.get("autoreload"):
         try:
             autoreload_val = config["autoreload"]
             if autoreload_val is True or str(autoreload_val).lower() == "true":
                 autoreload_val = "world://_last"
-            elif not (
-                    "://" in autoreload_val
-                    or "/" in autoreload_val
-                    or "\\" in autoreload_val
-            ):
+            elif not ("://" in autoreload_val or "/" in autoreload_val or "\\" in autoreload_val):
                 autoreload_val = f"world://{autoreload_val}"
             datapacks_dir = resolve_uri(autoreload_val, p)
             pack_format = config.get("pack_format", 15)
@@ -606,11 +549,7 @@ class EmulatorRunner:
         self.running = True
         self.emu_thread = None
         try:
-            self.timeout = (
-                float(timeout_val)
-                if timeout_val != "-1" and timeout_val is not None
-                else None
-            )
+            self.timeout = (float(timeout_val) if timeout_val != "-1" and timeout_val is not None else None)
         except ValueError:
             self.timeout = None
 
@@ -653,75 +592,25 @@ class EmulatorRunner:
 
 def main():
     parser = argparse.ArgumentParser(description="Flare CLI Datapack Compiler")
-    parser.add_argument(
-        "target",
-        nargs="?",
-        default=".",
-        help="File to build or directory to init. Use 'init' to initialize in current directory.",
-    )
-    parser.add_argument(
-        "--watch", action="store_true", help="Watch for file changes and rebuild"
-    )
-    parser.add_argument(
-        "--run",
-        nargs="?",
-        const="-1",
-        default=None,
-        help="Run the compiled datapack in mcemu. Optionally specify a timeout in seconds.",
-    )
-    parser.add_argument(
-        "--nbt-schema-missing",
-        choices=["error", "warning", "ignore"],
-        default="error",
-        help="Action when indexing an NBT path that does not exist in the attached schema.",
-    )
-    parser.add_argument(
-        "--namespace",
-        type=str,
-        default=None,
-        help="Override the namespace for the datapack.",
-    )
-    parser.add_argument(
-        "--pack-format",
-        type=str,
-        default=None,
-        help="Override the pack_format for the datapack.",
-    )
-    parser.add_argument(
-        "--description",
-        type=str,
-        default=None,
-        help="Override the description for the datapack.",
-    )
-    parser.add_argument(
-        "--out-dir",
-        type=str,
-        default=None,
-        help="Override the output directory for the compiled datapack.",
-    )
-    parser.add_argument(
-        "--validation",
-        type=str,
-        help="Set the validation level of the compiled datapack.",
-    )
-    parser.add_argument(
-        "--system-command-validation",
-        type=str,
-        help="Set the validation level for internal system commands.",
-    )
-    parser.add_argument(
-        "--no-cache",
-        action="store_true",
-        default=False,
-        help="Disable I/O cache, forcing all files to be rewritten.",
-    )
-    parser.add_argument(
-        "--autoreload",
-        nargs="?",
-        const=True,
-        default=None,
-        help="Specify a world URI (e.g. world://my_world) to setup autoreload. Requires --watch.",
-    )
+    parser.add_argument("target", nargs="?", default=".",
+        help="File to build or directory to init. Use 'init' to initialize in current directory.", )
+    parser.add_argument("--watch", action="store_true", help="Watch for file changes and rebuild")
+    parser.add_argument("--run", nargs="?", const="-1", default=None,
+        help="Run the compiled datapack in mcemu. Optionally specify a timeout in seconds.", )
+    parser.add_argument("--nbt-schema-missing", choices=["error", "warning", "ignore"], default="error",
+        help="Action when indexing an NBT path that does not exist in the attached schema.", )
+    parser.add_argument("--namespace", type=str, default=None, help="Override the namespace for the datapack.", )
+    parser.add_argument("--pack-format", type=str, default=None, help="Override the pack_format for the datapack.", )
+    parser.add_argument("--description", type=str, default=None, help="Override the description for the datapack.", )
+    parser.add_argument("--out-dir", type=str, default=None,
+        help="Override the output directory for the compiled datapack.", )
+    parser.add_argument("--validation", type=str, help="Set the validation level of the compiled datapack.", )
+    parser.add_argument("--system-command-validation", type=str,
+        help="Set the validation level for internal system commands.", )
+    parser.add_argument("--no-cache", action="store_true", default=False,
+        help="Disable I/O cache, forcing all files to be rewritten.", )
+    parser.add_argument("--autoreload", nargs="?", const=True, default=None,
+        help="Specify a world URI (e.g. world://my_world) to setup autoreload. Requires --watch.", )
 
     args, unknown_args = parser.parse_known_args()
 
@@ -788,15 +677,13 @@ def main():
         cli_overrides["validation_level"] = args.validation
         if args.validation not in ("none", "warning", "strict"):
             print(
-                f"\033[91mInvalid validation level: {args.validation}. Must be one of 'none', 'warning', or 'strict'.\033[0m"
-            )
+                f"\033[91mInvalid validation level: {args.validation}. Must be one of 'none', 'warning', or 'strict'.\033[0m")
             sys.exit(1)
     if hasattr(args, "system_command_validation") and args.system_command_validation is not None:
         cli_overrides["system_command_validation"] = args.system_command_validation
         if args.system_command_validation not in ("none", "warning", "strict"):
             print(
-                f"\033[91mInvalid system command validation level: {args.system_command_validation}. Must be one of 'none', 'warning', or 'strict'.\033[0m"
-            )
+                f"\033[91mInvalid system command validation level: {args.system_command_validation}. Must be one of 'none', 'warning', or 'strict'.\033[0m")
             sys.exit(1)
     i = 0
     while i < len(unknown_args):
@@ -832,9 +719,7 @@ def main():
 
         if not file_path:
             file_path = os.path.join(args.target, "main.fl")
-            if not os.path.exists(file_path) and os.path.exists(
-                    os.path.join(args.target, "main.py")
-            ):
+            if not os.path.exists(file_path) and os.path.exists(os.path.join(args.target, "main.py")):
                 file_path = os.path.join(args.target, "main.py")
     else:
         if args.target.endswith(".fl") or args.target.endswith(".py"):
@@ -859,9 +744,7 @@ def main():
 
     if args.watch:
         if not HAS_WATCHDOG:
-            print(
-                "\033[91mError: The 'watchdog' module is required for the --watch flag.\033[0m"
-            )
+            print("\033[91mError: The 'watchdog' module is required for the --watch flag.\033[0m")
             print("\033[93mInstall it with: pip install flaremc[cli]\033[0m")
             return
 
@@ -887,9 +770,7 @@ def main():
                     if runner:
                         runner.stop()
 
-                    success, new_watch_files, build_dir = build_datapack(
-                        file_path, cli_overrides
-                    )
+                    success, new_watch_files, build_dir = build_datapack(file_path, cli_overrides)
 
                     if success and new_watch_files != watch_files:
                         observer.unschedule_all()
