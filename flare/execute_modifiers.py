@@ -163,12 +163,14 @@ class ExecuteChain:
 
     def __with__(self, body_func):
         from .control_flow import _has_early_return
+        from .context import _flare_alone
 
         prefix = " ".join(self.fragments)
         func_name = f"{ctx._current_namespace}:with_{ctx.next_func_id()}"
 
         with ctx.push_context(func_name):
-            body_func()
+            ret = body_func()
+            _flare_alone(ret)
 
         if ctx.files.get(func_name):
             has_return = _has_early_return(func_name)

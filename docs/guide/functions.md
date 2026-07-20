@@ -35,6 +35,30 @@ def my_func(x: score) -> score:
 # Compiles to: data/pack/functions/utils/my_func.mcfunction
 ```
 
+## Importing Functions
+
+Flare provides a dedicated `import namespace:path as alias` syntax that the preprocessor transforms into native Minecraft function calls.
+
+```python
+# You write:
+import examples:test/func as my_func
+
+# Now you can use it exactly like a normal function!
+@export
+def main():
+    # 1. Standalone Execution
+    my_func()
+
+    # 2. Lazy Assignment
+    val = my_func()
+
+    # 3. Direct Branching
+    if my_func():
+        print("Success!")
+```
+
+The imported function behaves dynamically based on its context, mapping seamlessly to `function`, `execute store result ... run function`, or `execute if function` under the hood!
+
 ## Auto Return Type Detection
 
 If you omit the `-> ReturnType` annotation, Flare infers it automatically from the first `return` statement:

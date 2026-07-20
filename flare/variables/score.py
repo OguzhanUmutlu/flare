@@ -172,9 +172,10 @@ class score(FlareValue):
         if isinstance(other, nbt):
             if other._type is not None and not other.is_number():
                 raise TypeError("Cannot set score with non-numeric NBT")
+            scale = 1.0 / self._multiplier
+            scale_str = f" {scale:g}" if scale != 1.0 else ""
             _runcmd(
-                f"execute store result score {addr(self)} run data get {addr(other)}"
-                + (f" {self._multiplier}" if self._multiplier != 1.0 else "")
+                f"execute store result score {addr(self)} run data get {addr(other)}{scale_str}"
             )
             return self
         if isinstance(other, score):

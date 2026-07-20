@@ -754,3 +754,62 @@ def ref(target: T) -> T:
 from .string import NBTStringMethods
 
 LazyOp.__bases__ = (FlareValue, NBTStringMethods)
+
+
+class _LazyFunctionCall(FlareValue):
+    def __init__(self, name: str, nbt=None):
+        self.name = name
+        self.nbt = nbt
+
+    def __alone__(self):
+        from ..context import _runcmd
+        if self.nbt is not None:
+            if hasattr(self.nbt, "_addr") and self.nbt._addr:
+                _runcmd(f"function {self.name} with {self.nbt._addr}")
+            else:
+                _runcmd(f"function {self.name} with {self.nbt}")
+        else:
+            _runcmd(f"function {self.name}")
+
+    def __call__(self):
+        self.__alone__()
+
+    def _compile_into(self, target):
+        from ..execute_modifiers import ExecuteChain
+        ExecuteChain().store(target).__with__(self.__alone__)
+
+    def __iset__(self, target):
+        self._compile_into(target)
+
+    def __icopy__(self, varid: str, is_recursive: bool = False):
+        from ..context import vars_obj
+        from .score import score
+        dest = score(addr=f"{varid} {vars_obj}")
+        self._compile_into(dest)
+        return dest
+
+    def __branch__(self, invert=False):
+        if self.nbt is not None:
+            from ..context import next_temp_id, vars_obj
+            from .score import score
+            from ..execute_modifiers import store_success
+
+            temp = score(addr=f"!succ_{next_temp_id()} {vars_obj}")
+            store_success(temp).__with__(self.__alone__)
+
+            if invert:
+                return [f"unless score {temp._addr} matches 1.."]
+            return [f"if score {temp._addr} matches 1.."]
+
+        cmd = f"function {self.name}"
+        if invert:
+            return [f"unless {cmd}"]
+        return [f"if {cmd}"]
+
+
+class Function:
+    def __init__(self, name: str):
+        self.name = name
+
+    def __call__(self, nbt=None):
+        return _LazyFunctionCall(self.name, nbt)

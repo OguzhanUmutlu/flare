@@ -104,6 +104,17 @@ class FlareTransformer(ast.NodeTransformer):
 
         return node
 
+    def visit_Expr(self, node):
+        self.generic_visit(node)
+        wrapper = ast.Call(
+            func=ast.Name(id="_flare_alone", ctx=ast.Load()),
+            args=[node.value],
+            keywords=[]
+        )
+        ast.copy_location(wrapper, node.value)
+        node.value = wrapper
+        return node
+
     def visit_If(self, node):
         funcs = []
         cond_args = []
@@ -459,7 +470,10 @@ class FlareTransformer(ast.NodeTransformer):
             ops=[ast.IsNot()], comparators=[ast.Constant(value=None)]), body=[
             ast.Expr(
                 value=ast.Call(func=ast.Name(id="_flare_return", ctx=ast.Load()), args=[lambda_node], keywords=[])),
-            ast.Return(value=None)], orelse=[ast.Return(value=value)])
+            ast.Raise(exc=ast.Call(
+                func=ast.Attribute(value=ast.Name(id="ctx", ctx=ast.Load()), attr="FlareReturnException",
+                                   ctx=ast.Load()), args=[], keywords=[]), cause=None)],
+            orelse=[ast.Return(value=value)])
         ast.copy_location(if_node, node)
 
         return if_node
@@ -588,6 +602,9 @@ def evaluate_implicit_coord(seq) -> bool:
     seen_caret_or_tilde = False
 
     for j, t in enumerate(seq):
+        if t.string == "=":
+            return False
+
         if t.string == "~":
             if seen_tilde:
                 return True
@@ -611,6 +628,8 @@ def evaluate_implicit_coord(seq) -> bool:
 
 def preprocess_minecraft_commands(source: str) -> str:
     source = process_nbt_literals(source)
+    source = re.sub(r'import\s+([a-zA-Z0-9_]+:[a-zA-Z0-9_/]+)\s+as\s+([a-zA-Z0-9_]+)', r'\2 = Function("\1")', source)
+    source = "true = True\nfalse = False\n" + source
     lines = source.split("\n")
 
     skip_lines = set()

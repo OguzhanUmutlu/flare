@@ -27,8 +27,9 @@ def resolve_parent(node: dict, root: dict):
     return node
 
 
-def match_node(node: dict, root: dict, reader: StringReader) -> bool:
+def match_node(node: dict, root: dict, reader: StringReader, ctx: dict) -> bool:
     reader.skip_whitespace()
+    ctx["furthest"] = max(ctx["furthest"], reader.cursor)
 
     if not reader.can_read():
         return node.get("executable", False)
@@ -44,8 +45,11 @@ def match_node(node: dict, root: dict, reader: StringReader) -> bool:
             start_cursor = reader.cursor
             word = reader.read_unquoted_string()
             if word == name:
-                if match_node(child, root, reader):
+                ctx["furthest"] = max(ctx["furthest"], reader.cursor)
+                if match_node(child, root, reader, ctx):
                     return True
+            else:
+                ctx["furthest"] = max(ctx["furthest"], reader.cursor)
             reader.cursor = start_cursor
 
     for name, child in children.items():
@@ -57,17 +61,19 @@ def match_node(node: dict, root: dict, reader: StringReader) -> bool:
             if matcher:
                 try:
                     matcher(reader, child.get("properties", {}))
-                    if match_node(child, root, reader):
+                    ctx["furthest"] = max(ctx["furthest"], reader.cursor)
+                    if match_node(child, root, reader, ctx):
                         return True
                 except ValueError:
-                    pass
+                    ctx["furthest"] = max(ctx["furthest"], reader.cursor)
             else:
                 try:
                     MATCHERS["minecraft:nbt_path"](reader, child.get("properties", {}))
-                    if match_node(child, root, reader):
+                    ctx["furthest"] = max(ctx["furthest"], reader.cursor)
+                    if match_node(child, root, reader, ctx):
                         return True
                 except ValueError:
-                    pass
+                    ctx["furthest"] = max(ctx["furthest"], reader.cursor)
             reader.cursor = start_cursor
 
     return False
@@ -87,8 +93,9 @@ def _validate_command_cached(command: str, minecraft_version: str):
     if reader.can_read() and reader.peek() == "/":
         reader.read()
 
-    if not match_node(schema, schema, reader):
-        raise FlareCommandValidationError("Invalid command syntax", command, reader.cursor)
+    ctx = {"furthest": 0}
+    if not match_node(schema, schema, reader, ctx):
+        raise FlareCommandValidationError("Invalid command syntax", command, ctx["furthest"])
 
     return None
 

@@ -177,18 +177,56 @@ def _has_early_return(func_name):
     return False
 
 
+def _has_return_fail(func_name):
+    for cmd in ctx.files.get(func_name, []):
+        if cmd == "return fail" or cmd.startswith("return fail ") or " run return fail" in cmd:
+            return True
+    return False
+
+
+def _has_regular_return(func_name):
+    for cmd in ctx.files.get(func_name, []):
+        is_return = cmd.startswith("return ") or " run return " in cmd
+        is_fail = cmd == "return fail" or cmd.startswith("return fail ") or " run return fail" in cmd
+        if is_return and not is_fail:
+            return True
+    return False
+
+
 def _invoke_block(func_name, cond_str):
     from .variables.score import score
-    if _has_early_return(func_name):
-        if not (ctx.files[func_name] and ctx.files[func_name][-1] in ("return 0", "return 1")):
-            ctx.files[func_name].append("return 0")
-        ret_temp = score(addr=f"!ret{next_temp_id()}")
+    has_early = _has_early_return(func_name)
 
+    if has_early:
+        has_fail = _has_return_fail(func_name)
+        has_regular = _has_regular_return(func_name)
+
+        if has_regular and not (ctx.files[func_name] and ctx.files[func_name][-1] in ("return 0", "return 1")):
+            ctx.files[func_name].append("return 0")
+
+        ret_temp = score(addr=f"!ret{next_temp_id()}") if has_regular else None
+        succ_temp = score(addr=f"!succ{next_temp_id()}") if has_fail else None
+
+        if has_regular:
+            _runcmd(f"scoreboard players set {addr(ret_temp)} 0")
+        if has_fail:
+            _runcmd(f"scoreboard players set {addr(succ_temp)} -1")
+
+        exec_prefix = "execute"
         if cond_str:
-            _runcmd(f"execute store result score {addr(ret_temp)} {cond_str} run function {func_name}")
-        else:
-            _runcmd(f"execute store result score {addr(ret_temp)} run function {func_name}")
-        _runcmd(f"execute if score {addr(ret_temp)} matches 1 run return 1")
+            exec_prefix += f" {cond_str} run execute"
+
+        if has_fail:
+            exec_prefix += f" store success score {addr(succ_temp)}"
+        if has_regular:
+            exec_prefix += f" store result score {addr(ret_temp)}"
+
+        _runcmd(f"{exec_prefix} run function {func_name}".replace("execute run function", "function"))
+
+        if has_fail:
+            _runcmd(f"execute if score {addr(succ_temp)} matches 0 run return fail")
+        if has_regular:
+            _runcmd(f"execute if score {addr(ret_temp)} matches 1 run return 1")
     else:
         if cond_str:
             _runcmd(f"execute {cond_str} run function {func_name}")
@@ -232,7 +270,10 @@ def _flare_if(*args):
             if elif_temp is not None:
                 func_name = f"{namespace()}:generated_{next_func_id()}"
                 with push_context(func_name):
-                    body_func()
+                    try:
+                        body_func()
+                    except ctx.FlareReturnException:
+                        pass
                 if ctx.files.get(func_name):
                     if len(ctx.files[func_name]) == 1:
                         cmd = ctx.files[func_name][0]
@@ -263,7 +304,10 @@ def _flare_if(*args):
                 if elif_temp is not None:
                     if is_expand:
                         start_len = len(ctx.files[ctx.current_file])
-                        body_func()
+                        try:
+                            body_func()
+                        except ctx.FlareReturnException:
+                            pass
 
                         _runcmd(f"scoreboard players set {addr(elif_temp)} 1")
 
@@ -274,7 +318,10 @@ def _flare_if(*args):
                     else:
                         func_name = f"{namespace()}:generated_{next_func_id()}"
                         with push_context(func_name):
-                            body_func()
+                            try:
+                                body_func()
+                            except ctx.FlareReturnException:
+                                pass
                         if ctx.files.get(func_name):
                             if len(ctx.files[func_name]) == 1:
                                 cmd = ctx.files[func_name][0]
@@ -295,7 +342,10 @@ def _flare_if(*args):
         if is_expand:
             start_len = len(ctx.files[ctx.current_file])
 
-            body_func()
+            try:
+                body_func()
+            except ctx.FlareReturnException:
+                pass
 
             if elif_temp is not None:
                 _runcmd(f"scoreboard players set {addr(elif_temp)} 1")
@@ -308,7 +358,10 @@ def _flare_if(*args):
             with push_context(func_name):
                 if elif_temp is not None:
                     _runcmd(f"scoreboard players set {addr(elif_temp)} 1")
-                body_func()
+                try:
+                    body_func()
+                except ctx.FlareReturnException:
+                    pass
 
             if ctx.files.get(func_name):
                 if len(ctx.files[func_name]) == 1:
@@ -338,14 +391,20 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
         if has_break or has_continue:
             func_body = f"{ns}:{prefix}__flare__while__/while_body_{ctx.next_func_id()}"
             with push_context(func_body):
-                body_func()
+                try:
+                    body_func()
+                except ctx.FlareReturnException:
+                    pass
 
             _invoke_block(func_body, "")
 
             if has_break:
                 _runcmd(f"execute if score !break {temp_obj} matches 1 run return 0")
         else:
-            body_func()
+            try:
+                body_func()
+            except ctx.FlareReturnException:
+                pass
 
         cond = cond_func()
         conds = _flatten_and(cond)

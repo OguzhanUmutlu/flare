@@ -372,3 +372,20 @@ y = store(data get entity @s Health)
 x = success(lambda: runcommand("clear @s", locals(), globals()))
 y = store(lambda: runcommand("data get entity @s Health", locals(), globals()))
 ```
+
+### Function Imports
+
+Flare provides a dedicated `import namespace:path as alias` syntax that the preprocessor transforms into native `Function` calls. 
+
+```python
+# You write:
+import examples:test/func as my_func
+
+# The preprocessor seamlessly converts this to:
+my_func = Function("examples:test/func")
+```
+
+The `Function` class is incredibly smart and evaluates to a `_LazyFunctionCall`. It dynamically adapts to its context:
+- **Standalone:** Evaluates natively (e.g. `function examples:test/func`)
+- **Assignment:** Resolves through `__iset__`/`__icopy__` using `execute store result ... run function ...`
+- **Conditionals:** Resolves through `__branch__` using `execute if function ...` or safely buffering macro-arguments into a temporary success check via `execute store success ... run function ...`.

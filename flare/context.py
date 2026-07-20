@@ -368,6 +368,16 @@ def _invoke_stdlib(func_name, generator, inputs=None, outputs=None, with_=None):
 from .variables.score import score
 from .variables.nbt import nbt
 from .variables.core import is_lazy, addr, macro
+
+
+class FlareReturnException(Exception):
+    pass
+
+
+class ReturnTypeStack:
+    pass
+
+
 from .print import style, hover_event, click_event, Color
 
 
@@ -629,7 +639,10 @@ def export(func=None, *, name=None, append=False, returns=None):
         _logical_func = func_name
 
         with push_context(func_name):
-            func(**kwargs)
+            try:
+                func(**kwargs)
+            except FlareReturnException:
+                pass
 
         _in_recursive_context = prev_recursive_inner
         _logical_func = prev_logical_inner
@@ -677,6 +690,12 @@ def _flare_notin(item, container):
         if res is not NotImplemented:
             return ~res
     return item not in container
+
+
+def _flare_alone(val):
+    if hasattr(val, "__alone__"):
+        val.__alone__()
+    return val
 
 
 def _flare_assign(var_name, value, local_env, global_env, is_local=False):
@@ -770,13 +789,14 @@ def _flare_return(value_fn):
         has_returns[func_name] = True
         return
 
+    start_len = len(files.get(current_file, []))
+    value = value_fn() if callable(value_fn) else value_fn
+
     from .variables.builtins import _FailType
-    if isinstance(value_fn, _FailType):
+    if isinstance(value, _FailType):
         _runcmd("return fail")
         return
 
-    start_len = len(files.get(current_file, []))
-    value = value_fn() if callable(value_fn) else value_fn
     added_cmds = files.get(current_file, [])[start_len:]
 
     ret_anno = return_types.get(func_name, None)
