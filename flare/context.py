@@ -780,6 +780,7 @@ def _flare_aug_assign(var_name, op_name, value, _locals, _globals):
 
 def _flare_return(value_fn):
     from .variables.score import addr
+    from .variables.builtins import fail
 
     func_name = _logical_func
     if func_name is None:
@@ -792,8 +793,7 @@ def _flare_return(value_fn):
     start_len = len(files.get(current_file, []))
     value = value_fn() if callable(value_fn) else value_fn
 
-    from .variables.builtins import _FailType
-    if isinstance(value, _FailType):
+    if value is fail or isinstance(value, fail):
         _runcmd("return fail")
         return
 

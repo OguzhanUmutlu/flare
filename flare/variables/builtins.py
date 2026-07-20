@@ -14,11 +14,12 @@ class flare_len:
         return builtins.len(x)
 
 
-class _FailType:
+from .core import FlareClassMeta
+
+class fail(metaclass=FlareClassMeta):
     pass
 
-
-fail = _FailType()
+_FailType = fail
 
 
 class IntReturn:
