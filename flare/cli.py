@@ -105,7 +105,8 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             "pack_format": 15,
             "description": "A Flare datapack",
             "build_dir": ["dist"],
-            "validation_level": "strict"
+            "validation_level": "strict",
+            "system_command_validation": "none"
         }
 
     if cli_overrides:
@@ -163,6 +164,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
     from flare.utils import pack_format_to_minecraft_version
     context.validation_level = config.get("validation_level", "strict")
+    context.system_command_validation = config.get("system_command_validation", "none")
     context.minecraft_version = pack_format_to_minecraft_version(pack_format)
     context.nbt_schema_missing = config.get("nbt_schema_missing", "error")
     context.config = config
@@ -210,7 +212,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_and, _flare_or, _flare_with, _flare_as_var, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin, _flare_enter_scope, _flare_exit_scope, _flare_alone\n"
             "from flare import context as ctx\n"
             "from flare.command_parser import interpolate_command\n"
-            "from flare import _flare_print as print, selector, _as, at, positioned, aligned, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
+            "from flare import _flare_print as print, selector, _as, at, positioned, align, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
             "from flare import fail, nbt, score, fixed, ref, getscore, storage, array, byte, boolean, short, long, double, compound, Objective\n"
             "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray\n"
             "from flare import round_, floor, ceil\n"
@@ -703,6 +705,11 @@ def main():
         help="Set the validation level of the compiled datapack.",
     )
     parser.add_argument(
+        "--system-command-validation",
+        type=str,
+        help="Set the validation level for internal system commands.",
+    )
+    parser.add_argument(
         "--no-cache",
         action="store_true",
         default=False,
@@ -782,6 +789,13 @@ def main():
         if args.validation not in ("none", "warning", "strict"):
             print(
                 f"\033[91mInvalid validation level: {args.validation}. Must be one of 'none', 'warning', or 'strict'.\033[0m"
+            )
+            sys.exit(1)
+    if hasattr(args, "system_command_validation") and args.system_command_validation is not None:
+        cli_overrides["system_command_validation"] = args.system_command_validation
+        if args.system_command_validation not in ("none", "warning", "strict"):
+            print(
+                f"\033[91mInvalid system command validation level: {args.system_command_validation}. Must be one of 'none', 'warning', or 'strict'.\033[0m"
             )
             sys.exit(1)
     i = 0

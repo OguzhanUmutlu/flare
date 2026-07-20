@@ -140,21 +140,37 @@ def parse_minecraft_entity(reader: StringReader, props: dict):
 
 
 def parse_minecraft_vec3(reader: StringReader, props: dict):
-    for _ in range(3):
+    for i in range(3):
         reader.skip_whitespace()
+        if i > 0 and not reader.can_read():
+            raise ValueError("Expected 3 coordinates")
+
+        has_prefix = False
         if reader.can_read() and reader.peek() in ("~", "^"):
             reader.read()
+            has_prefix = True
+
         if reader.can_read() and (reader.peek().isdigit() or reader.peek() in "-."):
             parse_brigadier_float(reader, {})
+        elif not has_prefix:
+            raise ValueError("Expected coordinate")
 
 
 def parse_minecraft_vec2(reader: StringReader, props: dict):
-    for _ in range(2):
+    for i in range(2):
         reader.skip_whitespace()
+        if i > 0 and not reader.can_read():
+            raise ValueError("Expected 2 coordinates")
+
+        has_prefix = False
         if reader.can_read() and reader.peek() in ("~", "^"):
             reader.read()
+            has_prefix = True
+
         if reader.can_read() and (reader.peek().isdigit() or reader.peek() in "-."):
             parse_brigadier_float(reader, {})
+        elif not has_prefix:
+            raise ValueError("Expected coordinate")
 
 
 def parse_minecraft_nbt(reader: StringReader, props: dict):
@@ -246,6 +262,19 @@ def parse_minecraft_resource_location(reader: StringReader, props: dict):
         raise ValueError("Expected resource location")
 
 
+def parse_minecraft_swizzle(reader: StringReader, props: dict):
+    start = reader.cursor
+    allowed = set("xyz")
+    seen = set()
+    while reader.can_read() and reader.peek() in allowed:
+        c = reader.read()
+        if c in seen:
+            raise ValueError(f"Duplicate axis {c} in swizzle")
+        seen.add(c)
+    if reader.cursor == start:
+        raise ValueError("Expected swizzle")
+
+
 MATCHERS = {"brigadier:string": parse_brigadier_string, "brigadier:integer": parse_brigadier_integer,
             "brigadier:float": parse_brigadier_float, "brigadier:double": parse_brigadier_float,
             "brigadier:bool": parse_brigadier_bool, "minecraft:entity": parse_minecraft_entity,
@@ -258,4 +287,5 @@ MATCHERS = {"brigadier:string": parse_brigadier_string, "brigadier:integer": par
             "minecraft:item_predicate": parse_minecraft_item_stack, "minecraft:nbt_path": parse_minecraft_nbt_path,
             "minecraft:block_pos": parse_minecraft_vec3, "minecraft:column_pos": parse_minecraft_vec2,
             "minecraft:resource_location": parse_minecraft_resource_location,
-            "minecraft:function": parse_minecraft_resource_location}
+            "minecraft:function": parse_minecraft_resource_location,
+            "minecraft:swizzle": parse_minecraft_swizzle}

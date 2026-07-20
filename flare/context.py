@@ -68,6 +68,7 @@ _logical_func = None
 memoized_math = {}
 
 validation_level = "strict"
+system_command_validation = "none"
 minecraft_version = "1.20.4"
 nbt_schema_missing = "error"
 
@@ -92,7 +93,7 @@ def next_func_id():
 
 
 def reset_context():
-    global current_file, _current_namespace, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, minecraft_version, nbt_schema_missing, _in_recursive_context, _logical_func, memoized_math
+    global current_file, _current_namespace, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, system_command_validation, minecraft_version, nbt_schema_missing, _in_recursive_context, _logical_func, memoized_math
     files.clear()
     json_files.clear()
     files["main"] = []
@@ -262,12 +263,20 @@ def runcommand(command: str, local_vars=None, global_vars=None, validation: str 
         with push_context(func_name):
             runcommand(command, validation=validation)
 
-        _runcmd(f"function {func_name} with storage flare:macro")
+        _runcmd(f"function {func_name} with storage flare:macro", validation=validation)
         return
 
+    _runcmd(command, validation=validation)
+
+
+def _runcmd(command: str, validation: str = None):
     command = _optimize_execute(command)
 
-    val_level = validation if validation is not None else validation_level
+    if validation is None:
+        val_level = system_command_validation
+    else:
+        val_level = validation
+
     if val_level != "none":
         try:
             validate_command(command, minecraft_version)
@@ -278,10 +287,6 @@ def runcommand(command: str, local_vars=None, global_vars=None, validation: str 
                 print(f"[Flare Compiler Warning] {e}")
 
     files[current_file].append(command)
-
-
-def _runcmd(command: str):
-    runcommand(command, validation="none")
 
 
 def _check_entity_nbt_transfer(addr1: str, addr2: str) -> bool:

@@ -65,17 +65,18 @@ captured and forwarded as CLI overrides.
 
 ### Options
 
-| Option               | Type             | Description                                                                                                                                       |
-|----------------------|------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-| `path`               | `string`         | Explicit path to the Flare entry-point file, relative to the project directory. Takes precedence over the automatic `data_pack.load` search.      |
-| `namespace`          | `string`         | Overrides the output namespace. Defaults to the project `name` specified in your `beet.json`.                                                     |
-| `pack_format`        | `int`            | Overrides the datapack `pack_format` (defaults to the value in `flare.json` if omitted).                                                          |
-| `description`        | `string`         | Overrides the datapack description.                                                                                                               |
-| `validation`         | `string`         | Sets the command validation level: `strict`, `warning`, or `none`.                                                                                |
-| `minecraft_version`  | `string`         | Specifies the Minecraft version used for schema validation (e.g., `"1.21"`).                                                                      |
-| `nbt_schema_missing` | `string`         | Action when indexing an NBT path not in the schema: `error`, `warning`, or `ignore`.                                                              |
-| `run`                | `string`/`float` | Runs the compiled datapack in `mcemu` after compilation. Acts exactly like the `--run` CLI flag (e.g., `"0"` for 0 seconds, `"-1"` for infinite). |
-| *(Extra Fields)*     | `any`            | Arbitrary fields passed here are dynamically forwarded to the Flare compiler as CLI overrides.                                                    |
+| Option                      | Type             | Description                                                                                                                                       |
+|-----------------------------|------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| `path`                      | `string`         | Explicit path to the Flare entry-point file, relative to the project directory. Takes precedence over the automatic `data_pack.load` search.      |
+| `namespace`                 | `string`         | Overrides the output namespace. Defaults to the project `name` specified in your `beet.json`.                                                     |
+| `pack_format`               | `int`            | Overrides the datapack `pack_format` (defaults to the value in `flare.json` if omitted).                                                          |
+| `description`               | `string`         | Overrides the datapack description.                                                                                                               |
+| `validation`                | `string`         | Sets the command validation level: `strict`, `warning`, or `none`.                                                                                |
+| `system_command_validation` | `string`         | Sets the command validation level for internal system commands: `strict`, `warning`, or `none`. Defaults to `none`.                               |
+| `minecraft_version`         | `string`         | Specifies the Minecraft version used for schema validation (e.g., `"1.21"`).                                                                      |
+| `nbt_schema_missing`        | `string`         | Action when indexing an NBT path not in the schema: `error`, `warning`, or `ignore`.                                                              |
+| `run`                       | `string`/`float` | Runs the compiled datapack in `mcemu` after compilation. Acts exactly like the `--run` CLI flag (e.g., `"0"` for 0 seconds, `"-1"` for infinite). |
+| *(Extra Fields)*            | `any`            | Arbitrary fields passed here are dynamically forwarded to the Flare compiler as CLI overrides.                                                    |
 
 ### Configuration Priority
 

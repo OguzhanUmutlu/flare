@@ -31,6 +31,25 @@ class ExecuteChain:
         self.fragments = [prefix] if prefix else []
 
     def _add(self, frag: str) -> ExecuteChain:
+        from . import context as ctx
+        from .validator.core import validate_command, FlareCommandValidationError
+
+        val_level = ctx.validation_level
+        if val_level != "none" and not frag.startswith("execute"):
+            try:
+                validate_command(f"execute {frag} run return 0", ctx.minecraft_version)
+            except FlareCommandValidationError as e:
+                if frag.startswith("rotated "):
+                    e.message += " (Hint: Did you mean to quote the input?)"
+                if val_level == "strict":
+                    raise FlareCommandValidationError(
+                        e.message, frag, max(0, e.cursor - 8)
+                    )
+                elif val_level == "warning":
+                    print(
+                        f"[Flare Compiler Warning] {e.message} at position {max(0, e.cursor - 8)}:\n{frag}\n{' ' * max(0, e.cursor - 8)}^"
+                    )
+
         self.fragments.append(frag)
         return self
 
@@ -47,11 +66,13 @@ class ExecuteChain:
             pos = " ".join(str(p) for p in pos)
         return self._add(f"positioned {pos}")
 
-    def aligned(self, axes: str) -> ExecuteChain:
-        return self._add(f"aligned {axes}")
+    def align(self, axes: str) -> ExecuteChain:
+        return self._add(f"align {axes}")
 
     def facing(self, target_or_pos: Union[str, tuple, list, selector]) -> ExecuteChain:
-        if isinstance(target_or_pos, selector) or (isinstance(target_or_pos, str) and target_or_pos.startswith("@")):
+        if isinstance(target_or_pos, selector) or (
+                isinstance(target_or_pos, str) and target_or_pos.startswith("@")
+        ):
             return self._add(f"facing entity {target_or_pos}")
         if isinstance(target_or_pos, (tuple, list)):
             target_or_pos = " ".join(str(p) for p in target_or_pos)
@@ -111,17 +132,23 @@ class ExecuteChain:
             self._add(f"unless score {addr(dest)} matches 1")
         return self
 
-    def if_block(self, pos: Union[str, tuple, list, "selector"], target: str) -> ExecuteChain:
+    def if_block(
+            self, pos: Union[str, tuple, list, "selector"], target: str
+    ) -> ExecuteChain:
         if isinstance(pos, (tuple, list)):
             pos = " ".join(str(p) for p in pos)
         return self._add(f"if block {pos} {target}")
 
-    def unless_block(self, pos: Union[str, tuple, list, "selector"], target: str) -> ExecuteChain:
+    def unless_block(
+            self, pos: Union[str, tuple, list, "selector"], target: str
+    ) -> ExecuteChain:
         if isinstance(pos, (tuple, list)):
             pos = " ".join(str(p) for p in pos)
         return self._add(f"unless block {pos} {target}")
 
-    def store(self, target: Union["flare.variables.score", "flare.variables.nbt", str]) -> ExecuteChain:
+    def store(
+            self, target: Union["flare.variables.score", "flare.variables.nbt", str]
+    ) -> ExecuteChain:
         from .variables.nbt import nbt
         from .variables.score import score
 
@@ -133,7 +160,9 @@ class ExecuteChain:
             return StoreExecuteChain(self.fragments.copy(), target, is_success=False)
         return self._add(f"store result {target}")
 
-    def store_success(self, target: Union["flare.variables.score", "flare.variables.nbt", str]) -> ExecuteChain:
+    def store_success(
+            self, target: Union["flare.variables.score", "flare.variables.nbt", str]
+    ) -> ExecuteChain:
         from .variables.nbt import nbt
         from .variables.score import score
 
@@ -156,7 +185,9 @@ class ExecuteChain:
 
     def __branch__(self, invert=False):
         if invert:
-            raise ValueError("ExecuteChain cannot be inverted. Use 'unless' inside the chain.")
+            raise ValueError(
+                "ExecuteChain cannot be inverted. Use 'unless' inside the chain."
+            )
         if self.fragments and self.fragments[0] == "execute":
             return self.fragments[1:]
         return self.fragments
@@ -179,13 +210,20 @@ class ExecuteChain:
                 del ctx.files[func_name]
                 ctx._runcmd(ctx.combine_execute(prefix, cmd))
             elif has_return:
-                if not (ctx.files[func_name] and ctx.files[func_name][-1] in ("return 0", "return 1")):
+                if not (
+                        ctx.files[func_name]
+                        and ctx.files[func_name][-1] in ("return 0", "return 1")
+                ):
                     ctx.files[func_name].append("return 0")
                 ret_temp = ctx.next_temp_score("ret")
                 if prefix.startswith("execute "):
-                    ctx._runcmd(f"execute store result score {addr(ret_temp)} {prefix[8:]} run function {func_name}")
+                    ctx._runcmd(
+                        f"execute store result score {addr(ret_temp)} {prefix[8:]} run function {func_name}"
+                    )
                 else:
-                    ctx._runcmd(f"execute store result score {addr(ret_temp)} run function {func_name}")
+                    ctx._runcmd(
+                        f"execute store result score {addr(ret_temp)} run function {func_name}"
+                    )
                 ctx._runcmd(f"execute if score {addr(ret_temp)} matches 1 run return 1")
             else:
                 ctx._runcmd(ctx.combine_execute(prefix, f"function {func_name}"))
@@ -222,7 +260,12 @@ class ExecuteChain:
 
 
 class StoreExecuteChain(ExecuteChain):
-    def __init__(self, fragments: list[str], target: "flare.variables.nbt", is_success: bool = False):
+    def __init__(
+            self,
+            fragments: list[str],
+            target: "flare.variables.nbt",
+            is_success: bool = False,
+    ):
         super().__init__("")
         self.fragments = fragments
         self._target = target
@@ -232,8 +275,27 @@ class StoreExecuteChain(ExecuteChain):
         self._update_frag()
 
     def _update_frag(self):
+
+        from . import context as ctx
+        from .validator.core import validate_command, FlareCommandValidationError
+
         store_type = "success" if self._is_success else "result"
         frag = f"store {store_type} storage {self._target._target} {self._target._path} {self._datatype} {self._multiplier}"
+
+        val_level = ctx.validation_level
+        if val_level != "none":
+            try:
+                validate_command(f"execute {frag} run return 0", ctx.minecraft_version)
+            except FlareCommandValidationError as e:
+                if val_level == "strict":
+                    raise FlareCommandValidationError(
+                        e.message, frag, max(0, e.cursor - 8)
+                    )
+                elif val_level == "warning":
+                    print(
+                        f"[Flare Compiler Warning] {e.message} at position {max(0, e.cursor - 8)}:\n{frag}\n{' ' * max(0, e.cursor - 8)}^"
+                    )
+
         if self.fragments and self.fragments[-1].startswith("store "):
             self.fragments[-1] = frag
         else:
@@ -269,8 +331,8 @@ def positioned(pos: Union[str, tuple, list, selector], *args) -> ExecuteChain:
     return ExecuteChain().positioned(pos)
 
 
-def aligned(axes: str) -> ExecuteChain:
-    return ExecuteChain().aligned(axes)
+def align(axes: str) -> ExecuteChain:
+    return ExecuteChain().align(axes)
 
 
 def facing(target_or_pos: Union[str, tuple, list, selector], *args) -> ExecuteChain:
@@ -319,19 +381,24 @@ def unless_block(pos: Union[str, tuple, list, "selector"], target: str) -> Execu
     return ExecuteChain().unless_block(pos, target)
 
 
-def store(target: Union["flare.variables.score", "flare.variables.nbt", str, Any]) -> Union[
-    ExecuteChain, "flare.variables.score", "_StoreCondition"]:
+def store(
+        target: Union["flare.variables.score", "flare.variables.nbt", str, Any],
+) -> Union[ExecuteChain, "flare.variables.score", "_StoreCondition"]:
     from .variables.core import FlareValue
+
     if callable(target) and not isinstance(target, FlareValue):
         return _StoreCondition(lazy_func=target)
     return ExecuteChain().store(target)
 
 
-def store_success(target: Union["flare.variables.score", "flare.variables.nbt", str, Any]) -> Union[
-    ExecuteChain, "flare.variables.score"]:
+def store_success(
+        target: Union["flare.variables.score", "flare.variables.nbt", str, Any],
+) -> Union[ExecuteChain, "flare.variables.score"]:
     from .variables.core import FlareValue
+
     if callable(target) and not isinstance(target, FlareValue):
         from .variables.score import score
+
         temp = score(addr=f"!succ_{ctx.next_temp_id()} {ctx.vars_obj}")
         ExecuteChain().store_success(temp).__with__(target)
         return temp
@@ -370,14 +437,18 @@ class _SuccessCondition(FlareValue):
         if self.lazy_func:
             store_success(target).__with__(self.lazy_func)
         elif self.func_name:
-            store_success(target).__with__(lambda: ctx._runcmd(f"function {self.func_name}"))
+            store_success(target).__with__(
+                lambda: ctx._runcmd(f"function {self.func_name}")
+            )
 
     def _alloc_temp(self):
         from .variables.score import score
+
         return score(addr=f"!succ_{ctx.next_temp_id()} {ctx.vars_obj}")
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
         from .variables.score import score
+
         dest = score(addr=f"{varid} {ctx.vars_obj}")
         self._compile_into(dest)
         return dest
@@ -393,14 +464,18 @@ class _StoreCondition(FlareValue):
         if self.lazy_func:
             ExecuteChain().store(target).__with__(self.lazy_func)
         elif self.func_name:
-            ExecuteChain().store(target).__with__(lambda: ctx._runcmd(f"function {self.func_name}"))
+            ExecuteChain().store(target).__with__(
+                lambda: ctx._runcmd(f"function {self.func_name}")
+            )
 
     def _alloc_temp(self):
         from .variables.score import score
+
         return score(addr=f"!res_{ctx.next_temp_id()} {ctx.vars_obj}")
 
     def __icopy__(self, varid: str, is_recursive: bool = False):
         from .variables.score import score
+
         dest = score(addr=f"{varid} {ctx.vars_obj}")
         self._compile_into(dest)
         return dest

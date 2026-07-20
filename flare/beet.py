@@ -22,6 +22,7 @@ class FlareOptions(BaseModel):
     pack_format: Optional[int] = None
     description: Optional[str] = None
     validation: Optional[Literal["none", "warning", "strict"]] = None
+    system_command_validation: Optional[Literal["none", "warning", "strict"]] = None
     minecraft_version: Optional[str] = None
     nbt_schema_missing: Optional[Literal["error", "warning", "ignore"]] = None
 
@@ -60,6 +61,8 @@ def flare(ctx: Context, opts: FlareOptions) -> None:
         cli_overrides["description"] = opts.description
     if opts.validation is not None:
         cli_overrides["validation_level"] = opts.validation
+    if opts.system_command_validation is not None:
+        cli_overrides["system_command_validation"] = opts.system_command_validation
     if opts.minecraft_version is not None:
         cli_overrides["minecraft_version"] = opts.minecraft_version
     if opts.nbt_schema_missing is not None:
@@ -67,7 +70,8 @@ def flare(ctx: Context, opts: FlareOptions) -> None:
 
     extra_opts = {}
     for key, value in opts.dict(exclude_unset=True).items():
-        if key not in ("path", "namespace", "pack_format", "description", "validation", "minecraft_version",
+        if key not in ("path", "namespace", "pack_format", "description", "validation", "system_command_validation",
+                       "minecraft_version",
                        "nbt_schema_missing"):
             extra_opts[key] = value
 

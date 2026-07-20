@@ -95,7 +95,7 @@ Call arbitrary Minecraft commands directly on any selector as a method:
 | `as`             | `as(@a)`, `@s.as()`, `as("@a")`                                |
 | `at`             | `at(@s)`, `at("@s")`                                           |
 | `positioned`     | `positioned(x, y, z)`, `positioned("~ ~ ~")`, `positioned(@a)` |
-| `aligned`        | `aligned("xyz")`                                               |
+| `align`          | `align("xyz")`                                                 |
 | `facing`         | `facing(@a)`, `facing(x, y, z)`, `facing("~ ~ ~")`             |
 | `anchored`       | `anchored("eyes")`                                             |
 | `rotated`        | `rotated(y, x)`, `rotated(@s)`, `rotated("~ ~")`               |

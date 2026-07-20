@@ -207,10 +207,10 @@ class selector(Generic[T]):
 
         return _as(self).unless_block(pos, target)
 
-    def aligned(self, axes):
+    def align(self, axes):
         from ..execute_modifiers import _as
 
-        return _as(self).aligned(axes)
+        return _as(self).align(axes)
 
     def anchor(self, anchor_name):
         from ..execute_modifiers import _as
