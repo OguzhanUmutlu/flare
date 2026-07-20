@@ -6,8 +6,7 @@ from typing import Callable
 
 import flare
 from . import context as ctx
-from .context import namespace
-from .context import push_context, _runcmd, temp_obj, next_temp_id, next_func_id
+from .context import push_context, _runcmd, temp_obj, next_temp_id
 from .execute_modifiers import ExecuteChain
 from .variables.core import addr
 
@@ -142,13 +141,7 @@ class ScoreIfScore(ScoreIf):
         return f"execute if score {addr(self.t)} {self.op} {addr(self.t2)} run "
 
     def invert(self):
-        inv_op = {
-            "<": ">=",
-            "<=": ">",
-            "=": "!=",
-            ">": "<=",
-            ">=": "<"
-        }.get(self.op)
+        inv_op = {"<": ">=", "<=": ">", "=": "!=", ">": "<=", ">=": "<"}.get(self.op)
         if inv_op == "!=":
             return ScoreUnlessScore(self.t, "=", self.t2)
         elif inv_op:
@@ -268,7 +261,7 @@ def _flare_if(*args):
     for cond_func, body_func in zip(conditions, bodies):
         if cond_func is None:
             if elif_temp is not None:
-                func_name = f"{namespace()}:generated_{next_func_id()}"
+                func_name = ctx.get_generated_func_name("generated")
                 with push_context(func_name):
                     try:
                         body_func()
@@ -294,8 +287,7 @@ def _flare_if(*args):
             is_dynamic_chain = current_is_dynamic
         elif is_dynamic_chain != current_is_dynamic:
             raise TypeError(
-                "Cannot mix compile-time (static) and run-time (dynamic) conditions in the same if/elif chain. Please use nested if statements instead."
-            )
+                "Cannot mix compile-time (static) and run-time (dynamic) conditions in the same if/elif chain. Please use nested if statements instead.")
 
         if isinstance(cond, bool):
             if not cond:
@@ -316,7 +308,7 @@ def _flare_if(*args):
                             cmd = ctx.files[ctx.current_file][i]
                             ctx.files[ctx.current_file][i] = ctx.combine_execute(prefix, cmd)
                     else:
-                        func_name = f"{namespace()}:generated_{next_func_id()}"
+                        func_name = ctx.get_generated_func_name("generated")
                         with push_context(func_name):
                             try:
                                 body_func()
@@ -354,7 +346,7 @@ def _flare_if(*args):
                 cmd = ctx.files[ctx.current_file][i]
                 ctx.files[ctx.current_file][i] = ctx.combine_execute(prefix, cmd)
         else:
-            func_name = f"{namespace()}:generated_{next_func_id()}"
+            func_name = ctx.get_generated_func_name("generated")
             with push_context(func_name):
                 if elif_temp is not None:
                     _runcmd(f"scoreboard players set {addr(elif_temp)} 1")
@@ -372,24 +364,15 @@ def _flare_if(*args):
                     _invoke_block(func_name, prefix[8:] if prefix.startswith("execute ") else "")
 
 
-def _get_func_prefix(namespace=None):
-    if not namespace and ":" in ctx.current_file:
-        file_path = ctx.current_file.split(":", 1)[1]
-        if "/" in file_path:
-            return file_path.rsplit("/", 1)[0] + "/"
-    return ""
-
-
 def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_continue=False, namespace=None):
     from .compiler import _flatten_and  # avoid circular import
     from .variables.score import score
     ns = namespace or ctx._current_namespace
-    prefix = _get_func_prefix(namespace)
-    func_name = f"{ns}:{prefix}__flare__while__/while_{ctx.next_func_id()}"
+    func_name = ctx.get_generated_func_name("while")
 
     with push_context(func_name):
         if has_break or has_continue:
-            func_body = f"{ns}:{prefix}__flare__while__/while_body_{ctx.next_func_id()}"
+            func_body = ctx.get_generated_func_name("while_body")
             with push_context(func_body):
                 try:
                     body_func()
@@ -422,7 +405,7 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
 
     if orelse_func:
         if has_break:
-            orelse_name = f"{ctx._current_namespace}:{prefix}while_else_{ctx.next_func_id()}"
+            orelse_name = ctx.get_generated_func_name("while_else")
             with push_context(orelse_name):
                 orelse_func()
             _runcmd(f"execute if score !break {temp_obj} matches 0 run function {orelse_name}")
@@ -446,7 +429,7 @@ class schedule:
 
     def __with__(self, body_func):
         ns = ctx._current_namespace
-        func_name = f"{ns}:__flare__schedule__/sched_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("sched")
         self._func_name = func_name
 
         with ctx.push_context(func_name):
@@ -468,7 +451,7 @@ class _MacroGroup:
         from . import context as ctx
         from .variables.nbt import nbt
 
-        func_name = f"{ctx._current_namespace}:macro_group_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("macro_group")
 
         common_base = None
         can_use_common_base = True

@@ -197,7 +197,7 @@ class ExecuteChain:
         from .context import _flare_alone
 
         prefix = " ".join(self.fragments)
-        func_name = f"{ctx._current_namespace}:with_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("with")
 
         with ctx.push_context(func_name):
             ret = body_func()

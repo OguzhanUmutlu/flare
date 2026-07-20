@@ -97,10 +97,11 @@ class NBTStringSlice(FlareValue):
                 start_str = f" {start_str}"
 
             op_str = "append string" if append else "set string"
-            
+
             if not append and addr(dest) == addr(string_obj):
                 _runcmd(f"data modify storage {ctx.temp_storage} __flare_slice_tmp set value \"\"")
-                _runcmd(f"data modify storage {ctx.temp_storage} __flare_slice_tmp {op_str} {addr(string_obj)}{start_str}{stop_str}")
+                _runcmd(
+                    f"data modify storage {ctx.temp_storage} __flare_slice_tmp {op_str} {addr(string_obj)}{start_str}{stop_str}")
                 _runcmd(f"data modify {addr(dest)} set from storage {ctx.temp_storage} __flare_slice_tmp")
             else:
                 if not append:
@@ -180,7 +181,7 @@ class NBTStringMethods:
             temp_len = score(addr=f"!split_len_{_id}")
             temp_len[:] = len(temp_str)
 
-            func_name = f"{ctx._current_namespace}:split_char_{ctx.next_func_id()}"
+            func_name = ctx.get_generated_func_name("split_char")
 
             def char_loop():
                 nonlocal dest, temp_len
@@ -207,7 +208,7 @@ class NBTStringMethods:
 
         if isinstance(delim, str):
             delim_len = len(delim)
-            func_name = f"{ctx._current_namespace}:split_{ctx.next_func_id()}"
+            func_name = ctx.get_generated_func_name("split")
 
             with ctx.push_context(func_name):
                 split_slice[:] = temp_str[0:delim_len]
@@ -216,12 +217,8 @@ class NBTStringMethods:
                 _flare_if(lambda: split_slice == delim, lambda: is_match.__iset__(0))
 
                 char_temp = nbt(addr=f"flare:temp split_char_{_id}", datatype=NBTType.String)
-                ScoreIfMatches(is_match, 0).then(lambda: [
-                    dest.append(current_word),
-                    current_word.__iset__(""),
-                    temp_str.__iset__(temp_str[delim_len:]),
-                    char_temp.__iset__("")
-                ])
+                ScoreIfMatches(is_match, 0).then(lambda: [dest.append(current_word), current_word.__iset__(""),
+                    temp_str.__iset__(temp_str[delim_len:]), char_temp.__iset__("")])
 
                 ScoreIfMatches(is_match, 1).then(lambda: char_temp.__iset__(temp_str[0]))
 
@@ -243,7 +240,7 @@ class NBTStringMethods:
             delim_len = score(addr=f"!split_dlen_{_id}")
             delim_len[:] = len(delim)
 
-            func_name = f"{ctx._current_namespace}:split_{ctx.next_func_id()}"
+            func_name = ctx.get_generated_func_name("split")
 
             with ctx.push_context(func_name):
                 split_slice[:] = temp_str[:delim_len]
@@ -253,12 +250,8 @@ class NBTStringMethods:
 
                 char_temp = nbt(addr=f"flare:temp split_char_{_id}", datatype=NBTType.String)
 
-                ScoreIfMatches(is_match, 0).then(lambda: [
-                    dest.append(current_word),
-                    current_word.__iset__(""),
-                    temp_str.__iset__(temp_str[delim_len:]),
-                    char_temp.__iset__("")
-                ])
+                ScoreIfMatches(is_match, 0).then(lambda: [dest.append(current_word), current_word.__iset__(""),
+                    temp_str.__iset__(temp_str[delim_len:]), char_temp.__iset__("")])
 
                 ScoreIfMatches(is_match, 1).then(lambda: char_temp.__iset__(temp_str[0]))
 
@@ -298,7 +291,7 @@ class NBTStringMethods:
 
         dest[:] = ""
 
-        func_name = f"{ctx._current_namespace}:rev_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("rev")
 
         char_temp = nbt(addr=f"flare:temp rev_char_{_id}", datatype=NBTType.String)
 
@@ -339,7 +332,7 @@ class NBTStringMethods:
 
         dest[:] = ""
 
-        func_name = f"{ctx._current_namespace}:lower_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("lower")
 
         char_temp = nbt(addr=f"flare:temp lower_char_{_id}", datatype=NBTType.String)
 
@@ -384,7 +377,7 @@ class NBTStringMethods:
 
         dest[:] = ""
 
-        func_name = f"{ctx._current_namespace}:upper_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("upper")
 
         char_temp = nbt(addr=f"flare:temp upper_char_{_id}", datatype=NBTType.String)
 
@@ -429,7 +422,7 @@ class NBTStringMethods:
 
         dest[:] = ""
 
-        func_name = f"{ctx._current_namespace}:swapcase_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("swapcase")
 
         char_temp = nbt(addr=f"flare:temp swapcase_char_{_id}", datatype=NBTType.String)
         match_ = score(addr="!match")
@@ -441,8 +434,7 @@ class NBTStringMethods:
                 match_[:] = 0
                 _flare_if(lambda: char_temp == char, lambda: match_.__iset__(1))
                 ScoreIfMatches(match_, 1).then(lambda: char_temp.__iset__(char.lower()))
-                _flare_if(lambda: (match_ == 0) & (char_temp == char.lower()),
-                          lambda: char_temp.__iset__(char))
+                _flare_if(lambda: (match_ == 0) & (char_temp == char.lower()), lambda: char_temp.__iset__(char))
 
             dest += char_temp
 
@@ -476,7 +468,7 @@ class NBTStringMethods:
         dest[:] = ""
         is_space = score(1, addr=f"!title_spc_{_id}")
 
-        func_name = f"{ctx._current_namespace}:title_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("title")
 
         char_temp = nbt(addr=f"flare:temp title_char_{_id}", datatype=NBTType.String)
 
@@ -523,7 +515,7 @@ class NBTStringMethods:
         dest[:] = ""
         first = score(1, addr=f"!cap_first_{_id}")
 
-        func_name = f"{ctx._current_namespace}:capitalize_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("capitalize")
 
         char_temp = nbt(addr=f"flare:temp capitalize_char_{_id}", datatype=NBTType.String)
 
@@ -531,10 +523,8 @@ class NBTStringMethods:
             char_temp[:] = temp_str[0]
 
             for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
-                _flare_if(lambda: (first == 0) & (char_temp == char),
-                          lambda: char_temp.__iset__(char.lower()))
-                _flare_if(lambda: (first == 1) & (char_temp == char.lower()),
-                          lambda: char_temp.__iset__(char))
+                _flare_if(lambda: (first == 0) & (char_temp == char), lambda: char_temp.__iset__(char.lower()))
+                _flare_if(lambda: (first == 1) & (char_temp == char.lower()), lambda: char_temp.__iset__(char))
             first[:] = 0
 
             dest += char_temp
@@ -568,7 +558,7 @@ class NBTStringMethods:
 
         dest[:] = ""
 
-        func_name = f"{ctx._current_namespace}:slugify_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("slugify")
 
         char_temp = nbt(addr=f"flare:temp slugify_char_{_id}", datatype=NBTType.String)
 
@@ -628,7 +618,7 @@ class NBTStringMethods:
 
         dest_score[:] = 0
 
-        func_name = f"{ctx._current_namespace}:find_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("find")
 
         slice_temp = nbt(addr=f"flare:temp find_slice_{_id}", datatype=NBTType.String)
 
@@ -638,10 +628,7 @@ class NBTStringMethods:
             is_match[:] = 1
             _flare_if(lambda: slice_temp == target_str, lambda: is_match.__iset__(0))
 
-            ScoreIfMatches(is_match, 1).then(lambda: [
-                temp_str.__iset__(temp_str[1:]),
-                dest_score.__iadd__(1)
-            ])
+            ScoreIfMatches(is_match, 1).then(lambda: [temp_str.__iset__(temp_str[1:]), dest_score.__iadd__(1)])
 
             temp_len[:] = len(temp_str)
             (ScoreIfMatches(is_match, 1) & ScoreIfScore(temp_len, ">=", target_len)).then(
@@ -691,7 +678,7 @@ class NBTStringMethods:
 
         dest_score[:] = 0
 
-        func_name = f"{ctx._current_namespace}:count_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("count")
 
         slice_temp = nbt(addr=f"flare:temp count_slice_{_id}", datatype=NBTType.String)
 
@@ -700,10 +687,7 @@ class NBTStringMethods:
 
             is_match[:] = 1
             _flare_if(lambda: slice_temp == target_str, lambda: is_match.__iset__(0))
-            ScoreIfMatches(is_match, 0).then(lambda: [
-                dest_score.__iadd__(1),
-                temp_str.__iset__(temp_str[target_len:])
-            ])
+            ScoreIfMatches(is_match, 0).then(lambda: [dest_score.__iadd__(1), temp_str.__iset__(temp_str[target_len:])])
 
             ScoreIfMatches(is_match, 1).then(lambda: temp_str.__iset__(temp_str[1:]))
 
@@ -758,7 +742,7 @@ class NBTStringMethods:
         temp_str = nbt(addr=f"flare:temp rep_str_{_id}", datatype=NBTType.String)
         temp_str[:] = self
 
-        func_name = f"{ctx._current_namespace}:repeat_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("repeat")
 
         with ctx.push_context(func_name):
             dest += temp_str
@@ -801,7 +785,7 @@ class NBTStringMethods:
         is_match = score(0, addr=f"!repl_match_{_id}")
         temp_len = score(addr=f"!repl_tlen_{_id}")
 
-        func_name = f"{ctx._current_namespace}:repl_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("repl")
         slice_temp = nbt(addr=f"flare:temp repl_slice_{_id}", datatype=NBTType.String)
         char_temp = nbt(addr=f"flare:temp repl_char_{_id}", datatype=NBTType.String)
 
@@ -812,17 +796,11 @@ class NBTStringMethods:
             _flare_if(lambda: slice_temp == old_str, lambda: is_match.__iset__(0))
 
             (ScoreIfMatches(limit, 0) & ScoreIfMatches(is_match, 0)).then(lambda: is_match.__iset__(1))
-            ScoreIfMatches(is_match, 0).then(lambda: [
-                limit.__isub__(1),
-                dest.__iadd__(new_str),
-                temp_str.__iset__(temp_str[old_len:])
-            ])
+            ScoreIfMatches(is_match, 0).then(
+                lambda: [limit.__isub__(1), dest.__iadd__(new_str), temp_str.__iset__(temp_str[old_len:])])
 
-            ScoreIfMatches(is_match, 1).then(lambda: [
-                char_temp.__iset__(temp_str[0]),
-                dest.__iadd__(char_temp),
-                temp_str.__iset__(temp_str[1:])
-            ])
+            ScoreIfMatches(is_match, 1).then(
+                lambda: [char_temp.__iset__(temp_str[0]), dest.__iadd__(char_temp), temp_str.__iset__(temp_str[1:])])
 
             temp_len[:] = len(temp_str)
             ScoreIfMatches(temp_len, (1, inf)).then(lambda: _runcmd(f"function {func_name}"))
@@ -855,7 +833,7 @@ class NBTStringMethods:
         is_match = score(0, addr=f"!lstrip_match_{_id}")
         temp_len = score(addr=f"!lstrip_tlen_{_id}")
 
-        func_name = f"{ctx._current_namespace}:lstrip_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("lstrip")
 
         with ctx.push_context(func_name):
             char_temp[:] = temp_str[0]
@@ -904,7 +882,7 @@ class NBTStringMethods:
 
         item_temp = nbt(addr=f"flare:temp join_item_{_id}", datatype=NBTType.String)
 
-        func_name = f"{ctx._current_namespace}:join_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("join")
 
         with ctx.push_context(func_name):
             item_temp[:] = seq_nbt[0]
@@ -1092,7 +1070,7 @@ class NBTStringMethods:
         temp_len[:] = len(temp_str)
         ScoreIfMatches(temp_len, 0).then(lambda: is_match.__iset__(0))
 
-        func_name = f"{ctx._current_namespace}:isalpha_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("isalpha")
 
         with ctx.push_context(func_name):
             char_temp[:] = temp_str[0]
@@ -1134,7 +1112,7 @@ class NBTStringMethods:
         temp_len[:] = len(temp_str)
         ScoreIfMatches(temp_len, 0).then(lambda: is_match.__iset__(0))
 
-        func_name = f"{ctx._current_namespace}:islower_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("islower")
 
         with ctx.push_context(func_name):
             char_temp[:] = temp_str[0]
@@ -1176,7 +1154,7 @@ class NBTStringMethods:
         temp_len[:] = len(temp_str)
         ScoreIfMatches(temp_len, 0).then(lambda: is_match.__iset__(0))
 
-        func_name = f"{ctx._current_namespace}:isupper_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("isupper")
 
         with ctx.push_context(func_name):
             char_temp[:] = temp_str[0]
@@ -1218,7 +1196,7 @@ class NBTStringMethods:
         temp_len[:] = len(temp_str)
         ScoreIfMatches(temp_len, 0).then(lambda: is_match.__iset__(0))
 
-        func_name = f"{ctx._current_namespace}:isnumeric_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("isnumeric")
 
         with ctx.push_context(func_name):
             char_temp[:] = temp_str[0]
@@ -1260,7 +1238,7 @@ class NBTStringMethods:
         temp_len[:] = len(temp_str)
         ScoreIfMatches(temp_len, 0).then(lambda: is_match.__iset__(0))
 
-        func_name = f"{ctx._current_namespace}:isdigit_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("isdigit")
 
         with ctx.push_context(func_name):
             char_temp[:] = temp_str[0]
@@ -1302,7 +1280,7 @@ class NBTStringMethods:
         temp_len[:] = len(temp_str)
         ScoreIfMatches(temp_len, 0).then(lambda: is_match.__iset__(0))
 
-        func_name = f"{ctx._current_namespace}:isdecimal_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("isdecimal")
 
         with ctx.push_context(func_name):
             char_temp[:] = temp_str[0]
@@ -1344,7 +1322,7 @@ class NBTStringMethods:
         temp_len[:] = len(temp_str)
         ScoreIfMatches(temp_len, 0).then(lambda: is_match.__iset__(0))
 
-        func_name = f"{ctx._current_namespace}:isalnum_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("isalnum")
 
         with ctx.push_context(func_name):
             char_temp[:] = temp_str[0]
@@ -1387,7 +1365,7 @@ class NBTStringMethods:
         temp_len[:] = len(temp_str)
         ScoreIfMatches(temp_len, 0).then(lambda: is_match.__iset__(0))
 
-        func_name = f"{ctx._current_namespace}:isspace_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("isspace")
 
         with ctx.push_context(func_name):
             char_temp[:] = temp_str[0]
@@ -1435,14 +1413,13 @@ class NBTStringMethods:
         char_temp = nbt(addr=f"flare:temp ascii_char_{_id}", datatype=NBTType.String)
         temp_len = score(addr=f"!ascii_tlen_{_id}")
 
-        func_name = f"{ctx._current_namespace}:to_ascii_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("to_ascii")
 
         with ctx.push_context(func_name):
             char_temp[:] = temp_str[0]
 
             for c in string.printable:
-                _flare_if(lambda: char_temp == c,
-                          lambda: dest.append(ord(c)))
+                _flare_if(lambda: char_temp == c, lambda: dest.append(ord(c)))
 
             temp_str[:] = temp_str[1:]
 
@@ -1474,7 +1451,7 @@ class NBTStringMethods:
 
         temp_len = score(addr=f"!from_ascii_tlen_{_id}")
 
-        func_name = f"{ctx._current_namespace}:from_ascii_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("from_ascii")
 
         with ctx.push_context(func_name):
             byte_val = score(addr=f"!from_ascii_byte_{_id}")

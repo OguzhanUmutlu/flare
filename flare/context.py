@@ -93,6 +93,20 @@ def next_func_id():
     return got
 
 
+def get_generated_func_name(prefix: str) -> str:
+    global current_file, _current_namespace
+
+    if current_file and ":" in current_file:
+        ns, path = current_file.split(":", 1)
+        if "/" in path:
+            dir_path, filename = path.rsplit("/", 1)
+            return f"{ns}:{dir_path}/_{filename}/{prefix}_{next_func_id()}"
+        else:
+            return f"{ns}:_{path}/{prefix}_{next_func_id()}"
+    else:
+        return f"{_current_namespace}:{prefix}_{next_func_id()}"
+
+
 def reset_context():
     global current_file, _current_namespace, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, system_command_validation, minecraft_version, nbt_schema_missing, _in_recursive_context, _logical_func, memoized_math
     files.clear()

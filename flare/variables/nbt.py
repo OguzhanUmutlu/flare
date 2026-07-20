@@ -733,11 +733,11 @@ class nbt(FlareValue, NBTStringMethods):
             temp_var = nbt(addr=f"{addr(temp_arr)}[0]", datatype=elem_type)
             temp_arr[:] = self
 
-        func_name = f"{ctx._current_namespace}:for_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("for")
 
         with ctx.push_context(func_name):
             if has_break or has_continue:
-                func_body = f"{ctx._current_namespace}:for_body_{ctx.next_func_id()}"
+                func_body = ctx.get_generated_func_name("for_body")
                 with ctx.push_context(func_body):
                     body_func(temp_var)
 
@@ -801,7 +801,7 @@ class nbt(FlareValue, NBTStringMethods):
 
         if orelse_func:
             if has_break:
-                orelse_name = f"{ctx._current_namespace}:for_else_{ctx.next_func_id()}"
+                orelse_name = ctx.get_generated_func_name("for_else")
                 with ctx.push_context(orelse_name):
                     orelse_func()
                 break_score = score(addr="!break")

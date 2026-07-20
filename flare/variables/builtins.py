@@ -16,8 +16,10 @@ class flare_len:
 
 from .core import FlareClassMeta
 
+
 class fail(metaclass=FlareClassMeta):
     pass
+
 
 _FailType = fail
 
@@ -130,7 +132,7 @@ def flare_bin(n):
         n_score[:] = n
 
         dest[:] = ""
-        func_name = f"{ctx._current_namespace}:bin_{ctx.next_func_id()}"
+        func_name = ctx.get_generated_func_name("bin")
 
         char_temp = nbt(addr=f"flare:temp bin_char_{_id}", datatype=NBTType.String)
 
