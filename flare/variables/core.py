@@ -20,9 +20,7 @@ def lazify(temp="!temp", datatype=None, self=True, copy=None):
 
             if self is True:
                 if not args:
-                    raise TypeError(
-                        f"{func.__name__}() missing 1 required positional argument: 'self'"
-                    )
+                    raise TypeError(f"{func.__name__}() missing 1 required positional argument: 'self'")
                 obj_or_arg = args[0]
 
                 def eval_func(dest, **eval_kwargs):
@@ -46,10 +44,7 @@ def lazify(temp="!temp", datatype=None, self=True, copy=None):
                     if copy is not None:
                         return copy(obj_or_arg, varid)
                     if hasattr(obj_or_arg, "__icopy__"):
-                        if (
-                                datatype is None
-                                or getattr(obj_or_arg, "_type", None) == datatype
-                        ):
+                        if (datatype is None or getattr(obj_or_arg, "_type", None) == datatype):
                             return obj_or_arg.__icopy__(varid)
                     t = alloc_temp()
                     if hasattr(t, "_parse_addr"):
@@ -58,13 +53,8 @@ def lazify(temp="!temp", datatype=None, self=True, copy=None):
                         t._addr = f"storage {ctx._current_namespace}:vars {varid}"
                     return t
 
-                return obj_or_arg._lazify(
-                    eval_func,
-                    alloc_temp,
-                    make_copy,
-                    op_name=func.__name__,
-                    op_args=(args, kwargs),
-                )
+                return obj_or_arg._lazify(eval_func, alloc_temp, make_copy, op_name=func.__name__,
+                    op_args=(args, kwargs), )
             else:
                 def eval_func(dest, **eval_kwargs):
                     merged_kwargs = {**kwargs, **eval_kwargs}
@@ -77,13 +67,9 @@ def lazify(temp="!temp", datatype=None, self=True, copy=None):
                         dest = temp()
                     else:
                         if isinstance(self, type) and issubclass(self, FlareValue):
-                            dest = self(
-                                addr=f"storage flare:temp {temp}_{ctx.next_temp_id()}"
-                            )
+                            dest = self(addr=f"storage flare:temp {temp}_{ctx.next_temp_id()}")
                         else:
-                            dest = nbt(
-                                addr=f"storage flare:temp {temp}_{ctx.next_temp_id()}"
-                            )
+                            dest = nbt(addr=f"storage flare:temp {temp}_{ctx.next_temp_id()}")
                     if datatype is not None and hasattr(dest, "_type"):
                         dest._type = datatype
                     return dest
@@ -98,14 +84,7 @@ def lazify(temp="!temp", datatype=None, self=True, copy=None):
                         t._addr = f"storage {ctx._current_namespace}:vars {varid}"
                     return t
 
-                return LazyOp(
-                    None,
-                    eval_func,
-                    alloc_temp,
-                    make_copy,
-                    op_name=func.__name__,
-                    op_args=(args, kwargs),
-                )
+                return LazyOp(None, eval_func, alloc_temp, make_copy, op_name=func.__name__, op_args=(args, kwargs), )
 
         return wrapper
 
@@ -125,32 +104,19 @@ class FlareValue(ABC, metaclass=FlareClassMeta):
         raise NotImplementedError()
 
     def __setitem__(self, key, value):
-        if (
-                isinstance(key, slice)
-                and key.start is None
-                and key.stop is None
-                and key.step is None
-        ):
+        if (isinstance(key, slice) and key.start is None and key.stop is None and key.step is None):
             self.__iset__(value)
             return
-        raise TypeError(
-            f"'{type(self).__name__}' object does not support item assignment"
-        )
+        raise TypeError(f"'{type(self).__name__}' object does not support item assignment")
 
     def _alloc_temp(self, prefix="!temp"):
-        raise NotImplementedError(
-            f"'{type(self).__name__}' does not implement _alloc_temp()"
-        )
+        raise NotImplementedError(f"'{type(self).__name__}' does not implement _alloc_temp()")
 
     def _compile_into(self, dest):
         raise NotImplementedError()
 
-    def _lazify(
-            self, eval_fn, alloc_temp_fn=None, make_copy_fn=None, op_name=None, op_args=None
-    ):
-        return LazyOp(
-            self, eval_fn, alloc_temp_fn, make_copy_fn, op_name=op_name, op_args=op_args
-        )
+    def _lazify(self, eval_fn, alloc_temp_fn=None, make_copy_fn=None, op_name=None, op_args=None):
+        return LazyOp(self, eval_fn, alloc_temp_fn, make_copy_fn, op_name=op_name, op_args=op_args)
 
     def _best_leaf(self):
         return self._alloc_temp()
@@ -278,8 +244,7 @@ class FlareValue(ABC, metaclass=FlareClassMeta):
 
     def __bool__(self):
         raise TypeError(
-            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?"
-        )
+            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
 
     def __implicit__(self, target_types):
         raise NotImplementedError()
@@ -409,8 +374,7 @@ class BinaryOp(FlareValue):
 
     def __bool__(self):
         raise TypeError(
-            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?"
-        )
+            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
 
 
 class UnaryOp(FlareValue):
@@ -504,8 +468,7 @@ class UnaryOp(FlareValue):
 
     def __bool__(self):
         raise TypeError(
-            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?"
-        )
+            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
 
 
 class MathOp(FlareValue):
@@ -543,15 +506,7 @@ class LazyOp(FlareValue):
         leaf = self._best_leaf()
         return getattr(leaf, "is_sequence", lambda: False)()
 
-    def __init__(
-            self,
-            operand,
-            eval_fn,
-            alloc_temp_fn=None,
-            make_copy_fn=None,
-            op_name=None,
-            op_args=None,
-    ):
+    def __init__(self, operand, eval_fn, alloc_temp_fn=None, make_copy_fn=None, op_name=None, op_args=None, ):
         self.operand = operand
         self.eval_fn = eval_fn
         self.alloc_temp_fn = alloc_temp_fn
@@ -596,9 +551,7 @@ class LazyOp(FlareValue):
 
 class UnsupportedOperandError(Exception):
     def __init__(self, a, op, b):
-        super().__init__(
-            f"Unsupported operand type(s) for {op}: '{type(a).__name__}' and '{type(b).__name__}'"
-        )
+        super().__init__(f"Unsupported operand type(s) for {op}: '{type(a).__name__}' and '{type(b).__name__}'")
 
 
 def addr(var):
@@ -607,6 +560,9 @@ def addr(var):
 
 class macro:
     _is_macro_param = True
+
+    def __str__(self):
+        return f"$({self.name})"
 
     def __init__(self, name_or_value=None, name: str = None):
         from .nbt import nbt
@@ -656,19 +612,14 @@ class macro:
         return f"macro({self.name!r})"
 
     def _bad_op(self, *_):
-        raise TypeError(
-            f"Macro '{self.name}' cannot be used in arithmetic expressions. "
-            "Use it inside commands or NBT string assignments."
-        )
+        raise TypeError(f"Macro '{self.name}' cannot be used in arithmetic expressions. "
+                        "Use it inside commands or NBT string assignments.")
 
     __add__ = __radd__ = __sub__ = __rsub__ = __mul__ = __rmul__ = _bad_op
 
 
 def is_lazy(obj):
-    return (
-            hasattr(type(obj), "_compile_into")
-            and getattr(type(obj), "_compile_into") is not FlareValue._compile_into
-    )
+    return (hasattr(type(obj), "_compile_into") and getattr(type(obj), "_compile_into") is not FlareValue._compile_into)
 
 
 T = TypeVar("T")

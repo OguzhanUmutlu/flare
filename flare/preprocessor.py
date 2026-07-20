@@ -15,9 +15,9 @@ class CallGraphAnalyzer(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         is_exported = any(
-            isinstance(dec, ast.Name) and dec.id == "export" or isinstance(dec, ast.Call) and getattr(dec.func, "id",
-                                                                                                      "") == "export"
-            for dec in node.decorator_list)
+            isinstance(dec, ast.Name) and dec.id in ("export", "macro", "event", "tick", "load") or isinstance(dec,
+                                                                                                               ast.Call) and getattr(
+                dec.func, "id", "") in ("export", "macro", "event", "tick", "load") for dec in node.decorator_list)
         is_nostack = any(
             isinstance(dec, ast.Name) and dec.id == "nostack" or isinstance(dec, ast.Call) and getattr(dec.func, "id",
                                                                                                        "") == "nostack"
@@ -69,8 +69,9 @@ class FlareTransformer(ast.NodeTransformer):
 
     def visit_FunctionDef(self, node):
         is_exported = any(
-            isinstance(dec, ast.Name) and dec.id in ("export", "macro") or isinstance(dec, ast.Call) and getattr(
-                dec.func, "id", "") in ("export", "macro") for dec in node.decorator_list)
+            isinstance(dec, ast.Name) and dec.id in ("export", "macro", "event", "tick", "load") or isinstance(dec,
+                                                                                                               ast.Call) and getattr(
+                dec.func, "id", "") in ("export", "macro", "event", "tick", "load") for dec in node.decorator_list)
 
         is_generated = node.name.startswith("__flare_")
         prev_in_flare = self.in_flare_func
@@ -92,12 +93,7 @@ class FlareTransformer(ast.NodeTransformer):
                 value=ast.Call(func=ast.Name(id="_flare_exit_scope", ctx=ast.Load()), args=[], keywords=[]))
             ast.copy_location(exit_stmt, node)
 
-            try_node = ast.Try(
-                body=node.body,
-                handlers=[],
-                orelse=[],
-                finalbody=[exit_stmt]
-            )
+            try_node = ast.Try(body=node.body, handlers=[], orelse=[], finalbody=[exit_stmt])
             ast.copy_location(try_node, node)
 
             node.body = [enter_stmt, try_node]
@@ -106,11 +102,7 @@ class FlareTransformer(ast.NodeTransformer):
 
     def visit_Expr(self, node):
         self.generic_visit(node)
-        wrapper = ast.Call(
-            func=ast.Name(id="_flare_alone", ctx=ast.Load()),
-            args=[node.value],
-            keywords=[]
-        )
+        wrapper = ast.Call(func=ast.Name(id="_flare_alone", ctx=ast.Load()), args=[node.value], keywords=[])
         ast.copy_location(wrapper, node.value)
         node.value = wrapper
         return node
@@ -311,19 +303,13 @@ class FlareTransformer(ast.NodeTransformer):
         self.generic_visit(node)
         if len(node.ops) == 1:
             if isinstance(node.ops[0], ast.In):
-                call_expr = ast.Call(
-                    func=ast.Name(id="_flare_in", ctx=ast.Load()),
-                    args=[node.left, node.comparators[0]],
-                    keywords=[]
-                )
+                call_expr = ast.Call(func=ast.Name(id="_flare_in", ctx=ast.Load()),
+                                     args=[node.left, node.comparators[0]], keywords=[])
                 ast.copy_location(call_expr, node)
                 return call_expr
             elif isinstance(node.ops[0], ast.NotIn):
-                call_expr = ast.Call(
-                    func=ast.Name(id="_flare_notin", ctx=ast.Load()),
-                    args=[node.left, node.comparators[0]],
-                    keywords=[]
-                )
+                call_expr = ast.Call(func=ast.Name(id="_flare_notin", ctx=ast.Load()),
+                                     args=[node.left, node.comparators[0]], keywords=[])
                 ast.copy_location(call_expr, node)
                 return call_expr
         return node
@@ -331,11 +317,7 @@ class FlareTransformer(ast.NodeTransformer):
     def visit_UnaryOp(self, node):
         self.generic_visit(node)
         if isinstance(node.op, ast.Not):
-            call_expr = ast.Call(
-                func=ast.Name(id="_flare_not", ctx=ast.Load()),
-                args=[node.operand],
-                keywords=[]
-            )
+            call_expr = ast.Call(func=ast.Name(id="_flare_not", ctx=ast.Load()), args=[node.operand], keywords=[])
             ast.copy_location(call_expr, node)
             return call_expr
         return node
@@ -356,11 +338,7 @@ class FlareTransformer(ast.NodeTransformer):
             ast.copy_location(lam, val)
             args.append(lam)
 
-        call_expr = ast.Call(
-            func=ast.Name(id=func_name, ctx=ast.Load()),
-            args=args,
-            keywords=[]
-        )
+        call_expr = ast.Call(func=ast.Name(id=func_name, ctx=ast.Load()), args=args, keywords=[])
         ast.copy_location(call_expr, node)
         return call_expr
 
@@ -376,8 +354,7 @@ class FlareTransformer(ast.NodeTransformer):
                                      args=[ast.Constant(value=var_name), node.value,
                                            ast.Call(func=ast.Name(id="locals", ctx=ast.Load()), args=[], keywords=[]),
                                            ast.Call(func=ast.Name(id="globals", ctx=ast.Load()), args=[], keywords=[]),
-                                           ast.Constant(value=is_local_val)],
-                                     keywords=[])
+                                           ast.Constant(value=is_local_val)], keywords=[])
 
                 new_assign = ast.Assign(targets=[ast.Name(id=var_name, ctx=ast.Store())], value=call_expr)
                 ast.copy_location(new_assign, node)
@@ -395,23 +372,16 @@ class FlareTransformer(ast.NodeTransformer):
                 for i, elt in enumerate(node.targets[0].elts):
                     if isinstance(elt, ast.Name):
                         var_name = elt.id
-                        subscript = ast.Subscript(
-                            value=ast.Name(id=tmp_name, ctx=ast.Load()),
-                            slice=ast.Constant(value=i),
-                            ctx=ast.Load()
-                        )
+                        subscript = ast.Subscript(value=ast.Name(id=tmp_name, ctx=ast.Load()),
+                                                  slice=ast.Constant(value=i), ctx=ast.Load())
 
-                        call_expr = ast.Call(
-                            func=ast.Name(id="_flare_assign", ctx=ast.Load()),
-                            args=[
-                                ast.Constant(value=var_name),
-                                subscript,
-                                ast.Call(func=ast.Name(id="locals", ctx=ast.Load()), args=[], keywords=[]),
-                                ast.Call(func=ast.Name(id="globals", ctx=ast.Load()), args=[], keywords=[]),
-                                ast.Constant(value=is_local_val)
-                            ],
-                            keywords=[]
-                        )
+                        call_expr = ast.Call(func=ast.Name(id="_flare_assign", ctx=ast.Load()),
+                                             args=[ast.Constant(value=var_name), subscript,
+                                                   ast.Call(func=ast.Name(id="locals", ctx=ast.Load()), args=[],
+                                                            keywords=[]),
+                                                   ast.Call(func=ast.Name(id="globals", ctx=ast.Load()), args=[],
+                                                            keywords=[]), ast.Constant(value=is_local_val)],
+                                             keywords=[])
 
                         new_assign = ast.Assign(targets=[ast.Name(id=var_name, ctx=ast.Store())], value=call_expr)
                         ast.copy_location(new_assign, node)
@@ -446,9 +416,7 @@ class FlareTransformer(ast.NodeTransformer):
             arg = node.args[0]
             if not isinstance(arg, ast.Lambda):
                 node.args[0] = ast.Lambda(
-                    args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
-                    body=arg
-                )
+                    args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]), body=arg)
                 ast.copy_location(node.args[0], arg)
         return node
 
@@ -461,15 +429,12 @@ class FlareTransformer(ast.NodeTransformer):
         value = node.value if node.value is not None else ast.Constant(value=None)
 
         lambda_node = ast.Lambda(
-            args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
-            body=value
-        )
+            args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]), body=value)
 
         if_node = ast.If(test=ast.Compare(
             left=ast.Attribute(value=ast.Name(id="ctx", ctx=ast.Load()), attr="current_file", ctx=ast.Load()),
-            ops=[ast.IsNot()], comparators=[ast.Constant(value=None)]), body=[
-            ast.Expr(
-                value=ast.Call(func=ast.Name(id="_flare_return", ctx=ast.Load()), args=[lambda_node], keywords=[])),
+            ops=[ast.IsNot()], comparators=[ast.Constant(value=None)]), body=[ast.Expr(
+            value=ast.Call(func=ast.Name(id="_flare_return", ctx=ast.Load()), args=[lambda_node], keywords=[])),
             ast.Raise(exc=ast.Call(
                 func=ast.Attribute(value=ast.Name(id="ctx", ctx=ast.Load()), attr="FlareReturnException",
                                    ctx=ast.Load()), args=[], keywords=[]), cause=None)],
@@ -491,22 +456,17 @@ class FlareTransformer(ast.NodeTransformer):
             assigns_outer.append(ast.Assign(targets=[ast.Name(id=tmp_name, ctx=ast.Store())], value=item.context_expr))
 
             if item.optional_vars:
-                assigns_inner.append(ast.Assign(
-                    targets=[item.optional_vars],
-                    value=ast.Call(
-                        func=ast.Name(id="_flare_as_var", ctx=ast.Load()),
-                        args=[ast.Name(id=tmp_name, ctx=ast.Load())],
-                        keywords=[]
-                    )
-                ))
+                assigns_inner.append(ast.Assign(targets=[item.optional_vars],
+                                                value=ast.Call(func=ast.Name(id="_flare_as_var", ctx=ast.Load()),
+                                                               args=[ast.Name(id=tmp_name, ctx=ast.Load())],
+                                                               keywords=[])))
 
             call_args.append(ast.Name(id=tmp_name, ctx=ast.Load()))
 
         body_func = ast.FunctionDef(name=name_body,
                                     args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[],
                                                        defaults=[]),
-                                    body=assigns_inner + (node.body if node.body else [ast.Pass()]),
-                                    decorator_list=[])
+                                    body=assigns_inner + (node.body if node.body else [ast.Pass()]), decorator_list=[])
         ast.copy_location(body_func, node)
 
         call_args.append(ast.Name(id=name_body, ctx=ast.Load()))
@@ -992,14 +952,13 @@ def preprocess_minecraft_commands(source: str) -> str:
                                     num_str = t2.string
                                     k += 1
                                 elif t2.string in ("+", "-"):
-                                    if k + 1 < len(seq) and seq[k + 1].start == t2.end and \
-                                            seq[k + 1].type in (tokenize.NUMBER, tokenize.NAME):
+                                    if k + 1 < len(seq) and seq[k + 1].start == t2.end and seq[k + 1].type in (
+                                            tokenize.NUMBER, tokenize.NAME):
                                         num_str = t2.string + seq[k + 1].string
                                         k += 2
                                 elif t2.string == "$":
-                                    if k + 3 < len(seq) and seq[k + 1].start == t2.end and \
-                                            seq[k + 1].string == "(" and seq[
-                                        k + 2].type == tokenize.NAME and seq[k + 3].string == ")":
+                                    if k + 3 < len(seq) and seq[k + 1].start == t2.end and seq[k + 1].string == "(" and \
+                                            seq[k + 2].type == tokenize.NAME and seq[k + 3].string == ")":
                                         num_str = f"$({seq[k + 2].string})"
                                         k += 4
                         modifiers += mod
@@ -1009,16 +968,15 @@ def preprocess_minecraft_commands(source: str) -> str:
                         coords.append(t.string)
                         k += 1
                     elif t.string in ("+", "-"):
-                        if k + 1 < len(seq) and seq[k + 1].start == t.end and \
-                                seq[k + 1].type in (tokenize.NUMBER, tokenize.NAME):
+                        if k + 1 < len(seq) and seq[k + 1].start == t.end and seq[k + 1].type in (tokenize.NUMBER,
+                                                                                                  tokenize.NAME):
                             modifiers += " "
                             coords.append(t.string + seq[k + 1].string)
                             k += 2
                         else:
                             break
                     elif t.string == "$":
-                        if k + 3 < len(seq) and seq[k + 1].start == t.end and \
-                                seq[k + 1].string == "(" and seq[
+                        if k + 3 < len(seq) and seq[k + 1].start == t.end and seq[k + 1].string == "(" and seq[
                             k + 2].type == tokenize.NAME and seq[k + 3].string == ")":
                             modifiers += " "
                             coords.append(f"$({seq[k + 2].string})")

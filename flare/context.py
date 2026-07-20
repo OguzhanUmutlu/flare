@@ -82,6 +82,7 @@ def next_temp_id():
 
 def next_temp_score(prefix: str = "t", **kwargs):
     from .variables.score import score
+
     return score(addr=f"!{prefix}_{next_temp_id()}", **kwargs)
 
 
@@ -213,7 +214,7 @@ def _optimize_execute(cmd: str) -> str:
             elif not in_quote:
                 in_quote = cmd[i]
             result.append(cmd[i])
-        elif not in_quote and cmd[i:i + 13] == " run execute ":
+        elif not in_quote and cmd[i: i + 13] == " run execute ":
             result.append(" ")
             i += 12
         else:
@@ -305,7 +306,7 @@ def _check_entity_nbt_transfer(addr1: str, addr2: str) -> bool:
                 elif c == "]":
                     bracket_count -= 1
                     if bracket_count == 0:
-                        return s[:i + 1]
+                        return s[: i + 1]
         return s.split(" ")[0]
 
     sel1 = extract_selector(addr1)
@@ -316,6 +317,7 @@ def _check_entity_nbt_transfer(addr1: str, addr2: str) -> bool:
 
 def _emit_data_modify_from(target_addr: str, action: str, source_addr: str) -> str:
     if _check_entity_nbt_transfer(target_addr, source_addr):
+
         def extract_selector(addr: str) -> str:
             s = addr[len("entity "):]
             if s.startswith("@") and len(s) > 2 and s[2] == "[":
@@ -326,7 +328,7 @@ def _emit_data_modify_from(target_addr: str, action: str, source_addr: str) -> s
                     elif c == "]":
                         bracket_count -= 1
                         if bracket_count == 0:
-                            return s[:i + 1]
+                            return s[: i + 1]
             return s.split(" ")[0]
 
         sel = extract_selector(target_addr)
@@ -387,14 +389,13 @@ from .print import style, hover_event, click_event, Color
 
 
 def _flare_print(*args, sep: str = " ", color: str | int | Color | None = None, font: str | None = None,
-                 bold: bool | None = None,
-                 italic: bool | None = None, underlined: bool | None = None, strikethrough: bool | None = None,
-                 obfuscate: bool | None = None, shadow_color: str | int | Color | None = None,
-                 insertion: str | None = None, click_event: click_event | dict | None = None,
-                 hover_event: hover_event | dict | None = None):
+                 bold: bool | None = None, italic: bool | None = None, underlined: bool | None = None,
+                 strikethrough: bool | None = None, obfuscate: bool | None = None,
+                 shadow_color: str | int | Color | None = None, insertion: str | None = None,
+                 click_event: click_event | dict | None = None, hover_event: hover_event | dict | None = None):
     components = style(*args, color=color, font=font, bold=bold, italic=italic, underlined=underlined,
-                       strikethrough=strikethrough, obfuscate=obfuscate, shadow_color=shadow_color,
-                       insertion=insertion, click_event=click_event, hover_event=hover_event, sep=sep).__print__()
+                       strikethrough=strikethrough, obfuscate=obfuscate, shadow_color=shadow_color, insertion=insertion,
+                       click_event=click_event, hover_event=hover_event, sep=sep).__print__()
     while isinstance(components, list) and len(components) == 1:
         components = components[0]
 
@@ -558,42 +559,64 @@ def export(func=None, *, name=None, append=False, returns=None):
             global _temp_id
             from .variables.nbt import nbt
 
-            bound = sig.bind(*args, **call_kwargs)
-            bound.apply_defaults()
+            macro_nbt = call_kwargs.pop("macro", None)
 
-            macro_args = {}
-            for arg_name, arg_val in bound.arguments.items():
-                if isinstance(kwargs[arg_name], macro):
-                    macro_args[arg_name] = arg_val
+            if macro_nbt is not None:
+                non_macro_params = [p for p in sig.parameters.values() if not isinstance(kwargs[p.name], macro)]
+                new_sig = sig.replace(parameters=non_macro_params)
+                bound = new_sig.bind(*args, **call_kwargs)
+                bound.apply_defaults()
 
-            self._write_non_macro_args(bound)
+                self._write_non_macro_args(bound)
 
-            if macro_args:
-                all_literal = all(isinstance(v, (int, float, str, bool)) for v in macro_args.values())
-                if all_literal:
-                    json_obj = {k: v for k, v in macro_args.items()}
-                    _runcmd(f"function {func_name} {json.dumps(json_obj)}")
+                if isinstance(macro_nbt, dict):
+                    json_str = json.dumps(macro_nbt)
+                    _runcmd(f"function {func_name} {json_str}")
+                elif isinstance(macro_nbt, nbt):
+                    macro_nbt._check_addr()
+                    parts = [macro_nbt._target_type, macro_nbt._target]
+                    if macro_nbt._path:
+                        parts.append(macro_nbt._path)
+                    with_src = " ".join(parts)
+                    _runcmd(f"function {func_name} with {with_src}")
                 else:
-                    storage_ns = _current_namespace
-                    storage_path = f"{storage_ns}:__flare_macros__"
-                    call_key = f"call_{_temp_id}"
-                    _temp_id += 1
-                    _runcmd(f"data modify storage {storage_path} {call_key} set value {{}}")
-                    for k, v in macro_args.items():
-                        if isinstance(v, (int, float, str, bool)):
-                            val_str = json.dumps(v)
-                            _runcmd(
-                                f"data modify storage {storage_path} {call_key}.{k} set value {val_str}")
-                        else:
-                            try:
-                                temp_arg = nbt(addr=f"storage {storage_path} {call_key}.{k}")
-                                temp_arg.__iset__(v)
-                            except Exception as e:
-                                raise TypeError(
-                                    f"Macro argument '{k}' cannot be initialized from {type(v).__name__}: {str(e)}")
-                    _runcmd(f"function {func_name} with storage {storage_path} {call_key}")
+                    raise TypeError(f"macro= argument must be an nbt value or dict, got {type(macro_nbt).__name__}")
             else:
-                _runcmd(f"function {func_name}")
+                bound = sig.bind(*args, **call_kwargs)
+                bound.apply_defaults()
+
+                macro_args = {}
+                for arg_name, arg_val in bound.arguments.items():
+                    if isinstance(kwargs[arg_name], macro):
+                        macro_args[arg_name] = arg_val
+
+                self._write_non_macro_args(bound)
+
+                if macro_args:
+                    all_literal = all(isinstance(v, (int, float, str, bool)) for v in macro_args.values())
+                    if all_literal:
+                        json_obj = {k: v for k, v in macro_args.items()}
+                        _runcmd(f"function {func_name} {json.dumps(json_obj)}")
+                    else:
+                        storage_ns = _current_namespace
+                        storage_path = f"{storage_ns}:__flare_macros__"
+                        call_key = f"call_{_temp_id}"
+                        _temp_id += 1
+                        _runcmd(f"data modify storage {storage_path} {call_key} set value {{}}")
+                        for k, v in macro_args.items():
+                            if isinstance(v, (int, float, str, bool)):
+                                val_str = json.dumps(v)
+                                _runcmd(f"data modify storage {storage_path} {call_key}.{k} set value {val_str}")
+                            else:
+                                try:
+                                    temp_arg = nbt(addr=f"storage {storage_path} {call_key}.{k}")
+                                    temp_arg.__iset__(v)
+                                except Exception as e:
+                                    raise TypeError(
+                                        f"Macro argument '{k}' cannot be initialized from {type(v).__name__}: {str(e)}")
+                        _runcmd(f"function {func_name} with storage {storage_path} {call_key}")
+                else:
+                    _runcmd(f"function {func_name}")
 
             if is_recursive:
                 for arg_name in bound.arguments.keys():
@@ -762,7 +785,7 @@ def _flare_aug_assign(var_name, op_name, value, _locals, _globals):
         else:
             raise NameError(f"name '{var_name}' is not defined")
 
-    op_map = {"Add": "__iadd__", "Sub": "__isub__", "Mult": "__imul__", "Div": "__itruediv__", "Mod": "__imod__"}
+    op_map = {"Add": "__iadd__", "Sub": "__isub__", "Mult": "__imul__", "Div": "__itruediv__", "Mod": "__imod__", }
     method_name = op_map.get(op_name)
 
     if hasattr(var, method_name):
@@ -840,7 +863,7 @@ def _flare_return(value_fn):
         elif len(added_cmds) == 0 and isinstance(value, int):
             _runcmd(f"return {value}")
             return
-        elif len(added_cmds) == 0 and hasattr(type(value), "__name__") and type(value).__name__ == "score":
+        elif (len(added_cmds) == 0 and hasattr(type(value), "__name__") and type(value).__name__ == "score"):
             value._check_addr()
             _runcmd(f"return run scoreboard players get {addr(value)}")
             return
