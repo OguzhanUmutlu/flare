@@ -216,4 +216,4 @@ random_fruit = flrand.choice(my_list)
 chance = flrand.random()
 ```
 
-> **Note**: For advanced users, `flrand.random(type=MyClass)` provides custom hooks to generate complex random structures via `__random__` and `__rrandom__` dunder methods. See the [Internals](internals.md#__random__-and-__rrandom__--custom-random-generation) guide for details.
+> **Note**: For advanced users, `flrand.random(type=MyClass)` provides custom hooks to generate complex random structures via `__random__` and `__rrandom__` dunder methods. See the [Internals](internals.md#random-and-rrandom-—-custom-random-generation) guide for details.

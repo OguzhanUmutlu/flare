@@ -12,7 +12,6 @@ FLARE_BIN = os.path.join(ROOT_DIR, ".venv", "bin", "flare")
 
 
 def process_markdown_file(filepath):
-    print(f"Processing {os.path.relpath(filepath, ROOT_DIR)}...")
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
@@ -35,6 +34,15 @@ def process_markdown_file(filepath):
             return original_text
 
         if res.returncode != 0:
+            error_output = res.stderr if res.stderr else res.stdout
+            match = re.search(r'File ".*?main\.py", line (\d+)', error_output)
+            if match:
+                line_num = int(match.group(1)) - 2
+                error_msg = error_output.strip().split("\n")[-1]
+                print(f"  -> Error at line {line_num}: {error_msg}")
+            else:
+                error_msg = error_output.strip().split("\n")[-1]
+                print(f"  -> Error: {error_msg}")
             return original_text
 
         pack_funcs_dir = os.path.join(dist_dir, "data", "pack", "functions")
@@ -55,7 +63,7 @@ def process_markdown_file(filepath):
         if len(mcfunctions) == 0 or len(mcfunctions) >= 5:
             return original_text
 
-        print(f"  -> Generated {len(mcfunctions)} files! Updating code group.")
+
 
         group = "::: code-group\n\n```python [Flare]\n" + code.strip() + "\n```\n\n"
         for name, mcf_content in mcfunctions:
@@ -86,9 +94,6 @@ def process_markdown_file(filepath):
     if new_content != content:
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(new_content)
-        print(f"Updated {os.path.basename(filepath)} successfully!\n")
-    else:
-        print(f"No changes made to {os.path.basename(filepath)}.\n")
 
 
 print("Starting Docs Code Group Replacer...")
