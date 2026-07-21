@@ -126,8 +126,7 @@ class score(FlareValue):
     @classmethod
     def __class_getitem__(cls, multiplier: int):
         class _PrecisionScore(cls):
-            def __init__(self, value: int | float | None = None, *, addr: str | None = None,
-                    mult: float = multiplier, ):
+            def __init__(self, value: int | float | None = None, *, addr: str | None = None, mult: float = multiplier):
                 super().__init__(value, addr=addr, multiplier=mult)
 
         return _PrecisionScore
@@ -535,9 +534,12 @@ class score(FlareValue):
         if isinstance(other, score):
             if self._addr == other._addr:
                 return self
-            _runcmd(f"scoreboard players operation {addr(temp)} = {addr(other)}")
-            temp *= other._multiplier / self._multiplier
-            _runcmd(f"scoreboard players operation {addr(self)} > {addr(temp)}")
+            if self._multiplier == other._multiplier:
+                _runcmd(f"scoreboard players operation {addr(self)} > {addr(other)}")
+            else:
+                _runcmd(f"scoreboard players operation {addr(temp)} = {addr(other)}")
+                temp *= other._multiplier / self._multiplier
+                _runcmd(f"scoreboard players operation {addr(self)} > {addr(temp)}")
             return self
         return self._try_binary("__imax__", "max", other, (float, int, score, nbt))
 
@@ -560,9 +562,12 @@ class score(FlareValue):
         if isinstance(other, score):
             if self._addr == other._addr:
                 return self
-            _runcmd(f"scoreboard players operation {addr(temp)} = {addr(other)}")
-            temp *= other._multiplier / self._multiplier
-            _runcmd(f"scoreboard players operation {addr(self)} < {addr(temp)}")
+            if self._multiplier == other._multiplier:
+                _runcmd(f"scoreboard players operation {addr(self)} < {addr(other)}")
+            else:
+                _runcmd(f"scoreboard players operation {addr(temp)} = {addr(other)}")
+                temp *= other._multiplier / self._multiplier
+                _runcmd(f"scoreboard players operation {addr(self)} < {addr(temp)}")
             return self
         return self._try_binary("__imin__", "min", other, (float, int, score, nbt))
 

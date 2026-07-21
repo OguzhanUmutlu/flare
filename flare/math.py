@@ -60,11 +60,8 @@ def _dispatch_eval(name, dest, *args):
 
             out_var_addr = f"!{memo_key}_out {vars_obj}"
 
-            ctx.memoized_math[memo_key] = {
-                "in_vars": in_vars,
-                "out_addr": out_var_addr,
-                "func_path": f"__flare_stdlib__:__flare_math_{memo_key}"
-            }
+            ctx.memoized_math[memo_key] = {"in_vars": in_vars, "out_addr": out_var_addr,
+                                           "func_path": f"__flare_stdlib__:__flare_math_{memo_key}"}
 
             with push_context(f"__flare_stdlib__:__flare_math_{memo_key}"):
                 out_var = _clone_var(in_vars[0], out_var_addr)
@@ -119,12 +116,18 @@ def min_(*args, **kwargs):
         if not any(hasattr(x, "__imin__") for x in search_args):
             return _orig["min"](*args, **kwargs)
 
-    res = next((x for x in search_args if hasattr(x, "__imin__")), None)
-    res = res.__icopy__(f"!min_{next_temp_id()}")
-    res[:] = search_args[0]
-    for x in search_args[1:]:
-        res.__imin__(x)
-    return res
+    var = next((x for x in search_args if hasattr(x, "__imin__")), None)
+
+    def eval_min(dest, **_):
+        dest[:] = search_args[0]
+        for x in search_args[1:]:
+            dest.__imin__(x)
+        return dest
+
+    def alloc_temp():
+        return var._best_leaf()._create_var(f"!min_{next_temp_id()}")
+
+    return var._lazify(eval_min, alloc_temp, op_name="min", op_args=(args, kwargs))
 
 
 def max_(*args, **kwargs):
@@ -138,11 +141,17 @@ def max_(*args, **kwargs):
             return _orig["max"](*args, **kwargs)
 
     var = next((x for x in search_args if isinstance(x, FlareValue)), None)
-    res = var.__icopy__(f"!max_{next_temp_id()}")
-    res[:] = search_args[0]
-    for x in search_args[1:]:
-        res.__imax__(x)
-    return res
+
+    def eval_max(dest, **_):
+        dest[:] = search_args[0]
+        for x in search_args[1:]:
+            dest.__imax__(x)
+        return dest
+
+    def alloc_temp():
+        return var._best_leaf()._create_var(f"!max_{next_temp_id()}")
+
+    return var._lazify(eval_max, alloc_temp, op_name="max", op_args=(args, kwargs))
 
 
 def floor(x): return _dispatch("floor", x)

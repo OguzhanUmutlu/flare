@@ -54,7 +54,7 @@ def lazify(temp="!temp", datatype=None, self=True, copy=None):
                     return t
 
                 return obj_or_arg._lazify(eval_func, alloc_temp, make_copy, op_name=func.__name__,
-                    op_args=(args, kwargs), )
+                                          op_args=(args, kwargs))
             else:
                 def eval_func(dest, **eval_kwargs):
                     merged_kwargs = {**kwargs, **eval_kwargs}
