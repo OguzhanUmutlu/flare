@@ -73,6 +73,29 @@ def custom_tick():
     pass
 ```
 
+### Combining `@tag` and `@export`
+
+The `@tag` decorator is fully compatible with the `@export` decorator, and the order in which they are applied does not matter. The tag will automatically use the correct exported function name, even if you specify a custom name in `@export`:
+
+```python
+from flare import *
+namespace("pack")
+
+# Order 1:
+@export
+@tag("test")
+def test():
+    pass
+
+# Order 2 (with custom name):
+@tag("test2")
+@export(name="custom")
+def test2():
+    pass
+```
+
+In the example above, `#pack:test2` correctly refers to the function `pack:custom`.
+
 ### Overriding Vanilla Tags
 
 You can override vanilla tags by prepending `minecraft:` to the `tag_name` and setting `"replace": True`.

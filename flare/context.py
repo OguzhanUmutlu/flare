@@ -57,6 +57,7 @@ has_returns = {}
 return_types = {}
 
 _pending_exports = []
+_pending_tags = []
 
 tick_funcs = set()
 load_funcs = set()
@@ -132,9 +133,36 @@ def reset_context():
     memoized_math.clear()
     _regex_cache.clear()
     _pending_exports.clear()
+    _pending_tags.clear()
 
 
 def evaluate_pending_exports():
+    for func, tag_name, replace in _pending_tags:
+        if hasattr(func, "_flare_proxy"):
+            proxy = func._flare_proxy
+        else:
+            proxy = export(func)
+
+        func_name = str(proxy)
+        if ":" in tag_name:
+            ns, path = tag_name.split(":", 1)
+            key = f"{ns}:tags/functions/{path}.json"
+        else:
+            key = f"{_current_namespace}:tags/functions/{tag_name}.json"
+
+        if key in json_files:
+            existing = json_files[key]
+            if "values" not in existing:
+                existing["values"] = []
+            if func_name not in existing["values"]:
+                existing["values"].append(func_name)
+            if replace:
+                existing["replace"] = True
+        else:
+            json_files[key] = {"replace": replace, "values": [func_name]}
+
+    _pending_tags.clear()
+
     while _pending_exports:
         eval_fn = _pending_exports.pop(0)
         eval_fn()
@@ -704,32 +732,35 @@ def export(func=None, *, name=None, append=False, returns=None):
 
     _pending_exports.append(_evaluate)
 
+    if func is not None:
+        func._flare_proxy = proxy
+
     return proxy
 
 
 def tag(name: str, replace: bool = False):
     def wrapper(func):
-        if not (hasattr(func, "__name__") and hasattr(func, "_write_non_macro_args")):
-            func = export(func)
+        if func.__class__.__name__ == "ProxyFunction":
+            func_name = str(func)
 
-        func_name = str(func)
+            if ":" in name:
+                ns, path = name.split(":", 1)
+                key = f"{ns}:tags/functions/{path}.json"
+            else:
+                key = f"{_current_namespace}:tags/functions/{name}.json"
 
-        if ":" in name:
-            ns, path = name.split(":", 1)
-            key = f"{ns}:tags/functions/{path}.json"
+            if key in json_files:
+                existing = json_files[key]
+                if "values" not in existing:
+                    existing["values"] = []
+                if func_name not in existing["values"]:
+                    existing["values"].append(func_name)
+                if replace:
+                    existing["replace"] = True
+            else:
+                json_files[key] = {"replace": replace, "values": [func_name]}
         else:
-            key = f"{_current_namespace}:tags/functions/{name}.json"
-
-        if key in json_files:
-            existing = json_files[key]
-            if "values" not in existing:
-                existing["values"] = []
-            if func_name not in existing["values"]:
-                existing["values"].append(func_name)
-            if replace:
-                existing["replace"] = True
-        else:
-            json_files[key] = {"replace": replace, "values": [func_name]}
+            _pending_tags.append((func, name, replace))
 
         return func
 
