@@ -95,7 +95,9 @@ Predicates are reusable condition checks that are evaluated securely on the serv
 
 When you call `add_predicate()`, it returns a lazy boolean condition (a `predicate(...)` instance). This means you can drop it seamlessly into a standard `if` statement without needing to manually wrap it!
 
-```python
+::: code-group
+
+```python [Flare]
 from flare import *
 
 # Create the predicate
@@ -108,6 +110,12 @@ is_raining = add_predicate("is_raining", {
 if is_raining:
     print("Don't forget your umbrella!")
 ```
+
+```mcfunction [__init__.mcfunction]
+execute if predicate pack:is_raining run tellraw @a "Don't forget your umbrella!"
+```
+
+:::
 
 ## Enchantments
 

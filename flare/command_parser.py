@@ -11,7 +11,7 @@ _op_cache: dict[str, list] = {}
 TOKEN_REGEX = re.compile(r'(?P<FSTRING>f\"(?:\\\\.|[^\\"])*\"|f\'(?:\\\\.|[^\\\'])*\')|'
                          r'(?P<STRING>\"(?:\\\\.|[^\\"])*\"|\'(?:\\\\.|[^\\\'])*\')|'
                          r'(?P<NUMBER>-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:[dDfFsSbBL])?)|'
-                         r'(?P<IDENTIFIER>[a-zA-Z_][a-zA-Z0-9_.\-]*)|'
+                         r'(?P<IDENTIFIER>[a-zA-Z_][a-zA-Z0-9_.\-:/]*)|'
                          r'(?P<SELECTOR>@[parse])|'
                          r'(?P<SYMBOL>[~^@{}\[\]:,=.!#$%&*+\-/<>?|\\`]+)|'
                          r'(?P<WHITESPACE>\s+)')
@@ -26,175 +26,136 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict, dynam
         _macro_substituted = cached[1]
         return cached[0]
 
-    ops = _op_cache.get(command)
-    if ops is None:
-        tokens = []
-        for match in TOKEN_REGEX.finditer(command):
-            tokens.append({"type": match.lastgroup, "value": match.group(str(match.lastgroup))})
-
-        ops = []
-        bracket_depth = 0
-        i = 0
-        while i < len(tokens):
-            tok = tokens[i]
-            if tok["type"] == "FSTRING":
-                ops.append(("fstring", tok["value"]))
-            elif tok["type"] == "WHITESPACE":
-                if bracket_depth == 0:
-                    ops.append(("static", tok["value"]))
-            elif tok["type"] == "STRING":
-                is_key = False
-                for j in range(i + 1, len(tokens)):
-                    if tokens[j]["type"] == "WHITESPACE":
-                        continue
-                    if tokens[j]["type"] == "SYMBOL" and ":" in tokens[j]["value"]:
-                        is_key = True
-                    break
-
-                val = tok["value"]
-                if is_key:
-                    inner = val[1:-1]
-                    if re.match(r'^[a-zA-Z0-9_\-.]+$', inner):
-                        ops.append(("static", inner))
-                    else:
-                        ops.append(("static", val))
-                else:
-                    ops.append(("static", val))
-            elif tok["type"] == "SELECTOR":
-                ops.append(("static", tok["value"].replace(" ", "")))
-            elif tok["type"] == "IDENTIFIER":
-                ident = tok["value"]
-                is_key = False
-                for j in range(i + 1, len(tokens)):
-                    if tokens[j]["type"] == "WHITESPACE":
-                        continue
-                    if tokens[j]["type"] == "SYMBOL" and ":" in tokens[j]["value"]:
-                        is_key = True
-                    break
-
-                if ident in ("true", "false", "null", "run", "execute", "summon", "say", "as", "at", "positioned", "if",
-                             "unless", "store", "result", "success") or is_key:
-                    ops.append(("static", ident))
-                else:
-                    ops.append(("ident", ident))
-            elif tok["type"] == "SYMBOL":
-                val = tok["value"]
-                for char in val:
-                    if char in "{[":
-                        bracket_depth += 1
-                    elif char in "]}":
-                        bracket_depth = max(0, bracket_depth - 1)
-                ops.append(("static", val))
-            else:
-                ops.append(("static", tok["value"]))
-            i += 1
-
-        collapsed_ops = []
-        for op in ops:
-            if op[0] == "static" and collapsed_ops and collapsed_ops[-1][0] == "static":
-                collapsed_ops[-1] = ("static", collapsed_ops[-1][1] + op[1])
-            else:
-                collapsed_ops.append(op)
-        ops = collapsed_ops
-        _op_cache[command] = ops
+    def format_val(val):
+        if isinstance(val, dict) or (hasattr(val, "_value_to_set") and isinstance(val._value_to_set, dict)):
+            val_dict = val if isinstance(val, dict) else val._value_to_set
+            items = []
+            for k, v in val_dict.items():
+                if not isinstance(k, (str, int, float, bool)):
+                    raise TypeError("Invalid dict key for SNBT: " + str(type(k)))
+                if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):
+                    k = json.dumps(k)
+                v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
+                items.append(f"{k}: {v_str}")
+            return "{" + ", ".join(items) + "}"
+        elif isinstance(val, list):
+            return "[" + ", ".join(json.dumps(x) if isinstance(x, (str, dict, list)) else str(x) for x in val) + "]"
+        elif hasattr(val, "addr") and type(val).__name__ != "_Storage":
+            return val._addr
+        elif hasattr(val, "target") and type(val).__name__ != "_Storage":
+            return val.target
+        return str(val)
 
     _macro_substituted = False
     _any_var_resolved = False
     output = []
 
-    for op in ops:
-        if op[0] == "static":
-            output.append(op[1])
-        elif op[0] == "fstring":
-            try:
-                val = eval(op[1], global_vars, local_vars)
-                output.append(json.dumps(val))
-            except:
-                output.append(op[1])
-        elif op[0] == "ident":
-            ident = op[1]
-            _resolved_val = local_vars.get(ident)
-            if _resolved_val is None:
-                _resolved_val = global_vars.get(ident)
+    i = 0
+    n = len(command)
 
-            if _resolved_val is not None and getattr(_resolved_val, "_is_macro_param", False) is True:
-                output.append(f"$({_resolved_val.name})")
-                _macro_substituted = True
-                _any_var_resolved = True
-            elif _resolved_val is not None and dynamic_macros is not None and type(_resolved_val).__name__ in ("score",
-                                                                                                               "nbt",
-                                                                                                               "_TypedNBT",
-                                                                                                               "fixed",
-                                                                                                               "_PrecisionScore"):
-                temp_name = f"arg_{next_temp_id()}"
-                dynamic_macros.append((temp_name, _resolved_val))
-                output.append(f"$({temp_name})")
-                _macro_substituted = True
-                _any_var_resolved = True
-            elif ident in local_vars:
-                val = local_vars[ident]
-                _any_var_resolved = True
-                if output and output[-1].endswith("**"):
-                    if isinstance(val, dict) or (hasattr(val, "_value_to_set") and isinstance(val._value_to_set, dict)):
-                        output[-1] = output[-1][:-2]
-
-                        val_dict = val if isinstance(val, dict) else val._value_to_set
-
-                        items = []
-                        for k, v in val_dict.items():
-                            if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):
-                                k = json.dumps(k)
-                            v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
-                            items.append(f"{k}: {v_str}")
-                        output.append(", ".join(items))
-                    elif isinstance(val, str) and val.startswith("{") and val.endswith("}"):
-                        output[-1] = output[-1][:-2]
-                        output.append(val[1:-1])
-                    elif hasattr(val, "addr") and type(val).__name__ != "_Storage":
-                        output.append(val._addr)
-                    elif hasattr(val, "target") and type(val).__name__ != "_Storage":
-                        output.append(val.target)
-                    else:
-                        output.append(str(val))
-                elif hasattr(val, "addr") and type(val).__name__ != "_Storage":
-                    output.append(val._addr)
-                elif hasattr(val, "target") and type(val).__name__ != "_Storage":
-                    output.append(val.target)
-                else:
-                    output.append(str(val))
-            elif ident in global_vars:
-                val = global_vars[ident]
-                _any_var_resolved = True
-                if output and output[-1].endswith("**"):
-                    if isinstance(val, dict) or (hasattr(val, "_value_to_set") and isinstance(val._value_to_set, dict)):
-                        output[-1] = output[-1][:-2]
-
-                        val_dict = val if isinstance(val, dict) else val._value_to_set
-
-                        items = []
-                        for k, v in val_dict.items():
-                            if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):
-                                k = json.dumps(k)
-                            v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
-                            items.append(f"{k}: {v_str}")
-                        output.append(", ".join(items))
-                    elif isinstance(val, str) and val.startswith("{") and val.endswith("}"):
-                        output[-1] = output[-1][:-2]
-                        output.append(val[1:-1])
-                    elif hasattr(val, "addr") and type(val).__name__ != "_Storage":
-                        output.append(val._addr)
-                    elif hasattr(val, "target") and type(val).__name__ != "_Storage":
-                        output.append(val.target)
-                    else:
-                        output.append(str(val))
-                elif hasattr(val, "addr") and type(val).__name__ != "_Storage":
-                    output.append(val._addr)
-                elif hasattr(val, "target") and type(val).__name__ != "_Storage":
-                    output.append(val.target)
-                else:
-                    output.append(str(val))
+    while i < n:
+        if command[i] == '\\':
+            if i + 1 < n and command[i + 1] in ('$', '{', '['):
+                output.append(command[i + 1])
+                i += 2
+                continue
             else:
-                output.append(ident)
+                output.append('\\')
+                i += 1
+                continue
+        elif command[i] == '$':
+            if i + 1 < n and command[i + 1] == '{':
+                start = i + 2
+                j = start
+                bracket_count = 1
+                while j < n and bracket_count > 0:
+                    if command[j] == '{':
+                        bracket_count += 1
+                    elif command[j] == '}':
+                        bracket_count -= 1
+                    j += 1
+                if bracket_count == 0:
+                    expr = command[start:j - 1]
+                    try:
+                        val = eval(expr, global_vars, local_vars)
+
+                        # Macro checks
+                        if getattr(val, "_is_macro_param", False) is True:
+                            output.append(f"$({val.name})")
+                            _macro_substituted = True
+                            _any_var_resolved = True
+                        elif dynamic_macros is not None and type(val).__name__ in ("score", "nbt", "_TypedNBT", "fixed",
+                                                                                   "_PrecisionScore"):
+                            temp_name = f"arg_{next_temp_id()}"
+                            dynamic_macros.append((temp_name, val))
+                            output.append(f"$({temp_name})")
+                            _macro_substituted = True
+                            _any_var_resolved = True
+                        else:
+                            _any_var_resolved = True
+                            if isinstance(val, (dict, list)):
+                                output.append(format_val(val))
+                            else:
+                                output.append(format_val(val))
+                    except Exception as e:
+                        output.append("${" + expr + "}")
+                    i = j
+                    continue
+            else:
+                m = re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*', command[i + 1:])
+                if m:
+                    var = m.group(0)
+                    try:
+                        val = eval(var, global_vars, local_vars)
+
+                        # Macro checks
+                        if getattr(val, "_is_macro_param", False) is True:
+                            output.append(f"$({val.name})")
+                            _macro_substituted = True
+                            _any_var_resolved = True
+                        elif dynamic_macros is not None and type(val).__name__ in ("score", "nbt", "_TypedNBT", "fixed",
+                                                                                   "_PrecisionScore"):
+                            temp_name = f"arg_{next_temp_id()}"
+                            dynamic_macros.append((temp_name, val))
+                            output.append(f"$({temp_name})")
+                            _macro_substituted = True
+                            _any_var_resolved = True
+                        else:
+                            _any_var_resolved = True
+                            output.append(format_val(val))
+                    except Exception as e:
+                        output.append("$" + var)
+                    i += 1 + len(var)
+                    continue
+        elif command[i] in ('{', '['):
+            start = i
+            open_bracket = command[i]
+            close_bracket = '}' if open_bracket == '{' else ']'
+            j = i + 1
+            bracket_count = 1
+            while j < n and bracket_count > 0:
+                if command[j] == open_bracket:
+                    bracket_count += 1
+                elif command[j] == close_bracket:
+                    bracket_count -= 1
+                j += 1
+            if bracket_count == 0:
+                expr = command[start:j]
+                try:
+                    val = eval(expr, global_vars, local_vars)
+                    if isinstance(val, (dict, list)) or (
+                            hasattr(val, "_value_to_set") and isinstance(val._value_to_set, dict)):
+                        output.append(format_val(val))
+                        _any_var_resolved = True
+                    else:
+                        output.append(expr)
+                except Exception as e:
+                    output.append(expr)
+                i = j
+                continue
+
+        output.append(command[i])
+        i += 1
 
     result = "".join(output)
 

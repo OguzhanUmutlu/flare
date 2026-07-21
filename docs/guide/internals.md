@@ -19,13 +19,22 @@ To ensure Flare's own bookkeeping properties never collide with your NBT keys, a
 
 Because these names are behind the `_` prefix, your NBT objects can freely expose any common name as a path without shadowing internal state:
 
-```python
+::: code-group
+
+```python [Flare]
 from flare import storage
 
 item = storage.fs.root.child[0]
 item.type = "dir"   # Sets NBT path 'root.child[0].type' with no conflict!
 item.name = "data"  # Sets 'root.child[0].name'
 ```
+
+```mcfunction [__init__.mcfunction]
+data modify storage fs root.child[0].type set value "dir"
+data modify storage fs root.child[0].name set value "data"
+```
+
+:::
 
 > **Rule of thumb:** Any attribute starting with `_` on an `nbt` or `score` object is internal to Flare. Do not access or set these directly in your datapack code.
 
@@ -261,12 +270,20 @@ When assigning variables via `with ... as var:`, Flare's preprocessor evaluates 
 
 However, objects can implement `__as_var__(self)` to provide a context-sensitive value. For instance, `ExecuteChain` objects (like `at(@s)`) implement this to yield a `b~ ~ ~` coordinate object, accurately representing the context's local positional origin!
 
-```python
+::: code-group
+
+```python [Flare]
 for player in @a:
     with at(@s) as pos:
         # 'pos' naturally resolves to b~ ~ ~ instead of a raw ExecuteChain!
         setblock pos stone
 ```
+
+```mcfunction [__init__.mcfunction]
+execute as @a at @s run setblock pos stone
+```
+
+:::
 
 ## Non-Python Syntaxes
 
@@ -276,7 +293,9 @@ To maintain a clean and intuitive syntax that feels like native Minecraft, the F
 
 Any line starting with `/` or a recognizable native Minecraft command (e.g., `summon`, `say`, `kill`) is automatically captured and wrapped into a `runcommand()` call:
 
-```python
+::: code-group
+
+```python [Flare]
 # You write:
 /kill @e[type=zombie]
 say Hello World!
@@ -285,6 +304,15 @@ say Hello World!
 runcommand("""kill @e[type=zombie]""", locals(), globals())
 runcommand("""say Hello World!""", locals(), globals())
 ```
+
+```mcfunction [__init__.mcfunction]
+kill @e[type=zombie]
+say Hello World!
+kill @e[type=zombie]
+say Hello World!
+```
+
+:::
 
 ### Selector Syntax
 
@@ -363,7 +391,9 @@ This aliasing allows you to chain methods like `.if()` and `.as()` directly with
 
 When you pass a raw Minecraft command directly into `success()` or `store()`, Flare's preprocessor automatically wraps it in a lambda so it can be evaluated lazily at compile-time instead of causing immediate syntax errors.
 
-```python
+::: code-group
+
+```python [Flare]
 # You write:
 x = success(clear @s)
 y = store(data get entity @s Health)
@@ -372,6 +402,19 @@ y = store(data get entity @s Health)
 x = success(lambda: runcommand("clear @s", locals(), globals()))
 y = store(lambda: runcommand("data get entity @s Health", locals(), globals()))
 ```
+
+```mcfunction [__constants__.mcfunction]
+scoreboard objectives add __pack__vars__ dummy
+```
+
+```mcfunction [__init__.mcfunction]
+execute store success score pack_x __pack__vars__ run clear @s
+execute store result score pack_y __pack__vars__ run data get entity @s Health
+execute store success score pack_x __pack__vars__ run clear @s
+execute store result score pack_y __pack__vars__ run data get entity @s Health
+```
+
+:::
 
 ### Function Imports
 

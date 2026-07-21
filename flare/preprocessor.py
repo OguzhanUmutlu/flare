@@ -897,8 +897,8 @@ def preprocess_minecraft_commands(source: str) -> str:
                 out_tokens.append((tokenize.NAME, "v"))
                 out_tokens.append((tokenize.OP, "="))
                 out_tokens.append((tokenize.OP, "["))
-                for i, c in enumerate(coords):
-                    if i > 0:
+                for j, c in enumerate(coords):
+                    if j > 0:
                         out_tokens.append((tokenize.OP, ","))
                     if c.startswith("$("):
                         out_tokens.append((tokenize.STRING, f'"{c}"'))

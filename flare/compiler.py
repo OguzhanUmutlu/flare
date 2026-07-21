@@ -12,14 +12,8 @@ def _compile_relational(node, invert=False):
     from .variables.nbt import nbt
     from .variables.core import is_lazy
 
-    op_map = {
-        "eq": ("if", "="),
-        "ne": ("unless", "="),
-        "lt": ("if", "<"),
-        "le": ("if", "<="),
-        "gt": ("if", ">"),
-        "ge": ("if", ">="),
-    }
+    op_map = {"eq": ("if", "="), "ne": ("unless", "="), "lt": ("if", "<"), "le": ("if", "<="), "gt": ("if", ">"),
+        "ge": ("if", ">="), }
     if node.op not in op_map:
         raise ValueError(f"Not a relational op: {node.op}")
 
@@ -41,20 +35,15 @@ def _compile_relational(node, invert=False):
     left_leaf = _peek_leaf(left)
     right_leaf = _peek_leaf(right)
 
-    is_nbt_op = (
-            isinstance(left_leaf, nbt)
-            or getattr(left_leaf, "_is_nbt_op", False)
-            or isinstance(right_leaf, nbt)
-            or getattr(right_leaf, "_is_nbt_op", False)
-    )
+    is_nbt_op = (isinstance(left_leaf, nbt) or getattr(left_leaf, "_is_nbt_op", False) or isinstance(right_leaf,
+                                                                                                     nbt) or getattr(
+        right_leaf, "_is_nbt_op", False))
     if is_nbt_op and node.op in ("eq", "ne"):
         left_type = getattr(left, "_type", None)
         right_type = getattr(right, "_type", None)
         if left_type is not None and right_type is not None:
             if left_type != right_type:
-                raise TypeError(
-                    f"Cannot compare NBT variables of different types: {left_type} and {right_type}"
-                )
+                raise TypeError(f"Cannot compare NBT variables of different types: {left_type} and {right_type}")
 
         def _get_literal_value(v):
             if isinstance(v, (int, float, str, bool, dict, list)):
@@ -113,13 +102,53 @@ def _compile_relational(node, invert=False):
             right = t
 
         _runcmd(_get_modify_cmd(tmp_nbt_addr, left))
-        _runcmd(
-            f"execute store success score {addr(tmp_score)} run {_get_modify_cmd(tmp_nbt_addr, right)}"
-        )
+        _runcmd(f"execute store success score {addr(tmp_score)} run {_get_modify_cmd(tmp_nbt_addr, right)}")
 
         condition = "0" if node.op == "eq" else "1.."
         keyword_to_use = "unless" if invert else "if"
         return f"{keyword_to_use} score {addr(tmp_score)} matches {condition}"
+
+    node_op = node.op
+
+    if not isinstance(left, (int, float)) or not isinstance(right, (int, float)):
+        if isinstance(left, (int, float)):
+            left, right = right, left
+            swap_op = {"eq": "eq", "ne": "ne", "lt": "gt", "le": "ge", "gt": "lt", "ge": "le"}
+            node_op = swap_op[node_op]
+
+        if isinstance(right, (int, float)):
+            if not isinstance(left, score):
+                t = score(addr=f"!c{ctx.next_temp_id()}")
+                if isinstance(left, (BinaryOp, UnaryOp)):
+                    left._compile_into(t)
+                else:
+                    t[:] = left
+                left = t
+
+            val = int(round(right / left._multiplier))
+
+            if node_op == "eq":
+                match_str = str(val)
+                kw = "unless" if invert else "if"
+            elif node_op == "ne":
+                match_str = str(val)
+                kw = "if" if invert else "unless"
+            elif node_op == "lt":
+                match_str = f"..{val - 1}"
+                kw = "unless" if invert else "if"
+            elif node_op == "le":
+                match_str = f"..{val}"
+                kw = "unless" if invert else "if"
+            elif node_op == "gt":
+                match_str = f"{val + 1}.."
+                kw = "unless" if invert else "if"
+            elif node_op == "ge":
+                match_str = f"{val}.."
+                kw = "unless" if invert else "if"
+            else:
+                raise ValueError(f"Unknown operator: {node_op}")
+
+            return f"{kw} score {addr(left)} matches {match_str}"
 
     if not isinstance(left, score):
         if isinstance(left, (int, float)):
@@ -157,34 +186,25 @@ def _eval_to_bool_score(node):
 
     if isinstance(node, BinaryOp) and node.op == "or":
         left_conds = _flatten_and(node.left)
-        _runcmd(
-            f"execute {' '.join(left_conds)} run scoreboard players set {addr(dest)} 1"
-        )
+        _runcmd(f"execute {' '.join(left_conds)} run scoreboard players set {addr(dest)} 1")
         right_conds = _flatten_and(node.right)
         _runcmd(
-            f"execute if score {addr(dest)} matches 0 {' '.join(right_conds)} run scoreboard players set {addr(dest)} 1"
-        )
+            f"execute if score {addr(dest)} matches 0 {' '.join(right_conds)} run scoreboard players set {addr(dest)} 1")
         return dest
 
     if isinstance(node, UnaryOp) and node.op == "not":
         sub_dest = _eval_to_bool_score(node.operand)
-        _runcmd(
-            f"execute if score {addr(sub_dest)} matches 0 run scoreboard players set {addr(dest)} 1"
-        )
+        _runcmd(f"execute if score {addr(sub_dest)} matches 0 run scoreboard players set {addr(dest)} 1")
         return dest
 
     if isinstance(node, (BinaryOp, UnaryOp)):
         t = score(addr=f"!b{ctx.next_temp_id()}")
         node._compile_into(t)
-        _runcmd(
-            f"execute unless score {addr(t)} matches 0 run scoreboard players set {addr(dest)} 1"
-        )
+        _runcmd(f"execute unless score {addr(t)} matches 0 run scoreboard players set {addr(dest)} 1")
         return dest
 
     if is_lazy(node) or hasattr(node, "_addr"):
-        _runcmd(
-            f"execute unless score {addr(node)} matches 0 run scoreboard players set {addr(dest)} 1"
-        )
+        _runcmd(f"execute unless score {addr(node)} matches 0 run scoreboard players set {addr(dest)} 1")
         return dest
 
     if node:

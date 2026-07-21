@@ -6,13 +6,22 @@ Selectors in Flare are powerful proxy objects. They work both as execute context
 
 Use any selector directly in a `with` statement:
 
-```python
+::: code-group
+
+```python [Flare]
 with @a:
     say Hello to all players!
 
 with @a[distance="..10"]:
     say You're close!
 ```
+
+```mcfunction [__init__.mcfunction]
+execute as @a run say Hello to all players!
+execute as @a[distance="..10"] run say You're close!
+```
+
+:::
 
 ## Terminal Commands on Selectors
 
@@ -27,11 +36,24 @@ Call arbitrary Minecraft commands directly on a selector as a method:
 
 Loop through a selector using a `for` loop. The loop variable acts as a proxy for `@s`:
 
-```python
+::: code-group
+
+```python [Flare]
 for s in @a:
     s.kill()
     s.tp(@p)
 ```
+
+```mcfunction [__init__.mcfunction]
+execute as @a run function pack:___init__/with_0
+```
+
+```mcfunction [___init__/with_0.mcfunction]
+kill @s
+tp @s @p
+```
+
+:::
 
 ## Selector as NBT Path
 
@@ -49,7 +71,9 @@ By default, an untyped `selector("@a")` acts as a union of all possible entity p
 
 For precision, you can cast your selector to a specific entity struct using Python type hints, simply by instantiating the struct class directly with a target string:
 
-```python
+::: code-group
+
+```python [Flare]
 from flare.nbt import Player, Zombie
 
 # Strictly typed to the Player struct
@@ -61,19 +85,36 @@ sz = Zombie(@e[type=zombie])
 sz.IsBaby = True
 ```
 
+```mcfunction [__init__.mcfunction]
+data modify entity @a foodLevel set value 20
+data modify entity @e[type=zombie] IsBaby set value Trueb
+```
+
+:::
+
 If you access an invalid or unknown property on a selector, Flare gracefully falls back to an untyped `NBTType.Unknown`, preserving dynamic flexibility.
 
 For entirely custom NBT data paths that Flare's schema isn't aware of, you can still use inline typecasting:
 
-```python
+::: code-group
+
+```python [Flare]
 storage.my_data.test[int] = 10
 ```
+
+```mcfunction [__init__.mcfunction]
+data modify storage my_data test set value 10
+```
+
+:::
 
 ## Tagging Selectors
 
 You can dynamically manage entity tags using the `.add_tag()` and `.remove_tag()` methods directly on any selector:
 
-```python
+::: code-group
+
+```python [Flare]
 # Add a tag to all players within distance 5
 close_players = selector("@a[distance=..5]")
 close_players.add_tag("my_custom_tag")
@@ -85,11 +126,21 @@ kill @a[tag=my_custom_tag]
 close_players.remove_tag("my_custom_tag")
 ```
 
+```mcfunction [__init__.mcfunction]
+tag @a[distance=..5] add my_custom_tag
+kill @a[tag=my_custom_tag]
+tag @a[distance=..5] remove my_custom_tag
+```
+
+:::
+
 ## Selector Relations (`on`)
 
 Use the `on` (or `applyon`) modifier to switch context via entity relations:
 
-```python
+::: code-group
+
+```python [Flare]
 with on("attacker"):
     say I attacked you!
 
@@ -98,11 +149,20 @@ with @s.attacker():
     say Got you!
 ```
 
+```mcfunction [__init__.mcfunction]
+execute on attacker run say I attacked you!
+execute as @s on attacker run say Got you!
+```
+
+:::
+
 ## Advancements
 
 You can easily grant or revoke advancements from entities using the `grant_advancement` and `revoke_advancement` methods directly on a selector:
 
-```python
+::: code-group
+
+```python [Flare]
 # Granting
 @a.grant_advancement("my_namespace:my_advancement") # only my_advancement
 @a.grant_advancement("my_namespace:my_advancement", criterion="my_crit") # only my_advancement my_crit
@@ -113,3 +173,14 @@ You can easily grant or revoke advancements from entities using the `grant_advan
 @a.revoke_advancement("my_namespace:my_advancement") # only my_advancement
 @a.revoke_advancement("my_namespace:my_advancement", mode="until") # until my_advancement
 ```
+
+```mcfunction [__init__.mcfunction]
+advancement grant @a only my_namespace:my_advancement
+advancement grant @a only my_namespace:my_advancement my_crit
+advancement grant @a from my_namespace:my_advancement
+advancement grant @a everything
+advancement revoke @a only my_namespace:my_advancement
+advancement revoke @a until my_namespace:my_advancement
+```
+
+:::

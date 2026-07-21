@@ -4,7 +4,9 @@ Flare seamlessly translates standard Python control flow into `execute` logic an
 
 ## If / Elif / Else
 
-```python
+::: code-group
+
+```python [Flare]
 x = score(5)
 y = score(10)
 
@@ -16,13 +18,41 @@ else:
     print("Y is bigger!")
 ```
 
+```mcfunction [__constants__.mcfunction]
+scoreboard objectives add __pack__vars__ dummy
+scoreboard objectives add __pack__temp__ dummy
+```
+
+```mcfunction [__init__.mcfunction]
+scoreboard players set pack_x __pack__vars__ 5
+scoreboard players set pack_y __pack__vars__ 10
+scoreboard players set !elif0 __pack__temp__ 0
+execute if score !elif0 __pack__temp__ matches 0 if score pack_x __pack__vars__ > pack_y __pack__vars__ run function pack:___init__/generated_0
+execute if score !elif0 __pack__temp__ matches 0 if score pack_x __pack__vars__ = pack_y __pack__vars__ run function pack:___init__/generated_1
+execute if score !elif0 __pack__temp__ matches 0 run tellraw @a "Y is bigger!"
+```
+
+```mcfunction [___init__/generated_0.mcfunction]
+scoreboard players set !elif0 __pack__temp__ 1
+tellraw @a "X is bigger!"
+```
+
+```mcfunction [___init__/generated_1.mcfunction]
+scoreboard players set !elif0 __pack__temp__ 1
+tellraw @a "They are equal!"
+```
+
+:::
+
 ## Inline Expansion (`expand`)
 
 By default, if an `if` block contains multiple commands, Flare generates a new, separate `.mcfunction` file and calls it (e.g., `execute if ... run function ...`).
 
 If you want to avoid generating a new function file for a small block of code, you can wrap your condition in `expand()`. This tells Flare to **inline** the execution by rewriting the same `execute if` prefix in front of every command within the block, keeping everything in the same file.
 
-```python
+::: code-group
+
+```python [Flare]
 from flare import expand, score
 
 x = score(10)
@@ -32,6 +62,18 @@ if expand(x > 5):
     print("Condition met!")
     print("Running inline!")
 ```
+
+```mcfunction [__constants__.mcfunction]
+scoreboard objectives add __pack__vars__ dummy
+```
+
+```mcfunction [__init__.mcfunction]
+scoreboard players set pack_x __pack__vars__ 10
+execute if score pack_x __pack__vars__ matches 6.. run tellraw @a "Condition met!"
+execute if score pack_x __pack__vars__ matches 6.. run tellraw @a "Running inline!"
+```
+
+:::
 
 Becomes:
 
@@ -55,7 +97,9 @@ for item in my_array:
 
 You can effortlessly check if a Flare variable (`score` or `nbt` type) is contained within a compile-time Python list or tuple:
 
-```python
+::: code-group
+
+```python [Flare]
 x = score(5)
 
 # Flare will dynamically allocate a temporary score, check all items, and compile the result!
@@ -66,6 +110,29 @@ my_str = nbt("flare")
 if my_str in ("apple", "flare", "banana"):
     print("String found!")
 ```
+
+```mcfunction [__constants__.mcfunction]
+scoreboard objectives add __pack__vars__ dummy
+scoreboard objectives add __pack__temp__ dummy
+```
+
+```mcfunction [__init__.mcfunction]
+scoreboard players set pack_x __pack__vars__ 5
+scoreboard players set !in_0 __pack__temp__ 0
+execute if score !in_0 __pack__temp__ matches 0 if score pack_x __pack__vars__ matches 1 run scoreboard players set !in_0 __pack__temp__ 1
+execute if score !in_0 __pack__temp__ matches 0 if score pack_x __pack__vars__ matches 3 run scoreboard players set !in_0 __pack__temp__ 1
+execute if score !in_0 __pack__temp__ matches 0 if score pack_x __pack__vars__ matches 5 run scoreboard players set !in_0 __pack__temp__ 1
+execute if score !in_0 __pack__temp__ matches 0 if score pack_x __pack__vars__ matches 7 run scoreboard players set !in_0 __pack__temp__ 1
+execute if score !in_0 __pack__temp__ matches 1 run tellraw @a "X is an odd number under 10!"
+data modify storage pack:vars pack_my_str set value "flare"
+scoreboard players set !in_1 __pack__temp__ 0
+execute if score !in_1 __pack__temp__ matches 0 if data storage pack:vars {"pack_my_str": "apple"} run scoreboard players set !in_1 __pack__temp__ 1
+execute if score !in_1 __pack__temp__ matches 0 if data storage pack:vars {"pack_my_str": "flare"} run scoreboard players set !in_1 __pack__temp__ 1
+execute if score !in_1 __pack__temp__ matches 0 if data storage pack:vars {"pack_my_str": "banana"} run scoreboard players set !in_1 __pack__temp__ 1
+execute if score !in_1 __pack__temp__ matches 1 run tellraw @a "String found!"
+```
+
+:::
 
 ## Block Checking
 
@@ -91,7 +158,9 @@ with at("@e[type=pig]").if(b~ ~ ~ == "mud").unless(b~ ~1 ~ == "water"):
 
 Flare provides a series of specific condition helpers that cleanly translate to Minecraft's `execute if <sub-command>` structure! You can use these dynamically inside `if` statements or inside `.if()` methods!
 
-```python
+::: code-group
+
+```python [Flare]
 from flare import is_dimension, success, predicate, stopwatch, selector, block
 
 # -> execute if dimension overworld run ...
@@ -133,13 +202,26 @@ if s.has_item(at="weapon.mainhand", item="diamond_sword"):
     pass
 ```
 
+```mcfunction [__constants__.mcfunction]
+scoreboard objectives add __pack__vars__ dummy
+```
+
+```mcfunction [__init__.mcfunction]
+execute store success score !succ_0 __pack__vars__ run say hi
+execute store success score pack_my_score __pack__vars__ run setblock ~ ~ ~ stone
+```
+
+:::
+
 ## Compile-Time Optimization
 
 Flare is highly optimized and checks conditions **at compile-time**.
 
 If a condition relies purely on standard Python variables (not `score` or `nbt` objects), Flare resolves the logic natively and **never emits Minecraft commands** for branches it knows will never run:
 
-```python
+::: code-group
+
+```python [Flare]
 y = 5
 x = score(5)
 
@@ -155,6 +237,25 @@ if y > 4:
         
 # If y was 3, the entire block above would be discarded and never compiled!
 ```
+
+```mcfunction [__constants__.mcfunction]
+scoreboard objectives add __pack__vars__ dummy
+scoreboard objectives add __pack__temp__ dummy
+```
+
+```mcfunction [__init__.mcfunction]
+scoreboard players set pack_x __pack__vars__ 5
+scoreboard players set !elif0 __pack__temp__ 0
+execute if score !elif0 __pack__temp__ matches 0 if score pack_x __pack__vars__ matches 5.. run function pack:___init__/generated_0
+execute if score !elif0 __pack__temp__ matches 0 run tellraw @a "Never!"
+```
+
+```mcfunction [___init__/generated_0.mcfunction]
+scoreboard players set !elif0 __pack__temp__ 1
+tellraw @a "Maybe!"
+```
+
+:::
 
 ::: tip Compile-time execution
 Because Flare evaluates static Python conditions at compile-time, you can use them to conditionally generate entire systems or commands in your datapack without wasting any runtime performance!

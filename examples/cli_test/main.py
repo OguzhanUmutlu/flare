@@ -147,6 +147,6 @@ print(test(y))
 
 @export
 def test2(mymacro: macro):
-    say mymacro
+    say $mymacro
 
 test2(10)

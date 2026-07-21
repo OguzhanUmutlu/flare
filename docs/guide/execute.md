@@ -4,7 +4,9 @@ Flare provides a powerful, stackable context manager system to build `execute` c
 
 ## Basic Execute Contexts
 
-```python
+::: code-group
+
+```python [Flare]
 # 1. Native execute contexts
 with as(@a):
     say Hi everyone!
@@ -26,25 +28,54 @@ with as(@a), at(@s), rotated(10, 20):
     pass
 ```
 
+```mcfunction [__init__.mcfunction]
+execute as @a run say Hi everyone!
+execute as @a run say Hello again!
+execute as @a at @s rotated as @s run say I'm looking at you!
+```
+
+:::
+
 ## Automatic Inlining
 
 If a `with` block contains a **single command**, Flare intelligently inlines the `execute` chain directly onto the command line, meaning no extra `.mcfunction` file is generated:
 
-```python
+::: code-group
+
+```python [Flare]
 with as(@a):
     kill @s
 # Compiles to: execute as @a run kill @s
 ```
 
+```mcfunction [__init__.mcfunction]
+execute as @a run kill @s
+```
+
+:::
+
 ## Iterating Selectors (`for` loops)
 
 Loop through a selector to execute commands on each target. The loop variable acts as a proxy for `@s`:
 
-```python
+::: code-group
+
+```python [Flare]
 for s in @a:
     s.kill()
     s.tp(@p)
 ```
+
+```mcfunction [__init__.mcfunction]
+execute as @a run function pack:___init__/with_0
+```
+
+```mcfunction [___init__/with_0.mcfunction]
+kill @s
+tp @s @p
+```
+
+:::
 
 > Note: This generates an optimized execute block similar to `with as(@a):`.
 
@@ -52,7 +83,9 @@ for s in @a:
 
 Execute commands and store their results back into Flare variables by chaining `.store()` onto any `score` or `nbt` variable:
 
-```python
+::: code-group
+
+```python [Flare]
 x = score(10)
 y = nbt[int](20)
 
@@ -64,6 +97,19 @@ with x.store():
 with y.store().datatype(double).multiplier(0.02):
     say Storing into y with custom datatype and multiplier!
 ```
+
+```mcfunction [__constants__.mcfunction]
+scoreboard objectives add __pack__vars__ dummy
+```
+
+```mcfunction [__init__.mcfunction]
+scoreboard players set pack_x __pack__vars__ 10
+data modify storage pack:vars pack_y set value 20
+execute store result score pack_x __pack__vars__ run say Storing into x!
+execute store result storage pack:vars pack_y double 0.02 run say Storing into y with custom datatype and multiplier!
+```
+
+:::
 
 You can also store the **success** of an operation (rather than its result) using `.success()` on any `score` or `nbt` variable:
 

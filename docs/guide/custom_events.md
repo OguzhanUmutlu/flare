@@ -8,7 +8,9 @@ Detecting a right click in modern Minecraft datapacks typically requires managin
 
 You can filter which item triggers the right click by passing standard condition dictionaries. The decorator also supports several shorthand syntaxes for convenience:
 
-```python
+::: code-group
+
+```python [Flare]
 from flare import *
 
 # 1. Standard definition
@@ -27,14 +29,51 @@ def wand_right_click_super_shorthand():
     print("Used the wand!")
 ```
 
+```mcfunction [wand_right_click.mcfunction]
+advancement revoke @s only pack:events/wand_right_click_using_item
+tellraw @a "Used the wand!"
+```
+
+```mcfunction [wand_right_click_shorthand.mcfunction]
+advancement revoke @s only pack:events/wand_right_click_shorthand_using_item
+tellraw @a "Used the wand!"
+```
+
+```mcfunction [wand_right_click_super_shorthand.mcfunction]
+advancement revoke @s only pack:events/wand_right_click_super_shorthand_using_item
+tellraw @a "Used the wand!"
+```
+
+:::
+
 By default, the right click event will continuously trigger every tick that the player holds right click. If you only want the event to trigger **exactly once per click** (preventing rapid-fire execution), pass `once=True`:
 
-```python
+::: code-group
+
+```python [Flare]
 # 4. Trigger exactly once per click, preventing rapid-fire execution
 @right_click_event({"minecraft:custom_data": {"my_wand": True}}, once=True)
 def wand_right_click_once():
     print("Used the wand once!")
 ```
+
+```mcfunction [__constants__.mcfunction]
+scoreboard objectives add pack_wand_right_click_once_cd dummy
+```
+
+```mcfunction [wand_right_click_once.mcfunction]
+advancement revoke @s only pack:events/wand_right_click_once_using_item
+execute unless score @s pack_wand_right_click_once_cd matches 1 run tellraw @a "Used the wand once!"
+scoreboard players set @s pack_wand_right_click_once_cd 2
+```
+
+```mcfunction [wand_right_click_once_tick.mcfunction]
+advancement revoke @s only pack:events/wand_right_click_once_tick_tick
+execute unless score @s pack_wand_right_click_once_cd matches 2 run scoreboard players reset @s pack_wand_right_click_once_cd
+execute if score @s pack_wand_right_click_once_cd matches 2 run scoreboard players set @s pack_wand_right_click_once_cd 1
+```
+
+:::
 
 Under the hood:
 - If `once=False` (default), it simply generates a `@using_item_event` that wraps your function.
@@ -44,7 +83,9 @@ Under the hood:
 
 Detecting left clicks (punching/attacking) can be achieved by utilizing the `minecraft:post_piercing_attack` effect via an enchantment. The `left_click_enchantment` helper automatically creates an Enchantment resource that will execute a specified Flare function when a player attacks with the item.
 
-```python
+::: code-group
+
+```python [Flare]
 from flare import *
 
 @export
@@ -60,3 +101,13 @@ def give_wand():
     # Give the player a wooden sword with our new custom enchantment
     @s.give_item(item("wooden_sword", enchantments={wand_punch_ench: 1}))
 ```
+
+```mcfunction [give_wand.mcfunction]
+give @s wooden_sword[enchantments={"pack:left_click_on_wand_punch":1}]
+```
+
+```mcfunction [on_wand_punch.mcfunction]
+tellraw @a "Left clicked!"
+```
+
+:::

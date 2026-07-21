@@ -6,13 +6,22 @@ Flare provides a powerful, native `@event` decorator that automatically wires up
 
 Instead of manually creating advancement JSON files and configuring rewards to call a function, you can simply use the `@event` decorator on any function:
 
-```python
+::: code-group
+
+```python [Flare]
 from flare import *
 
 @event("player_hurt_entity", {"entity": {"type": "minecraft:cow"}})
 def on_cow_hit():
     print("You hit a cow!")
 ```
+
+```mcfunction [on_cow_hit.mcfunction]
+advancement revoke @s only pack:events/on_cow_hit_player_hurt_entity
+tellraw @a "You hit a cow!"
+```
+
+:::
 
 ### How it works
 
@@ -38,7 +47,9 @@ Instead of manually typing out the trigger string with `@event("...")`, Flare sh
 
 You can import these directly and use them just like the `@event` decorator. Their names are the trigger name suffixed with `_event`:
 
-```python
+::: code-group
+
+```python [Flare]
 from flare import *
 
 @using_item_event({"item": {"items": "minecraft:stick"}}, auto_revoke=False)
@@ -46,11 +57,19 @@ def on_stick_use():
     print("You used a stick!")
 ```
 
+```mcfunction [on_stick_use.mcfunction]
+tellraw @a "You used a stick!"
+```
+
+:::
+
 ### Accessing the Event Details Externally
 
 When you decorate a function with an event wrapper, Flare attaches a bound instance of the event directly to the exported function. This means you can programmatically access the exact advancement name or manually revoke it from anywhere in your codebase!
 
-```python
+::: code-group
+
+```python [Flare]
 @tick_event(auto_revoke=False)
 def my_tick():
     pass
@@ -64,6 +83,13 @@ def external_logic():
     # You can also manually revoke it for a player
     my_tick.tick_event.revoke_advancement(target="@a")
 ```
+
+```mcfunction [external_logic.mcfunction]
+tellraw @a "pack:events/my_tick_tick"
+advancement revoke @a only pack:events/my_tick_tick
+```
+
+:::
 
 ## Example Triggers
 

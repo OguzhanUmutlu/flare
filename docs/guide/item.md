@@ -6,7 +6,9 @@ Flare provides a powerful, fully-typed `item` class for constructing and managin
 
 The `item` class is imported directly from `flare`. It takes the base item ID (e.g. `minecraft:stone`) and allows you to append any of the natively supported Minecraft data components as Python kwargs.
 
-```python
+::: code-group
+
+```python [Flare]
 from flare import item, selector
 
 # Define a simple item
@@ -15,6 +17,12 @@ my_stick = item("minecraft:stick")
 # Give it to a player
 @a.give_item(my_stick, count=5)
 ```
+
+```mcfunction [__init__.mcfunction]
+give @a minecraft:stick 5
+```
+
+:::
 
 ## Data Components
 
@@ -73,7 +81,9 @@ magic_wand = item(
 
 Once you have defined your item, it integrates perfectly with the entity `selector` object!
 
-```python
+::: code-group
+
+```python [Flare]
 from flare import item, selector
 
 my_boat = item("minecraft:oak_boat", item_name=style("Super Boat", color="blue"))
@@ -81,3 +91,9 @@ my_boat = item("minecraft:oak_boat", item_name=style("Super Boat", color="blue")
 # Give the boat to all players
 @a.give_item(my_boat, count=1)
 ```
+
+```mcfunction [__init__.mcfunction]
+give @a minecraft:oak_boat[item_name={"color":"blue","text":"Super Boat"}]
+```
+
+:::
