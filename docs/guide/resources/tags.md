@@ -58,6 +58,21 @@ add_function_tag("my_event_loop", {
 })
 ```
 
+You can also use the `@tag` decorator to automatically add a function to a tag file:
+
+```python
+from flare import *
+namespace("pack")
+
+@tag("my_event_loop")
+def handle_event():
+    pass
+
+@tag("minecraft:tick", replace=False)
+def custom_tick():
+    pass
+```
+
 ### Overriding Vanilla Tags
 
 You can override vanilla tags by prepending `minecraft:` to the `tag_name` and setting `"replace": True`.

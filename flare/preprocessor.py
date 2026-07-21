@@ -15,9 +15,9 @@ class CallGraphAnalyzer(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         is_exported = any(
-            isinstance(dec, ast.Name) and dec.id in ("export", "macro", "event", "tick", "load") or isinstance(dec,
-                                                                                                               ast.Call) and getattr(
-                dec.func, "id", "") in ("export", "macro", "event", "tick", "load") for dec in node.decorator_list)
+            isinstance(dec, ast.Name) and dec.id in ("export", "macro", "event", "tick", "load", "tag") or isinstance(
+                dec, ast.Call) and getattr(dec.func, "id", "") in ("export", "macro", "event", "tick", "load", "tag")
+            for dec in node.decorator_list)
         is_nostack = any(
             isinstance(dec, ast.Name) and dec.id == "nostack" or isinstance(dec, ast.Call) and getattr(dec.func, "id",
                                                                                                        "") == "nostack"
@@ -69,9 +69,9 @@ class FlareTransformer(ast.NodeTransformer):
 
     def visit_FunctionDef(self, node):
         is_exported = any(
-            isinstance(dec, ast.Name) and dec.id in ("export", "macro", "event", "tick", "load") or isinstance(dec,
-                                                                                                               ast.Call) and getattr(
-                dec.func, "id", "") in ("export", "macro", "event", "tick", "load") for dec in node.decorator_list)
+            isinstance(dec, ast.Name) and dec.id in ("export", "macro", "event", "tick", "load", "tag") or isinstance(
+                dec, ast.Call) and getattr(dec.func, "id", "") in ("export", "macro", "event", "tick", "load", "tag")
+            for dec in node.decorator_list)
 
         is_generated = node.name.startswith("__flare_")
         prev_in_flare = self.in_flare_func

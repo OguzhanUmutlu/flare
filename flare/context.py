@@ -707,6 +707,35 @@ def export(func=None, *, name=None, append=False, returns=None):
     return proxy
 
 
+def tag(name: str, replace: bool = False):
+    def wrapper(func):
+        if not (hasattr(func, "__name__") and hasattr(func, "_write_non_macro_args")):
+            func = export(func)
+
+        func_name = str(func)
+
+        if ":" in name:
+            ns, path = name.split(":", 1)
+            key = f"{ns}:tags/functions/{path}.json"
+        else:
+            key = f"{_current_namespace}:tags/functions/{name}.json"
+
+        if key in json_files:
+            existing = json_files[key]
+            if "values" not in existing:
+                existing["values"] = []
+            if func_name not in existing["values"]:
+                existing["values"].append(func_name)
+            if replace:
+                existing["replace"] = True
+        else:
+            json_files[key] = {"replace": replace, "values": [func_name]}
+
+        return func
+
+    return wrapper
+
+
 def _flare_in(item, container):
     if hasattr(container, "__in__"):
         return container.__in__(item)
