@@ -118,7 +118,7 @@ def parse_brigadier_bool(reader: StringReader, props: dict):
 def parse_minecraft_entity(reader: StringReader, props: dict):
     if reader.peek() == "@":
         reader.read()
-        if not reader.can_read() or reader.peek() not in "paersc":
+        if not reader.can_read() or reader.peek() not in "paerscn":
             raise ValueError("Invalid selector variable")
         reader.read()
         if reader.can_read() and reader.peek() == "[":
