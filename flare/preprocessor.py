@@ -589,7 +589,7 @@ def evaluate_implicit_coord(seq) -> bool:
 def preprocess_minecraft_commands(source: str) -> str:
     source = process_nbt_literals(source)
     source = re.sub(r'import\s+([a-zA-Z0-9_]+:[a-zA-Z0-9_/]+)\s+as\s+([a-zA-Z0-9_]+)', r'\2 = Function("\1")', source)
-    source = "true = True\nfalse = False\n" + source
+    source = source
     lines = source.split("\n")
 
     skip_lines = set()
