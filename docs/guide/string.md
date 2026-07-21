@@ -426,8 +426,6 @@ if sentence.endswith("awesome"):
 
 ```mcfunction [__constants__.mcfunction]
 scoreboard objectives add __pack__temp__ dummy
-scoreboard objectives add __pack__constant__ dummy
-scoreboard players set !_0 __pack__constant__ 0
 ```
 
 ```mcfunction [__init__.mcfunction]
@@ -441,7 +439,7 @@ scoreboard players set !find_match_4 __pack__temp__ 0
 scoreboard players set !c3 __pack__temp__ 0
 execute if score !find_slen_4 __pack__temp__ >= !find_tlen_4 __pack__temp__ run function pack:___init__/find_0
 execute if score !find_match_4 __pack__temp__ matches 1 run scoreboard players set !c3 __pack__temp__ -1
-execute if score !c3 __pack__temp__ >= !_0 __pack__constant__ run data modify storage flare:temp !in_res_out_2 set value 1b
+execute if score !c3 __pack__temp__ matches 0.. run data modify storage flare:temp !in_res_out_2 set value 1b
 data modify storage pack:__flare_temp__ __nbt_cmp set from storage flare:temp !in_res_out_2
 execute store success score !n1 __pack__temp__ run data modify storage pack:__flare_temp__ __nbt_cmp set value 0
 execute if score !n1 __pack__temp__ matches 1.. run tellraw @a "Found flare!"

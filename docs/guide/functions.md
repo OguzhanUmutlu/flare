@@ -283,14 +283,12 @@ def factorial(n: nbt[int]) -> nbt[int]:
 
 ```mcfunction [__constants__.mcfunction]
 scoreboard objectives add __pack__temp__ dummy
-scoreboard objectives add __pack__constant__ dummy
-scoreboard players set !_1 __pack__constant__ 1
 ```
 
 ```mcfunction [factorial.mcfunction]
 execute store result score !c0 __pack__temp__ run data get storage pack:__flare_args__ factorial_n[-1]
 scoreboard players set !ret1 __pack__temp__ 0
-execute if score !c0 __pack__temp__ <= !_1 __pack__constant__ store result score !ret1 __pack__temp__ run function pack:_factorial/generated_0
+execute if score !c0 __pack__temp__ matches ..1 store result score !ret1 __pack__temp__ run function pack:_factorial/generated_0
 execute if score !ret1 __pack__temp__ matches 1 run return 1
 data modify storage pack:__flare_temp__ !t2 set from storage pack:__flare_args__ factorial_n[-1]
 execute store result score !sub0 __pack__temp__ run data get storage pack:__flare_temp__ !t2
@@ -525,8 +523,6 @@ with schedule("20t", append=True) as timer:
 
 ```mcfunction [__constants__.mcfunction]
 scoreboard objectives add __pack__temp__ dummy
-scoreboard objectives add __pack__constant__ dummy
-scoreboard players set !_10 __pack__constant__ 10
 ```
 
 ```mcfunction [__init__.mcfunction]
@@ -540,7 +536,7 @@ execute store result score !add0 __pack__temp__ run data get storage pack:vars p
 scoreboard players add !add0 __pack__temp__ 1
 execute store result storage pack:vars pack_run_count int 1 run scoreboard players get !add0 __pack__temp__
 execute store result score !c0 __pack__temp__ run data get storage pack:vars pack_run_count
-execute if score !c0 __pack__temp__ >= !_10 __pack__constant__ run schedule clear pack:___init__/sched_0
+execute if score !c0 __pack__temp__ matches 10.. run schedule clear pack:___init__/sched_0
 ```
 
 :::
