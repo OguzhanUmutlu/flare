@@ -1069,7 +1069,7 @@ class OreConfig(TargetBlock):
 class OverlayConfig:
     def __init__(
             self,
-            features: Optional[Union[Union[list['PlacedFeatureRef'], str], Any]] = None,
+            features: Optional[Union['PlacedFeatureListRef', Any]] = None,
             **kwargs
     ):
         self.components = {}
@@ -1423,7 +1423,7 @@ class SeaPickleConfig:
 class SequenceConfig:
     def __init__(
             self,
-            features: Optional[Union[Union[list['PlacedFeatureRef'], str], Any]] = None,
+            features: Optional[Union['PlacedFeatureListRef', Any]] = None,
             **kwargs
     ):
         self.components = {}
@@ -1470,7 +1470,7 @@ class SimpleBlockConfig:
 class SimpleRandomSelectorConfig:
     def __init__(
             self,
-            features: Optional[Union[Union[list['FeatureRef'], str], Any]] = None,
+            features: Optional[Union[Union[list['FeatureRef'], 'PlacedFeatureListRef'], Any]] = None,
             **kwargs
     ):
         self.components = {}
@@ -1972,7 +1972,9 @@ class PlacedFeature:
                 res[k] = v
         return res
 
-PlacedFeatureRef = Union[Union[str, 'PlacedFeature'], Any]
+PlacedFeatureListRef = Union[Union['PlacedFeature', list['PlacedFeature'], str, list[Union[str, 'PlacedFeature']]], Any]
+
+PlacedFeatureRef = Union[Union['PlacedFeature', str], Any]
 
 class PlacementModifier:
     def __init__(

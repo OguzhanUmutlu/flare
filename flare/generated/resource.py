@@ -1676,7 +1676,7 @@ class LootTable:
                 res[k] = v
         return res
 
-LootTableListRef = Union[Union['LootTable', list['LootTable'], str, list[str]], Any]
+LootTableListRef = Union[Union[list['LootTable'], 'LootTable', str, list[Union[str, 'LootTable']]], Any]
 
 class LootCondition:
     def __init__(
@@ -2746,7 +2746,7 @@ class Biome(NaturalMobSpawns):
             effects: Optional[Union['BiomeEffects', Any]] = None,
             surface_builder: Optional[Union['ConfiguredSurfaceBuilderRef', Any]] = None,
             starts: Optional[Union[list['StructureRef'], Any]] = None,
-            carvers: Optional[Union[Union[dict, Union[list['CarverRef'], str, str]], Any]] = None,
+            carvers: Optional[Union[Union[dict, 'CarverListRef'], Any]] = None,
             features: Optional[Union[Union[list[list['ConfiguredFeatureRef']], list[Union[list['PlacedFeatureRef'], str]]], Any]] = None,
             **kwargs
     ):
@@ -2926,7 +2926,9 @@ class SpawnerDataMap:
                 res[k] = v
         return res
 
-CarverRef = Union[Union[str, str, 'ConfiguredCarver'], Any]
+CarverListRef = Union[Union['ConfiguredCarver', list['ConfiguredCarver'], str, list[str], str, list[Union[str, 'ConfiguredCarver']]], Any]
+
+CarverRef = Union[Union['ConfiguredCarver', str, str], Any]
 
 class ConfiguredCarver:
     def __init__(
@@ -3342,7 +3344,7 @@ class PlacedFeature:
                 res[k] = v
         return res
 
-PlacedFeatureRef = Union[Union[str, 'PlacedFeature'], Any]
+PlacedFeatureRef = Union[Union['PlacedFeature', str], Any]
 
 class PlacementModifier:
     def __init__(

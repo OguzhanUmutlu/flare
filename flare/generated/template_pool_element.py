@@ -54,7 +54,7 @@ class PlacedFeature:
                 res[k] = v
         return res
 
-PlacedFeatureRef = Union[Union[str, 'PlacedFeature'], Any]
+PlacedFeatureRef = Union[Union['PlacedFeature', str], Any]
 
 class PlacementModifier:
     def __init__(

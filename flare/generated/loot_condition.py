@@ -1254,7 +1254,7 @@ NumberProviderRef = Union[Union['NumberProvider', str], Any]
 
 Predicate = Union[Union['LootCondition', list['LootCondition']], Any]
 
-PredicateListRef = Union[Union['LootCondition', list['LootCondition'], str, list[str]], Any]
+PredicateListRef = Union[Union[list['LootCondition'], 'LootCondition', str, list[Union[str, 'LootCondition']]], Any]
 
 PredicateRef = Union[Union['Predicate', str], Any]
 

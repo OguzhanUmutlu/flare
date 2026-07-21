@@ -27,23 +27,52 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict, dynam
         return cached[0]
 
     def format_val(val):
-        if isinstance(val, dict) or (hasattr(val, "_value_to_set") and isinstance(val._value_to_set, dict)):
+        global _macro_substituted
+        nonlocal _any_var_resolved
+
+        if getattr(val, "_is_macro_param", False) is True:
+            _macro_substituted = True
+            _any_var_resolved = True
+            return f"$({val.name})"
+        elif dynamic_macros is not None and type(val).__name__ in ("score", "nbt", "_TypedNBT", "fixed",
+                                                                   "_PrecisionScore"):
+            temp_name = f"arg_{next_temp_id()}"
+            dynamic_macros.append((temp_name, val))
+            _macro_substituted = True
+            _any_var_resolved = True
+            return f"$({temp_name})"
+        elif isinstance(val, dict) or (hasattr(val, "_value_to_set") and isinstance(val._value_to_set, dict)):
+            _any_var_resolved = True
             val_dict = val if isinstance(val, dict) else val._value_to_set
             items = []
             for k, v in val_dict.items():
                 if not isinstance(k, (str, int, float, bool)):
                     raise TypeError("Invalid dict key for SNBT: " + str(type(k)))
                 if isinstance(k, str) and not re.match(r'^[a-zA-Z0-9_\-.]+$', k):
-                    k = json.dumps(k)
-                v_str = json.dumps(v) if isinstance(v, (str, dict, list)) else str(v)
-                items.append(f"{k}: {v_str}")
+                    k_str = json.dumps(k)
+                else:
+                    k_str = str(k)
+                v_str = format_val(v)
+                items.append(f"{k_str}: {v_str}")
             return "{" + ", ".join(items) + "}"
-        elif isinstance(val, list):
-            return "[" + ", ".join(json.dumps(x) if isinstance(x, (str, dict, list)) else str(x) for x in val) + "]"
+        elif isinstance(val, (list, tuple)):
+            _any_var_resolved = True
+            items = [format_val(x) for x in val]
+            return "[" + ", ".join(items) + "]"
+        elif isinstance(val, bool):
+            return "true" if val else "false"
+        elif isinstance(val, (int, float)):
+            return str(val)
+        elif isinstance(val, str):
+            if val.startswith("$(") and val.endswith(")"):
+                return val
+            return json.dumps(val)
         elif hasattr(val, "addr") and type(val).__name__ != "_Storage":
-            return val._addr
+            _any_var_resolved = True
+            return str(val._addr)
         elif hasattr(val, "target") and type(val).__name__ != "_Storage":
-            return val.target
+            _any_var_resolved = True
+            return str(val.target)
         return str(val)
 
     _macro_substituted = False
@@ -79,7 +108,6 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict, dynam
                     try:
                         val = eval(expr, global_vars, local_vars)
 
-                        # Macro checks
                         if getattr(val, "_is_macro_param", False) is True:
                             output.append(f"$({val.name})")
                             _macro_substituted = True
@@ -108,7 +136,6 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict, dynam
                     try:
                         val = eval(var, global_vars, local_vars)
 
-                        # Macro checks
                         if getattr(val, "_is_macro_param", False) is True:
                             output.append(f"$({val.name})")
                             _macro_substituted = True
@@ -129,20 +156,46 @@ def interpolate_command(command: str, local_vars: dict, global_vars: dict, dynam
                     continue
         elif command[i] in ('{', '['):
             start = i
-            open_bracket = command[i]
-            close_bracket = '}' if open_bracket == '{' else ']'
-            j = i + 1
-            bracket_count = 1
-            while j < n and bracket_count > 0:
-                if command[j] == open_bracket:
-                    bracket_count += 1
-                elif command[j] == close_bracket:
-                    bracket_count -= 1
+            j = i
+            bracket_counts = {'{': 0, '[': 0, '(': 0}
+            bracket_matches = {'}': '{', ']': '[', ')': '('}
+            in_string = False
+            escape = False
+            while j < n:
+                c = command[j]
+                if escape:
+                    escape = False
+                    j += 1
+                    continue
+                if c == '\\':
+                    escape = True
+                    j += 1
+                    continue
+                if c in ('"', "'"):
+                    if in_string == c:
+                        in_string = False
+                    elif not in_string:
+                        in_string = c
+                    j += 1
+                    continue
+                if not in_string:
+                    if c in bracket_counts:
+                        bracket_counts[c] += 1
+                    elif c in bracket_matches:
+                        opener = bracket_matches[c]
+                        if bracket_counts[opener] > 0:
+                            bracket_counts[opener] -= 1
+                    if j > start and sum(bracket_counts.values()) == 0:
+                        j += 1
+                        break
                 j += 1
-            if bracket_count == 0:
+
+            if j > start and sum(bracket_counts.values()) == 0:
                 expr = command[start:j]
                 try:
-                    val = eval(expr, global_vars, local_vars)
+                    eval_expr = re.sub(r'\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}', r'\1', expr)
+                    eval_expr = re.sub(r'\$([a-zA-Z_][a-zA-Z0-9_]*)', r'\1', eval_expr)
+                    val = eval(eval_expr, global_vars, local_vars)
                     if isinstance(val, (dict, list)) or (
                             hasattr(val, "_value_to_set") and isinstance(val._value_to_set, dict)):
                         output.append(format_val(val))

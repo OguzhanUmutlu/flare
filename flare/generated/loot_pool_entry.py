@@ -200,7 +200,7 @@ class LootTable:
                 res[k] = v
         return res
 
-LootTableListRef = Union[Union['LootTable', list['LootTable'], str, list[str]], Any]
+LootTableListRef = Union[Union[list['LootTable'], 'LootTable', str, list[Union[str, 'LootTable']]], Any]
 
 class LootTablePoolEntry(SingletonPoolEntry):
     def __init__(

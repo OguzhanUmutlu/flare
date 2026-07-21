@@ -161,6 +161,8 @@ class Dialog:
                 res[k] = v
         return res
 
+DialogListRef = Union[Union['Dialog', list['Dialog'], str, list[Union[str, 'Dialog']]], Any]
+
 class MultiActionDialog(ListDialogBase):
     def __init__(
             self,
@@ -206,7 +208,7 @@ class NoticeDialog(DialogBase):
 class RedirectDialog(ButtonListDialogBase):
     def __init__(
             self,
-            dialogs: Optional[Union[Union[list[Union[str, 'Dialog']], str, 'Dialog'], Any]] = None,
+            dialogs: Optional[Union['DialogListRef', Any]] = None,
             **kwargs
     ):
         super().__init__(**kwargs)

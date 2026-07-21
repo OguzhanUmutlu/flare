@@ -197,6 +197,8 @@ class NumberDispatcher:
 
 NumberProvider = Union[Union[float, {'type': str}, {'type': str}], Any]
 
+NumberProviderListRef = Union[Union[list['NumberProvider'], 'NumberProvider', str, list[Union[str, 'NumberProvider']]], Any]
+
 NumberProviderRef = Union[Union['NumberProvider', str], Any]
 
 class ScoreNumberProvider:
@@ -255,7 +257,7 @@ class StorageNumberProvider:
 class SumNumberProvider:
     def __init__(
             self,
-            summands: Optional[Union[list['NumberProviderRef'], Any]] = None,
+            summands: Optional[Union['NumberProviderListRef', Any]] = None,
             **kwargs
     ):
         self.components = {}
