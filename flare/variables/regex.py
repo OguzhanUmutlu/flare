@@ -19,36 +19,36 @@ def _init_globals():
     global ref_start, ref_end, ref_match, target_char, assert_not_failed, temp_end
     global temp_start, temp_prev_idx, prev_idx, regex_stack
 
-    regex_matched = score(addr="!regex_matched")
-    current_char = score(addr="!regex_current_char")
-    char_valid = score(addr="!regex_char_valid")
-    regex_index = score(addr="!regex_index")
+    regex_matched = score(addr="#regex_matched")
+    current_char = score(addr="#regex_current_char")
+    char_valid = score(addr="#regex_char_valid")
+    regex_index = score(addr="#regex_index")
     regex_target = nbtbytearray(addr="flare:regex target")
     macro_args = nbtcompound(addr="flare:regex macro_args")
-    in_match = score(addr="!regex_in_match")
-    category_match = score(addr="!regex_category_match")
-    prev_is_word = score(addr="!regex_prev_is_word")
-    curr_is_word = score(addr="!regex_curr_is_word")
-    is_bol = score(addr="!regex_is_bol")
-    is_eol = score(addr="!regex_is_eol")
-    ref_start = score(addr="!regex_ref_start")
-    ref_end = score(addr="!regex_ref_end")
-    ref_match = score(addr="!regex_ref_match")
-    target_char = score(addr="!regex_target_char")
-    assert_not_failed = score(addr="!regex_assert_not_failed")
-    temp_end = score(addr="!regex_temp_end")
-    temp_start = score(addr="!regex_temp_start")
-    temp_prev_idx = score(addr="!regex_temp_prev_idx")
-    prev_idx = score(addr="!regex_prev_idx")
+    in_match = score(addr="#regex_in_match")
+    category_match = score(addr="#regex_category_match")
+    prev_is_word = score(addr="#regex_prev_is_word")
+    curr_is_word = score(addr="#regex_curr_is_word")
+    is_bol = score(addr="#regex_is_bol")
+    is_eol = score(addr="#regex_is_eol")
+    ref_start = score(addr="#regex_ref_start")
+    ref_end = score(addr="#regex_ref_end")
+    ref_match = score(addr="#regex_ref_match")
+    target_char = score(addr="#regex_target_char")
+    assert_not_failed = score(addr="#regex_assert_not_failed")
+    temp_end = score(addr="#regex_temp_end")
+    temp_start = score(addr="#regex_temp_start")
+    temp_prev_idx = score(addr="#regex_temp_prev_idx")
+    prev_idx = score(addr="#regex_prev_idx")
     regex_stack = nbtlist(addr="flare:regex stack")
 
 
 def _get_group_start(group_num):
-    return score(addr=f"!regex_group_{group_num}_start")
+    return score(addr=f"#regex_group_{group_num}_start")
 
 
 def _get_group_end(group_num):
-    return score(addr=f"!regex_group_{group_num}_end")
+    return score(addr=f"#regex_group_{group_num}_end")
 
 
 def _read_char_generator(i, o):
@@ -221,7 +221,7 @@ def _compile_node(node: tuple, next_func: str | None, base_name: str, needs_capt
 
             node_id = ctx.next_func_id()
             loop_func = ctx.get_generated_func_name(f"{base_name}_max_repeat_loop")
-            counter_name = f"!loop_{node_id}"
+            counter_name = f"#loop_{node_id}"
 
             sub_start = _compile_sequence(subnodes, loop_func, f"{base_name}_sub_{node_id}", needs_capture)
 
@@ -282,7 +282,7 @@ def _compile_node(node: tuple, next_func: str | None, base_name: str, needs_capt
 
             node_id = ctx.next_func_id()
             loop_func = ctx.get_generated_func_name(f"{base_name}_min_repeat_loop")
-            counter_name = f"!loop_{node_id}"
+            counter_name = f"#loop_{node_id}"
 
             sub_start = _compile_sequence(subnodes, loop_func, f"{base_name}_sub_{node_id}", needs_capture)
 
@@ -705,7 +705,7 @@ class FlareRegexPattern:
             dest[:] = regex_matched
             return dest
 
-        return RegexMatch(target, eval_match, lambda: score(addr=f"!regex_out_{ctx.next_temp_id()}"),
+        return RegexMatch(target, eval_match, lambda: score(addr=f"#regex_out_{ctx.next_temp_id()}"),
                           lambda varid: score(addr=f"{varid} {ctx.vars_obj}"))
 
     def search(self, target):
@@ -727,7 +727,7 @@ class FlareRegexPattern:
             dest[:] = regex_matched
             return dest
 
-        return RegexMatch(target, eval_search, lambda: score(addr=f"!regex_out_{ctx.next_temp_id()}"),
+        return RegexMatch(target, eval_search, lambda: score(addr=f"#regex_out_{ctx.next_temp_id()}"),
                           lambda varid: score(addr=f"{varid} {ctx.vars_obj}"))
 
 

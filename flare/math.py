@@ -54,11 +54,11 @@ def _dispatch_eval(name, dest, *args):
             return type(var)(addr=addr, **kwargs)
 
         if memo_key not in ctx.memoized_math:
-            in_vars = [_clone_var(x, f"!{memo_key}_in0 {vars_obj}")]
+            in_vars = [_clone_var(x, f"#{memo_key}_in0 {vars_obj}")]
             for i, arg in enumerate(eval_args[1:]):
-                in_vars.append(_clone_var(arg, f"!{memo_key}_in{i + 1} {vars_obj}"))
+                in_vars.append(_clone_var(arg, f"#{memo_key}_in{i + 1} {vars_obj}"))
 
-            out_var_addr = f"!{memo_key}_out {vars_obj}"
+            out_var_addr = f"#{memo_key}_out {vars_obj}"
 
             ctx.memoized_math[memo_key] = {"in_vars": in_vars, "out_addr": out_var_addr,
                                            "func_path": f"__flare_stdlib__:__flare_math_{memo_key}"}
@@ -81,10 +81,10 @@ def _dispatch_eval(name, dest, *args):
 
         memo = ctx.memoized_math[memo_key]
 
-        x.__icopy__(f"!{memo_key}_in0")
+        x.__icopy__(f"#{memo_key}_in0")
         for i, arg in enumerate(eval_args[1:]):
             if hasattr(arg, "__icopy__"):
-                arg.__icopy__(f"!{memo_key}_in{i + 1}")
+                arg.__icopy__(f"#{memo_key}_in{i + 1}")
             else:
                 in_var = memo["in_vars"][i + 1]
                 if hasattr(in_var, "__iset__"):
@@ -125,7 +125,7 @@ def min_(*args, **kwargs):
         return dest
 
     def alloc_temp():
-        return var._best_leaf()._create_var(f"!min_{next_temp_id()}")
+        return var._best_leaf()._create_var(f"#min_{next_temp_id()}")
 
     return var._lazify(eval_min, alloc_temp, op_name="min", op_args=(args, kwargs))
 
@@ -149,7 +149,7 @@ def max_(*args, **kwargs):
         return dest
 
     def alloc_temp():
-        return var._best_leaf()._create_var(f"!max_{next_temp_id()}")
+        return var._best_leaf()._create_var(f"#max_{next_temp_id()}")
 
     return var._lazify(eval_max, alloc_temp, op_name="max", op_args=(args, kwargs))
 

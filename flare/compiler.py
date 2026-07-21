@@ -13,7 +13,7 @@ def _compile_relational(node, invert=False):
     from .variables.core import is_lazy
 
     op_map = {"eq": ("if", "="), "ne": ("unless", "="), "lt": ("if", "<"), "le": ("if", "<="), "gt": ("if", ">"),
-        "ge": ("if", ">="), }
+              "ge": ("if", ">=")}
     if node.op not in op_map:
         raise ValueError(f"Not a relational op: {node.op}")
 
@@ -75,7 +75,7 @@ def _compile_relational(node, invert=False):
                 return f"{kw} data {nbt_var._target_type} {nbt_var._target} {match_json}"
 
         tmp_nbt_addr = f"storage {ctx.temp_storage} __nbt_cmp"
-        tmp_score = score(addr=f"!n{ctx.next_temp_id()}")
+        tmp_score = score(addr=f"#n{ctx.next_temp_id()}")
 
         def _get_modify_cmd(target, source):
             if getattr(source, "_is_nbt_op", False):
@@ -118,7 +118,7 @@ def _compile_relational(node, invert=False):
 
         if isinstance(right, (int, float)):
             if not isinstance(left, score):
-                t = score(addr=f"!c{ctx.next_temp_id()}")
+                t = score(addr=f"#c{ctx.next_temp_id()}")
                 if isinstance(left, (BinaryOp, UnaryOp)):
                     left._compile_into(t)
                 else:
@@ -154,7 +154,7 @@ def _compile_relational(node, invert=False):
         if isinstance(left, (int, float)):
             left = getscore(left)
         else:
-            t = score(addr=f"!c{ctx.next_temp_id()}")
+            t = score(addr=f"#c{ctx.next_temp_id()}")
             if isinstance(left, (BinaryOp, UnaryOp)):
                 left._compile_into(t)
             else:
@@ -165,7 +165,7 @@ def _compile_relational(node, invert=False):
         if isinstance(right, (int, float)):
             right = getscore(right, left._multiplier)
         else:
-            t = score(addr=f"!c{ctx.next_temp_id()}", multiplier=left._multiplier)
+            t = score(addr=f"#c{ctx.next_temp_id()}", multiplier=left._multiplier)
             if isinstance(right, (BinaryOp, UnaryOp)):
                 right._compile_into(t)
             else:
@@ -173,7 +173,7 @@ def _compile_relational(node, invert=False):
             right = t
 
     if left._multiplier != right._multiplier:
-        t = score(addr=f"!c{ctx.next_temp_id()}", multiplier=left._multiplier)
+        t = score(addr=f"#c{ctx.next_temp_id()}", multiplier=left._multiplier)
         t[:] = right
         right = t
 
@@ -181,7 +181,7 @@ def _compile_relational(node, invert=False):
 
 
 def _eval_to_bool_score(node):
-    dest = score(addr=f"!b{ctx.next_temp_id()}")
+    dest = score(addr=f"#b{ctx.next_temp_id()}")
     _runcmd(f"scoreboard players set {addr(dest)} 0")
 
     if isinstance(node, BinaryOp) and node.op == "or":
@@ -198,7 +198,7 @@ def _eval_to_bool_score(node):
         return dest
 
     if isinstance(node, (BinaryOp, UnaryOp)):
-        t = score(addr=f"!b{ctx.next_temp_id()}")
+        t = score(addr=f"#b{ctx.next_temp_id()}")
         node._compile_into(t)
         _runcmd(f"execute unless score {addr(t)} matches 0 run scoreboard players set {addr(dest)} 1")
         return dest

@@ -11,7 +11,7 @@ def nostack(func):
     return func
 
 
-def lazify(temp="!temp", datatype=None, self=True, copy=None):
+def lazify(temp="#temp", datatype=None, self=True, copy=None):
     from .. import context as ctx
     def decorator(func):
         @functools.wraps(func)
@@ -109,7 +109,7 @@ class FlareValue(ABC, metaclass=FlareClassMeta):
             return
         raise TypeError(f"'{type(self).__name__}' object does not support item assignment")
 
-    def _alloc_temp(self, prefix="!temp"):
+    def _alloc_temp(self, prefix="#temp"):
         raise NotImplementedError(f"'{type(self).__name__}' does not implement _alloc_temp()")
 
     def _compile_into(self, dest):
@@ -134,7 +134,7 @@ class FlareValue(ABC, metaclass=FlareClassMeta):
             if not container:
                 return False
 
-            dest = score(addr=f"!in_{ctx.next_temp_id()}")
+            dest = score(addr=f"#in_{ctx.next_temp_id()}")
             _runcmd(f"scoreboard players set {addr(dest)} 0")
 
             for item in container:
@@ -256,7 +256,7 @@ class FlareValue(ABC, metaclass=FlareClassMeta):
             possibilities = (type(self),)
 
         if isinstance(other, LazyOp):
-            t = type(self)(addr=f"!lazy{ctx.next_temp_id()}")
+            t = type(self)(addr=f"#lazy{ctx.next_temp_id()}")
             other._compile_into(t)
             other = t
 
@@ -313,7 +313,7 @@ class BinaryOp(FlareValue):
 
         return traverse(self)
 
-    def _alloc_temp(self, prefix="!temp", like=None):
+    def _alloc_temp(self, prefix="#temp", like=None):
         if like is not None:
             return like._alloc_temp(prefix=prefix)
         return self._best_leaf()._alloc_temp(prefix=prefix)
@@ -405,7 +405,7 @@ class UnaryOp(FlareValue):
 
         return traverse(self)
 
-    def _alloc_temp(self, prefix="!temp", like=None):
+    def _alloc_temp(self, prefix="#temp", like=None):
         return like._alloc_temp(prefix=prefix)
 
     def _compile_into(self, dest):
@@ -482,7 +482,7 @@ class MathOp(FlareValue):
                 return arg._best_leaf()
         return self.args[0]
 
-    def _alloc_temp(self, prefix="!temp", like=None):
+    def _alloc_temp(self, prefix="#temp", like=None):
         if like is not None:
             return like._alloc_temp(prefix=prefix)
         leaf = self._best_leaf()
@@ -535,7 +535,7 @@ class LazyOp(FlareValue):
             return self._alloc_temp()
         return self.operand._best_leaf()
 
-    def _alloc_temp(self, prefix="!temp", like=None):
+    def _alloc_temp(self, prefix="#temp", like=None):
         if self.alloc_temp_fn is not None:
             return self.alloc_temp_fn()
         if like is not None:
@@ -745,7 +745,7 @@ class _LazyFunctionCall(FlareValue):
             from .score import score
             from ..execute_modifiers import store_success
 
-            temp = score(addr=f"!succ_{next_temp_id()} {vars_obj}")
+            temp = score(addr=f"#succ_{next_temp_id()} {vars_obj}")
             store_success(temp).__with__(self.__alone__)
 
             if invert:

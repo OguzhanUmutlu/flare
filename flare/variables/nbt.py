@@ -212,8 +212,8 @@ def _number_add(self: nbt, other):
     self._check_addr()
     if isinstance(other, (score, nbt)):
         other._check_addr()
-    temp = score(addr="!add0")
-    temp2 = score(addr="!add1")
+    temp = score(addr="#add0")
+    temp2 = score(addr="#add1")
     if isinstance(other, (int, float, score)):
         if self.is_floaty() and isinstance(other, score):
             raise TypeError("Use nbt.addp(score, multiplier) for float addition")
@@ -239,8 +239,8 @@ def _number_sub(self: nbt, other):
     self._check_addr()
     if isinstance(other, (score, nbt)):
         other._check_addr()
-    temp = score(addr="!sub0")
-    temp2 = score(addr="!sub1")
+    temp = score(addr="#sub0")
+    temp2 = score(addr="#sub1")
     if isinstance(other, (int, float, score)):
         if self.is_floaty() and isinstance(other, score):
             raise TypeError("Use nbt.subp(score, multiplier) for float subtraction")
@@ -265,8 +265,8 @@ def _number_mul(self: nbt, other):
     self._check_addr()
     if isinstance(other, (score, nbt)):
         other._check_addr()
-    temp = score(addr="!mul0")
-    temp2 = score(addr="!mul1")
+    temp = score(addr="#mul0")
+    temp2 = score(addr="#mul1")
     if isinstance(other, (int, float, score)):
         if self.is_floaty() and isinstance(other, score):
             raise TypeError("Use nbt.mul(score, multiplier) for float multiplication")
@@ -291,8 +291,8 @@ def _number_div(self: nbt, other):
     self._check_addr()
     if isinstance(other, (score, nbt)):
         other._check_addr()
-    temp = score(addr="!div0")
-    temp2 = score(addr="!div1")
+    temp = score(addr="#div0")
+    temp2 = score(addr="#div1")
     if isinstance(other, (int, float, score)):
         if self.is_floaty() and isinstance(other, score):
             raise TypeError("Use nbt.divp(score, multiplier) for float division")
@@ -317,8 +317,8 @@ def _number_mod(self: nbt, other):
     self._check_addr()
     if isinstance(other, (score, nbt)):
         other._check_addr()
-    temp = score(addr="!mod0")
-    temp2 = score(addr="!mod1")
+    temp = score(addr="#mod0")
+    temp2 = score(addr="#mod1")
     if isinstance(other, (int, float, score)):
         if self.is_floaty() and isinstance(other, score):
             raise TypeError("Use nbt.modp(score, multiplier) for float modulo")
@@ -526,9 +526,9 @@ class nbt(FlareValue, NBTStringMethods):
             if self._value_to_set is not None:
                 self[:] = self._value_to_set
 
-    def _alloc_temp(self, prefix="!temp"):
+    def _alloc_temp(self, prefix="#temp"):
         if isinstance(prefix, FlareValue):
-            prefix = "!temp"
+            prefix = "#temp"
         t = nbt(addr=f"storage flare:temp {prefix}_{ctx.next_temp_id()}", datatype=self._type,
                 schema_node=self._schema_node)
         if hasattr(self, "_inner_type") and getattr(self, "_inner_type") is not None:
@@ -588,10 +588,10 @@ class nbt(FlareValue, NBTStringMethods):
                                                            "execute unless data storage __flare_stdlib__:nbt_get_type output run function __flare_stdlib__:nbt/get_type/string",
                                                            "execute unless data storage __flare_stdlib__:nbt_get_type output run data modify storage __flare_stdlib__:nbt_get_type output set value \"unknown\""]
 
-    @lazify(temp="!nbt_type", datatype=NBTType.String)
+    @lazify(temp="#nbt_type", datatype=NBTType.String)
     def get_type(self, *, dest=None):
         nbt._generate_get_type_stdlib()
-        temp = self._alloc_temp("!type_in")
+        temp = self._alloc_temp("#type_in")
         temp[:] = self
         _runcmd(f"data modify storage __flare_stdlib__:nbt_get_type input set from {addr(temp)}")
         _runcmd("function __flare_stdlib__:nbt/get_type/init")
@@ -703,7 +703,7 @@ class nbt(FlareValue, NBTStringMethods):
         _id = ctx.next_temp_id()
         is_str = self._type == NBTType.String
 
-        temp_len = score(addr=f"!for_len_{_id}")
+        temp_len = score(addr=f"#for_len_{_id}")
 
         if is_str:
             temp_len[:] = self.__len__()
@@ -752,7 +752,7 @@ class nbt(FlareValue, NBTStringMethods):
                 _runcmd(f"data remove {addr(temp_arr)}[0]")
 
             if has_break:
-                break_score = score(addr="!break")
+                break_score = score(addr="#break")
                 ScoreIfMatches(break_score, 1).then(lambda: _runcmd("return 0"))
 
             if _has_early_return(func_name):
@@ -775,7 +775,7 @@ class nbt(FlareValue, NBTStringMethods):
                 ctx.files[func_name].append("return 0")
 
         if has_break:
-            break_score = score(addr="!break")
+            break_score = score(addr="#break")
             break_score[:] = 0
 
         if _has_early_return(func_name):
@@ -804,7 +804,7 @@ class nbt(FlareValue, NBTStringMethods):
                 orelse_name = ctx.get_generated_func_name("for_else")
                 with ctx.push_context(orelse_name):
                     orelse_func()
-                break_score = score(addr="!break")
+                break_score = score(addr="#break")
                 ScoreIfMatches(break_score, 0).then(lambda: _runcmd(f"function {orelse_name}"))
             else:
                 orelse_func()
@@ -1283,7 +1283,7 @@ class nbt(FlareValue, NBTStringMethods):
             raise UnsupportedOperandError(self, "=", other)
         return self._try_binary("__iset__", "=", other, exp_type)
 
-    @lazify(temp="!in_res_out", datatype=NBTType.Byte)
+    @lazify(temp="#in_res_out", datatype=NBTType.Byte)
     def __in__(self, item, *, dest=None):
         from .score import score
         from ..control_flow import _flare_if, _flare_while
@@ -1326,7 +1326,7 @@ class nbt(FlareValue, NBTStringMethods):
         temp = nbt(addr=f"flare:temp in_arr_{_id}", datatype=self._type)
         temp[:] = self
 
-        length = score(addr=f"!in_len_{_id}")
+        length = score(addr=f"#in_len_{_id}")
         length[:] = flare_len(temp)
 
         def loop():
@@ -1377,8 +1377,8 @@ class nbt(FlareValue, NBTStringMethods):
         self._check_addr()
         if isinstance(other, (score, nbt)):
             other._check_addr()
-        temp = score(addr="!max0")
-        temp2 = score(addr="!max1")
+        temp = score(addr="#max0")
+        temp2 = score(addr="#max1")
         if isinstance(other, (int, float, score)):
             if not self.is_number():
                 raise TypeError(f"Cannot max {self._type_name.lower()}")
@@ -1406,8 +1406,8 @@ class nbt(FlareValue, NBTStringMethods):
         self._check_addr()
         if isinstance(other, (score, nbt)):
             other._check_addr()
-        temp = score(addr="!min0")
-        temp2 = score(addr="!min1")
+        temp = score(addr="#min0")
+        temp2 = score(addr="#min1")
         if isinstance(other, (int, float, score)):
             if not self.is_number():
                 raise TypeError(f"Cannot min {self._type_name.lower()}")
@@ -1451,7 +1451,7 @@ class nbt(FlareValue, NBTStringMethods):
         if not self.is_number():
             raise TypeError(f"Cannot perform arithmetic on {self._type_name.lower() if self._type else 'untyped NBT'}")
 
-        temp_self = score(addr="!mathp0", multiplier=multiplier)
+        temp_self = score(addr="#mathp0", multiplier=multiplier)
 
         scale = 1 / multiplier
         scale_str = f"{scale:g}" if scale % 1 != 0 else str(int(scale))
@@ -1493,7 +1493,7 @@ class nbt(FlareValue, NBTStringMethods):
             other._check_addr()
             if not other.is_number():
                 raise TypeError("Cannot perform arithmetic on non-number NBT")
-            temp_other = score(addr="!mathp1", multiplier=multiplier)
+            temp_other = score(addr="#mathp1", multiplier=multiplier)
             _runcmd(f"execute store result score {addr(temp_other)} run data get {addr(other)} {scale_str}")
             if op == "+":
                 temp_self += temp_other
@@ -1714,7 +1714,7 @@ class nbt(FlareValue, NBTStringMethods):
                 return self
         return self.insert(0, other)
 
-    @lazify(temp="!to_string_out", datatype=NBTType.String)
+    @lazify(temp="#to_string_out", datatype=NBTType.String)
     def to_string(self, *, dest=None):
         self._check_addr()
 

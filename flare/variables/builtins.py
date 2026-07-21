@@ -74,7 +74,7 @@ class flare_range:
         if len(self.args) == 3 and isinstance(self.args[2], (int, float)) and self.args[2] < 0:
             is_neg = True
 
-        i = score(0, addr=f"!range_i_{ctx.next_temp_id()}")
+        i = score(0, addr=f"#range_i_{ctx.next_temp_id()}")
         i[:] = start
 
         def loop_body():
@@ -108,7 +108,7 @@ def flare_ord(s):
         return dest
 
     def alloc_temp():
-        return score(addr=f"!ord_out_{ctx.next_temp_id()}")
+        return score(addr=f"#ord_out_{ctx.next_temp_id()}")
 
     return LazyOp(s, eval_ord, alloc_temp)
 
@@ -128,7 +128,7 @@ def flare_bin(n):
 
     def eval_bin(dest):
         _id = ctx.next_temp_id()
-        n_score = score(0, addr=f"!bin_n_{_id}")
+        n_score = score(0, addr=f"#bin_n_{_id}")
         n_score[:] = n
 
         dest[:] = ""
@@ -157,6 +157,6 @@ def flare_bin(n):
         return dest
 
     def alloc_temp():
-        return nbt(addr=f"!bin_out_{ctx.next_temp_id()}", datatype=NBTType.String)
+        return nbt(addr=f"#bin_out_{ctx.next_temp_id()}", datatype=NBTType.String)
 
     return LazyOp(n, eval_bin, alloc_temp)

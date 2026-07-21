@@ -84,7 +84,7 @@ def next_temp_id():
 def next_temp_score(prefix: str = "t", **kwargs):
     from .variables.score import score
 
-    return score(addr=f"!{prefix}_{next_temp_id()}", **kwargs)
+    return score(addr=f"#{prefix}_{next_temp_id()}", **kwargs)
 
 
 def next_func_id():
@@ -401,8 +401,8 @@ def _invoke_stdlib(func_name, generator, inputs=None, outputs=None, with_=None):
         outputs = {}
 
     safe_func_name = func_name.replace(":", "_")
-    std_inputs = {k: type(v)(addr=f"!{safe_func_name}_{k} __flare_stdlib__") for k, v in inputs.items()}
-    std_outputs = {k: type(v)(addr=f"!{safe_func_name}_{k} __flare_stdlib__") for k, v in outputs.items()}
+    std_inputs = {k: type(v)(addr=f"#{safe_func_name}_{k} __flare_stdlib__") for k, v in inputs.items()}
+    std_outputs = {k: type(v)(addr=f"#{safe_func_name}_{k} __flare_stdlib__") for k, v in outputs.items()}
 
     if func_name not in files:
         with push_context(func_name):
@@ -591,7 +591,7 @@ def export(func=None, *, name=None, append=False, returns=None):
                 if ret_anno == int or ret_anno == "int":
                     return IntReturn(func_name)
                 elif hasattr(ret_anno, "__name__") and ret_anno.__name__ in ("score", "fixed", "_PrecisionScore"):
-                    temp_ret = score(addr=f"!ret{_temp_id}")
+                    temp_ret = score(addr=f"#ret{_temp_id}")
                     _temp_id += 1
                     _runcmd(
                         f"scoreboard players operation {addr(temp_ret)} = {func_name.replace(':', '_')}_ret {vars_obj}")

@@ -13,13 +13,7 @@ BASE = 10000
 
 
 def _get_temps():
-    return (
-        score(addr="!rem"),
-        score(addr="!val"),
-        score(addr="!carry"),
-        score(addr="!borrow"),
-        score(addr="!mul")
-    )
+    return (score(addr="#rem"), score(addr="#val"), score(addr="#carry"), score(addr="#borrow"), score(addr="#mul"))
 
 
 class bigscore(FlareValue):
@@ -58,7 +52,7 @@ class bigscore(FlareValue):
     def _create_var(self, varid: str):
         return type(self)(addr=f"{varid} {vars_obj}", size=self.size, multiplier=self._multiplier)
 
-    def _alloc_temp(self, prefix="!temp"):
+    def _alloc_temp(self, prefix="#temp"):
         return type(self)(addr=f"{prefix}_{next_temp_id()}", size=self.size, multiplier=self._multiplier)
 
     @classmethod
@@ -88,7 +82,7 @@ class bigscore(FlareValue):
 
     def _check_addr(self):
         if self._addr is None:
-            self._parse_addr(f"!big{next_temp_id()}")
+            self._parse_addr(f"#big{next_temp_id()}")
             if self._value_to_set is not None:
                 self[:] = self._value_to_set
 
@@ -125,10 +119,7 @@ class bigscore(FlareValue):
             first_limb = self.get_limb(0)
             first_limb[:] = other
             carry[:] = 0
-            ScoreIfMatches(first_limb, (-inf, -1)).then(lambda: [
-                carry.__isub__(1),
-                first_limb.__iadd__(self._base)
-            ])
+            ScoreIfMatches(first_limb, (-inf, -1)).then(lambda: [carry.__isub__(1), first_limb.__iadd__(self._base)])
 
             for i in range(1, self.size):
                 limb = self.get_limb(i)
@@ -157,10 +148,8 @@ class bigscore(FlareValue):
                 carry[:] = limb
                 carry /= self._base
                 limb %= self._base
-                ScoreIfMatches(self.get_limb(i), (-inf, -1)).then(lambda: [
-                    carry.__isub__(1),
-                    self.get_limb(i).__iadd__(self._base)
-                ])
+                ScoreIfMatches(self.get_limb(i), (-inf, -1)).then(
+                    lambda: [carry.__isub__(1), self.get_limb(i).__iadd__(self._base)])
             return self
 
         return self._try_binary("__iadd__", "+", other)
@@ -182,10 +171,8 @@ class bigscore(FlareValue):
                 limb -= other_limb
                 limb -= borrow
                 borrow[:] = 0
-                ScoreIfMatches(self.get_limb(i), (-inf, -1)).then(lambda: [
-                    borrow.__iset__(1),
-                    self.get_limb(i).__iadd__(self._base)
-                ])
+                ScoreIfMatches(self.get_limb(i), (-inf, -1)).then(
+                    lambda: [borrow.__iset__(1), self.get_limb(i).__iadd__(self._base)])
             return self
 
         return self._try_binary("__isub__", "-", other)
@@ -200,7 +187,7 @@ class bigscore(FlareValue):
             if self._base != other._base:
                 raise ValueError("Cannot multiply bigscores of different bases")
 
-            temp_c = [score(0, addr=f"!C_{i}") for i in range(self.size * 2)]
+            temp_c = [score(0, addr=f"#C_{i}") for i in range(self.size * 2)]
 
             for i in range(self.size):
                 for j in range(self.size):
@@ -264,10 +251,7 @@ class bigscore(FlareValue):
                     val -= limb
                     val -= borrow
                     borrow[:] = 0
-                    ScoreIfMatches(val, (-inf, -1)).then(lambda: [
-                        borrow.__iset__(1),
-                        val.__iadd__(self._base)
-                    ])
+                    ScoreIfMatches(val, (-inf, -1)).then(lambda: [borrow.__iset__(1), val.__iadd__(self._base)])
                     limb[:] = val
                 return self
             rem[:] = 0
@@ -323,10 +307,8 @@ class bigscore(FlareValue):
                     r_limb -= dsh_limb
                     r_limb -= borrow
                     borrow[:] = 0
-                    ScoreIfMatches(r.get_limb(i), (-inf, -1)).then(lambda: [
-                        borrow.__iset__(1),
-                        r.get_limb(i).__iadd__(self._base)
-                    ])
+                    ScoreIfMatches(r.get_limb(i), (-inf, -1)).then(
+                        lambda: [borrow.__iset__(1), r.get_limb(i).__iadd__(self._base)])
 
                 carry[:] = 0
                 for i in range(self.size):
@@ -334,10 +316,8 @@ class bigscore(FlareValue):
                     q_limb *= 2
                     q_limb += carry
                     carry[:] = 0
-                    ScoreIfMatches(q.get_limb(i), (self._base, inf)).then(lambda: [
-                        carry.__iset__(1),
-                        q.get_limb(i).__isub__(self._base)
-                    ])
+                    ScoreIfMatches(q.get_limb(i), (self._base, inf)).then(
+                        lambda: [carry.__iset__(1), q.get_limb(i).__isub__(self._base)])
 
                 ScoreIfMatches(borrow, 0).then(lambda: q.get_limb(0).__iadd__(1))
 
@@ -362,9 +342,7 @@ class bigscore(FlareValue):
                     r_limb *= 2
                     r_limb += carry
                     carry[:] = val
-                    ScoreIfMatches(r_limb, (self._base, inf)).then(
-                        lambda: r_limb.__isub__(self._base)
-                    )
+                    ScoreIfMatches(r_limb, (self._base, inf)).then(lambda: r_limb.__isub__(self._base))
 
             for i in range(self.size):
                 self.get_limb(i)[:] = q.get_limb(i)
@@ -459,7 +437,7 @@ class bigscore(FlareValue):
 
         self._check_addr()
         tid = next_temp_id()
-        started = score(0, addr=f"!print_s_{tid} {vars_obj}")
+        started = score(0, addr=f"#print_s_{tid} {vars_obj}")
         comps = []
 
         for i in reversed(range(self.size)):

@@ -12,10 +12,9 @@ class complex(FlareValue):
         self.real = real
         self.imag = imag
 
-    def _alloc_temp(self, prefix="!temp"):
+    def _alloc_temp(self, prefix="#temp"):
         tid = next_temp_id()
-        t = type(self)(self.real.__class__(addr=f"{prefix}r{tid}"),
-                       self.imag.__class__(addr=f"{prefix}i{tid}"))
+        t = type(self)(self.real.__class__(addr=f"{prefix}r{tid}"), self.imag.__class__(addr=f"{prefix}i{tid}"))
         return t
 
     def _create_var(self, varid: str):

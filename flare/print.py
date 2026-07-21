@@ -3,10 +3,8 @@ import copy
 from .context import vars_obj, next_temp_id, _runcmd, push_context, temp_storage, addr
 from .variables.core import is_lazy
 
-_COLORS = (
-    "black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray", "dark_gray", "blue",
-    "green", "aqua", "red", "light_purple", "yellow"
-)
+_COLORS = ("black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray", "dark_gray",
+           "blue", "green", "aqua", "red", "light_purple", "yellow")
 
 
 class _PrintStyle:
@@ -103,7 +101,7 @@ def _to_print_component(arg, i):
         return res if isinstance(res, list) else [res]
 
     if hasattr(arg, "__icopy__") and getattr(type(arg), "__name__", "") in ("BinaryOp", "UnaryOp"):
-        arg = arg.__icopy__(f"!print_{next_temp_id()}")
+        arg = arg.__icopy__(f"#print_{next_temp_id()}")
 
     if hasattr(arg, "__print__"):
         if not hasattr(arg, "__icopy__"):
@@ -114,12 +112,10 @@ def _to_print_component(arg, i):
         memo_key = f"{type_name}_print"
 
         if memo_key not in ctx.memoized_math:
-            in_var = type(arg)(addr=f"!{memo_key}_in0 {vars_obj}")
+            in_var = type(arg)(addr=f"#{memo_key}_in0 {vars_obj}")
 
-            ctx.memoized_math[memo_key] = {
-                "in_var": in_var,
-                "func_path": f"{ctx._current_namespace}:__flare_print__/{type_name}"
-            }
+            ctx.memoized_math[memo_key] = {"in_var": in_var,
+                "func_path": f"{ctx._current_namespace}:__flare_print__/{type_name}"}
 
             with push_context(f"{ctx._current_namespace}:__flare_print__/{type_name}"):
                 res_comps = in_var.__print__()
@@ -128,7 +124,7 @@ def _to_print_component(arg, i):
 
         memo = ctx.memoized_math[memo_key]
 
-        arg.__icopy__(f"!{memo_key}_in0")
+        arg.__icopy__(f"#{memo_key}_in0")
         _runcmd(f"function {memo['func_path']}")
 
         p = copy.deepcopy(memo["res_comps"])
@@ -140,7 +136,7 @@ def _to_print_component(arg, i):
         elif getattr(arg, "operand", None) and hasattr(arg.operand, "_alloc_temp"):
             temp = arg.operand._alloc_temp()
         else:
-            temp = score(addr=f"!print{ctx.next_temp_id()}")
+            temp = score(addr=f"#print{ctx.next_temp_id()}")
 
         arg._compile_into(temp)
         arg = temp
@@ -331,8 +327,8 @@ class MultiActionDialog(Dialog):
         if self.button_width is not None:
             res["button_width"] = self.button_width
         if self.exit_action is not None:
-            res["exit_action"] = self.exit_action.__print__() if hasattr(self.exit_action, "__print__") \
-                else self.exit_action
+            res["exit_action"] = self.exit_action.__print__() if hasattr(self.exit_action,
+                                                                         "__print__") else self.exit_action
         return res
 
 
@@ -477,11 +473,9 @@ def style(*args, color: str | int | Color | None = None, font: str | None = None
           italic: bool | None = None, underlined: bool | None = None, strikethrough: bool | None = None,
           obfuscate: bool | None = None, shadow_color: str | int | Color | None = None, insertion: str | None = None,
           click_event: click_event | dict | None = None, hover_event: hover_event | dict | None = None, sep: str = " "):
-    return _PrintStyle(
-        *args, color=color, font=font, bold=bold, italic=italic, underlined=underlined,
-        strikethrough=strikethrough, obfuscate=obfuscate, shadow_color=shadow_color,
-        insertion=insertion, click_event=click_event, hover_event=hover_event, sep=sep
-    )
+    return _PrintStyle(*args, color=color, font=font, bold=bold, italic=italic, underlined=underlined,
+        strikethrough=strikethrough, obfuscate=obfuscate, shadow_color=shadow_color, insertion=insertion,
+        click_event=click_event, hover_event=hover_event, sep=sep)
 
 
 class _TranslateComponent:

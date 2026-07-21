@@ -17,6 +17,7 @@ class ScoreIf:
 
     def __and__(self, other):
         from .variables.score import score
+
         if isinstance(self.t, score):
             return ScoreIf([self, other])
         return ScoreIf([*self.t, other])
@@ -197,8 +198,8 @@ def _invoke_block(func_name, cond_str):
         if has_regular and not (ctx.files[func_name] and ctx.files[func_name][-1] in ("return 0", "return 1")):
             ctx.files[func_name].append("return 0")
 
-        ret_temp = score(addr=f"!ret{next_temp_id()}") if has_regular else None
-        succ_temp = score(addr=f"!succ{next_temp_id()}") if has_fail else None
+        ret_temp = score(addr=f"#ret{next_temp_id()}") if has_regular else None
+        succ_temp = score(addr=f"#succ{next_temp_id()}") if has_fail else None
 
         if has_regular:
             _runcmd(f"scoreboard players set {addr(ret_temp)} 0")
@@ -253,7 +254,7 @@ def _flare_if(*args):
     has_else_or_elif = len(conditions) > 1 or conditions[0] is None
 
     if has_else_or_elif:
-        elif_temp = score(addr=f"!elif{next_temp_id()}")
+        elif_temp = score(addr=f"#elif{next_temp_id()}")
         elif_temp.__iset__(0)
 
     is_dynamic_chain = None
@@ -399,7 +400,7 @@ def _flare_while(cond_func, body_func, orelse_func=None, has_break=False, has_co
 
     cond_init = cond_func()
     conds_init = _flatten_and(cond_init)
-    ret_temp_init = score(addr=f"!ret{ctx.next_temp_id()}")
+    ret_temp_init = score(addr=f"#ret{ctx.next_temp_id()}")
     _runcmd(f"execute store result score {addr(ret_temp_init)} {' '.join(conds_init)} run function {func_name}")
     _runcmd(f"execute if score {addr(ret_temp_init)} matches 1 run return 1")
 

@@ -8,7 +8,7 @@ from .variables.nbt import nbt
 
 
 def randint(a, b):
-    dest = score(addr=f"!rand_{ctx.next_temp_id()}")
+    dest = score(addr=f"#rand_{ctx.next_temp_id()}")
     if isinstance(a, int) and isinstance(b, int):
         _runcmd(f"execute store result score {addr(dest)} run random value {a}..{b}")
         return dest

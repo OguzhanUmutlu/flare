@@ -312,19 +312,17 @@ class block(FlareValue, Generic[T]):
                 right_target_func = f"__flare_stdlib__:block/get/blocks/{right_child_id}"
                 right_tag_values = build_node(mid, end_idx, right_child_id)
                 context.json_files[f"__flare_stdlib__:tags/block/get/blocks/{right_child_id}.json"] = {
-                    "values": right_tag_values
-                }
+                    "values": right_tag_values}
 
             context.files[f"__flare_stdlib__:block/get/blocks/{my_id}"] = [
                 f"execute if block ~ ~ ~ {left_val} run function {left_target_func}",
-                f"execute if block ~ ~ ~ {right_val} run function {right_target_func}"
-            ]
+                f"execute if block ~ ~ ~ {right_val} run function {right_target_func}"]
 
             return [left_val, right_val]
 
         build_node(0, len(BLOCK_LIST), "root")
 
-    @lazify(temp="!block_id_t", self=False, datatype=NBTType.String)
+    @lazify(temp="#block_id_t", self=False, datatype=NBTType.String)
     def get_id(self, *, dest=None):
         block._generate_get_name_stdlib()
         _runcmd(f"execute positioned {self.pos} run function __flare_stdlib__:block/get/blocks/root")
@@ -337,22 +335,18 @@ class block(FlareValue, Generic[T]):
         cls._to_item_stdlib_generated = True
 
         context.files["__flare_stdlib__:block/to_item/output"] = [
-            "data modify storage __flare_stdlib__:block_to_item output set from entity @s Item",
-            "kill @s"
-        ]
+            "data modify storage __flare_stdlib__:block_to_item output set from entity @s Item", "kill @s"]
         context.files["__flare_stdlib__:block/to_item/set"] = [
             "data modify entity @s carriedBlockState.Name set from storage __flare_stdlib__:block_to_item target",
             "kill @s",
-            "execute as @e[type=item,limit=1,sort=nearest,distance=..1] run function __flare_stdlib__:block/to_item/output"
-        ]
+            "execute as @e[type=item,limit=1,sort=nearest,distance=..1] run function __flare_stdlib__:block/to_item/output"]
         context.files["__flare_stdlib__:block/to_item/init"] = [
             "data remove storage __flare_stdlib__:block_to_item output",
             "summon enderman ~ ~128 ~ {UUID:[I;383052994,1857242745,-1216207480,271146137],DeathLootTable:\"minecraft:empty\",NoAI:true,Silent:true}",
-            "execute as 16d4ecc2-6eb3-4679-b782-258810295c99 at @s run function __flare_stdlib__:block/to_item/set"
-        ]
+            "execute as 16d4ecc2-6eb3-4679-b782-258810295c99 at @s run function __flare_stdlib__:block/to_item/set"]
 
     @classmethod
-    @lazify(temp="!to_item_t", self=False)
+    @lazify(temp="#to_item_t", self=False)
     def to_item(cls, target_name, *, dest=None):
         cls._generate_to_item_stdlib()
 
@@ -368,25 +362,19 @@ class block(FlareValue, Generic[T]):
 
         context.ensure_objective("flare_blk_pl")
 
-        context.files["__flare_stdlib__:block/place/check"] = [
-            "scoreboard players add @s flare_blk_pl 1",
+        context.files["__flare_stdlib__:block/place/check"] = ["scoreboard players add @s flare_blk_pl 1",
             "execute unless block ~ ~1 ~ minecraft:air run function __flare_stdlib__:block/place/delete",
-            "execute if block ~ ~1 ~ minecraft:air unless score @s flare_blk_pl matches 10.. run schedule function __flare_stdlib__:block/place/cleanup 1t"
-        ]
+            "execute if block ~ ~1 ~ minecraft:air unless score @s flare_blk_pl matches 10.. run schedule function __flare_stdlib__:block/place/cleanup 1t"]
         context.files["__flare_stdlib__:block/place/cleanup"] = [
-            "execute as @e[type=shulker,tag=flare_blk_pl] at @s run function __flare_stdlib__:block/place/check"
-        ]
+            "execute as @e[type=shulker,tag=flare_blk_pl] at @s run function __flare_stdlib__:block/place/check"]
         context.files["__flare_stdlib__:block/place/delete"] = [
-            "execute if block ~ ~ ~ minecraft:moving_piston run setblock ~ ~ ~ minecraft:air",
-            "tp @s ~ ~-500 ~"
-        ]
+            "execute if block ~ ~ ~ minecraft:moving_piston run setblock ~ ~ ~ minecraft:air", "tp @s ~ ~-500 ~"]
         context.files["__flare_stdlib__:block/place/init"] = [
             "execute if block ~ ~-1 ~ minecraft:air run setblock ~ ~-1 ~ moving_piston",
             "execute align xyz run summon shulker ~ ~-1 ~ {Silent:1b,Invulnerable:1b,DeathLootTable:\"minecraft:empty\",NoAI:1b,AttachFace:0b,Tags:[\"flare_blk_pl\"],ActiveEffects:[{Id:14,Amplifier:1b,Duration:199999980,ShowParticles:0b}]}",
             "summon falling_block ~ ~ ~ {DropItem:false,Tags:[\"flare_blk_pl\"]}",
             "execute as @e[type=falling_block,limit=1,sort=nearest,tag=flare_blk_pl] run data modify entity @s BlockState set from storage __flare_stdlib__:block_place target",
-            "schedule function __flare_stdlib__:block/place/cleanup 1t"
-        ]
+            "schedule function __flare_stdlib__:block/place/cleanup 1t"]
 
     def place(self, state):
         from ..variables import nbt
@@ -414,16 +402,8 @@ class block(FlareValue, Generic[T]):
         context.files[f"__flare_stdlib__:block/states/{state_name}/get"] = []
         for val in vals:
             pred_key = f"__flare_stdlib__:predicate/block/states/{state_name}/{str(val).replace('.', '_').replace('-', '_neg_').lower()}.json"
-            context.json_files[pred_key] = {
-                "condition": "minecraft:location_check",
-                "predicate": {
-                    "block": {
-                        "state": {
-                            state_name: str(val).lower() if stype == "boolean" else str(val)
-                        }
-                    }
-                }
-            }
+            context.json_files[pred_key] = {"condition": "minecraft:location_check",
+                "predicate": {"block": {"state": {state_name: str(val).lower() if stype == "boolean" else str(val)}}}}
 
             if stype == "byte":
                 nbt_val = f"{val}b"
@@ -437,10 +417,9 @@ class block(FlareValue, Generic[T]):
                 nbt_val = str(val)
 
             context.files[f"__flare_stdlib__:block/states/{state_name}/get"].append(
-                f"execute if predicate {pred_key.replace('.json', '')} run data modify storage __flare_stdlib__:block_states target set value {nbt_val}"
-            )
+                f"execute if predicate {pred_key.replace('.json', '')} run data modify storage __flare_stdlib__:block_states target set value {nbt_val}")
 
-    @lazify(temp="!state_val", self=False)
+    @lazify(temp="#state_val", self=False)
     def get_state(self, state_name, *, type=None, range=None, values=None, dest=None):
         from ..block_states import BLOCK_STATES
 
@@ -484,8 +463,8 @@ class block(FlareValue, Generic[T]):
         from ..execute_modifiers import InlineCondition
         return InlineCondition(f"if loaded {self.pos}")
 
-    def add_particles(self, name: str, delta: Union[str, tuple, list] = None, speed: float = None,
-                      count: int = None, mode: str = None, viewers: Union[str, "selector"] = None):
+    def add_particles(self, name: str, delta: Union[str, tuple, list] = None, speed: float = None, count: int = None,
+                      mode: str = None, viewers: Union[str, "selector"] = None):
         cmd = f"particle {name} {self.pos}"
 
         if delta is not None or speed is not None or count is not None or mode is not None or viewers is not None:

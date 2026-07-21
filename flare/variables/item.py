@@ -15,7 +15,7 @@ class item(item_base, metaclass=FlareClassMeta):
                 if value:
                     comp_strs.append(key)
                 else:
-                    comp_strs.append(f"!{key}")
+                    comp_strs.append(f"#{key}")
             else:
                 if hasattr(value, "__print__"):
                     value = value.__print__()
@@ -26,11 +26,8 @@ class item(item_base, metaclass=FlareClassMeta):
                     else:
                         val_str = value
                 else:
-                    val_str = json.dumps(
-                        value,
-                        separators=(",", ":"),
-                        default=lambda x: x.__print__() if hasattr(x, "__print__") else str(x)
-                    )
+                    val_str = json.dumps(value, separators=(",", ":"),
+                        default=lambda x: x.__print__() if hasattr(x, "__print__") else str(x))
 
                 comp_strs.append(f"{key}={val_str}")
 
