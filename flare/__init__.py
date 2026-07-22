@@ -26,6 +26,7 @@ from .variables import score, nbt, fixed, ref, getscore, storage, nbtbyte, nbtbo
     nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray, selector, bigscore, bigfixed, \
     float64, float32, complex, macro, struct, compound, fail, Objective, block, item
 from .variables.core import Function
+from .command_parser import interpolate_command
 
 true = True
 false = False
@@ -40,7 +41,10 @@ __all__ = ["round_", "floor", "ceil", "namespace", "export", "tag", "tick", "loa
            "hover_event", "struct", "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "exp", "log", "ln", "pow_",
            "csc", "coth", "acsch", "asech", "acoth", "sqrt", "fastsin", "fastsqrt", "rsqrt", "min_", "max_", "block",
            "is_dimension", "success", "predicate", "stopwatch", "item", "right_click_event", "left_click_enchantment",
-           "Function", "true", "false"]
+           "Function", "true", "false", "_flare_assign", "_flare_aug_assign", "_flare_if", "_flare_while",
+           "_flare_for", "_flare_not", "_flare_and", "_flare_or", "_flare_with", "_flare_as_var", "runcommand",
+           "_flare_return", "_flare_break", "_flare_continue", "_flare_in", "_flare_notin", "_flare_enter_scope",
+           "_flare_exit_scope", "_flare_alone", "interpolate_command"]
 
 from .resources import __all__ as _dd_all
 from .generated import events as _events

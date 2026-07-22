@@ -1323,7 +1323,7 @@ class AdvancementRewards:
     def __init__(
             self,
             experience: Optional[Union[int, Any]] = None,
-            loot: Optional[Union['LootTableListRef', Any]] = None,
+            loot: Optional[Union[Union[list[str], 'LootTableListRef'], Any]] = None,
             recipes: Optional[Union[list[str], Any]] = None,
             function: Optional[Union[str, Any]] = None,
             **kwargs
