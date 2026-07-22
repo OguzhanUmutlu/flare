@@ -109,14 +109,14 @@ def _dispatch_eval(name, dest, *args):
 def min_(*args, **kwargs):
     if len(args) == 1 and hasattr(args[0], "__iter__"):
         search_args = list(args[0])
-        if not any(hasattr(x, "__imin__") for x in search_args):
+        if not any(isinstance(x, FlareValue) for x in search_args):
             return _orig["min"](search_args, **kwargs)
     else:
         search_args = args
-        if not any(hasattr(x, "__imin__") for x in search_args):
+        if not any(isinstance(x, FlareValue) for x in search_args):
             return _orig["min"](*args, **kwargs)
 
-    var = next((x for x in search_args if hasattr(x, "__imin__")), None)
+    var = next((x for x in search_args if isinstance(x, FlareValue)), None)
 
     def eval_min(dest, **_):
         dest[:] = search_args[0]

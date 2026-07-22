@@ -244,7 +244,7 @@ class FlareValue(ABC, metaclass=FlareClassMeta):
 
     def __bool__(self):
         raise TypeError(
-            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
+            "Flare variables cannot be evaluated as Pythnnot be evaluated as Python booleans at compile-time. Use expand(condition) for dynamic conditionals or check if a built-in Python function is attempting native comparisons.")
 
     def __implicit__(self, target_types):
         raise NotImplementedError()
@@ -255,10 +255,10 @@ class FlareValue(ABC, metaclass=FlareClassMeta):
         if possibilities is None:
             possibilities = (type(self),)
 
-        if isinstance(other, LazyOp):
+        if is_lazy(other):
             t = type(self)(addr=f"#lazy{ctx.next_temp_id()}")
             other._compile_into(t)
-            other = t
+            return getattr(self, fn)(t)
 
         if not isinstance(other, possibilities):
             if type(other) in getattr(type(self), "_implements_set", tuple()):
@@ -372,10 +372,6 @@ class BinaryOp(FlareValue):
         keyword = "unless" if invert else "if"
         return [f"{keyword} score {addr(dest)} matches 1"]
 
-    def __bool__(self):
-        raise TypeError(
-            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
-
 
 class UnaryOp(FlareValue):
     def __init__(self, operand, op: str):
@@ -466,10 +462,6 @@ class UnaryOp(FlareValue):
             return self.operand
         return UnaryOp(self, "neg")
 
-    def __bool__(self):
-        raise TypeError(
-            "Flare variables cannot be evaluated as python booleans. Are you using an 'if' statement or 'in' operator outside of a Flare function (@export)?")
-
 
 class MathOp(FlareValue):
     def __init__(self, name: str, *args):
@@ -520,8 +512,15 @@ class LazyOp(FlareValue):
         if self._make_copy_fn is not None:
             t = self._make_copy_fn(varid)
         else:
-            t = self._alloc_temp()
-            t._addr = f"{ctx._current_namespace}:vars {varid}"
+            leaf = self._best_leaf()
+            if hasattr(leaf, "_create_var"):
+                t = leaf._create_var(varid)
+            else:
+                t = self._alloc_temp()
+                if hasattr(t, "_parse_addr"):
+                    t._parse_addr(f"storage {ctx._current_namespace}:vars {varid}")
+                else:
+                    t._addr = f"{varid} {ctx.vars_obj}"
         self._compile_into(t)
         return t
 
