@@ -126,34 +126,13 @@ def run_flare(ns, src):
     sys.stdout = StringIO()
     try:
         from flare import context
-        from flare.preprocessor import preprocess_minecraft_commands, CallGraphAnalyzer, FlareTransformer
+        from flare.preprocessor import process_and_exec
 
         context.reset_context()
         context._current_namespace = ns
 
-        src = preprocess_minecraft_commands(src)
-        tree = ast.parse(src, "<playground>")
-
-        analyzer = CallGraphAnalyzer()
-        analyzer.visit(tree)
-        context._recursive_functions = analyzer.get_recursive_functions()
-
-        transformer = FlareTransformer()
-        tree = transformer.visit(tree)
-        ast.fix_missing_locations(tree)
-
-        header_src = (
-            "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_and, _flare_or, _flare_with, _flare_as_var, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin, _flare_enter_scope, _flare_exit_scope, _flare_alone\n"
-            "from flare import context as ctx\n"
-            "from flare.command_parser import interpolate_command\n"
-            "from flare.variables.builtins import flare_range as range, flare_ord as ord, flare_bin as bin, flare_len as len\n"
-            "from flare.variables.regex import re_patch as re\n"
-            "from flare.math import *\n"
-            "from flare import *"
-        )
-        exec(header_src, global_env)
-
-        exec(compile(tree, "<playground>", "exec"), global_env)
+        global_env = {"__name__": "__main__", "__file__": "<playground>"}
+        process_and_exec(src, global_env, "<playground>")
 
         load_key = f"{ns}:__init__"
 

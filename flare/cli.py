@@ -1,5 +1,4 @@
 import argparse
-import ast
 import hashlib
 import importlib.abc
 import importlib.machinery
@@ -27,11 +26,10 @@ except ImportError:
     HAS_WATCHDOG = False
 
 from . import context
-from .preprocessor import (FlareTransformer, CallGraphAnalyzer, preprocess_minecraft_commands, )
+from .preprocessor import (setup_global_env,
+                           transform_source, process_and_exec)
 from .utils import resolve_build_targets, resolve_uri
 from .setup_autoreload import setup_autoreload
-from .variables.builtins import flare_range, flare_ord, flare_bin, flare_len
-from .variables.regex import re_patch
 
 build_lock = threading.RLock()
 
@@ -68,7 +66,7 @@ def init_project(path: str):
         return
 
     config = {"namespace": namespace, "pack_format": pack_format_val, "description": description,
-        "build_dir": ["dist"], }
+              "build_dir": ["dist"], }
 
     with open(json_path, "w") as f:
         json.dump(config, f, indent=4)
@@ -91,7 +89,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                 sys.exit(1)
     else:
         config = {"namespace": "flare", "pack_format": 15, "description": "A Flare datapack", "build_dir": ["dist"],
-            "validation_level": "strict", "system_command_validation": "none"}
+                  "validation_level": "strict", "system_command_validation": "none"}
 
     if cli_overrides:
         config.update(cli_overrides)
@@ -167,23 +165,8 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         sys.path.insert(0, parent_dir)
         sys.path.insert(0, project_dir)
 
-        with open(abs_path, "r") as f:
+        with open(abs_path, "r", encoding="utf-8") as f:
             source = f.read()
-
-        pre_start = time.time()
-        source = preprocess_minecraft_commands(source)
-        pre_end = time.time()
-
-        comp_start = time.time()
-        tree = ast.parse(source, abs_path)
-
-        analyzer = CallGraphAnalyzer()
-        analyzer.visit(tree)
-        context._recursive_functions = analyzer.get_recursive_functions()
-
-        transformer = FlareTransformer()
-        tree = transformer.visit(tree)
-        ast.fix_missing_locations(tree)
 
         pkg_name = os.path.basename(project_dir)
         global_env = {"__name__": "__main__", "__file__": abs_path, "__package__": pkg_name}
@@ -192,23 +175,12 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             if project_dir not in sys.modules[pkg_name].__path__:
                 sys.modules[pkg_name].__path__.append(project_dir)
 
-        header_src = (
-            "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_and, _flare_or, _flare_with, _flare_as_var, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin, _flare_enter_scope, _flare_exit_scope, _flare_alone\n"
-            "from flare import context as ctx\n"
-            "from flare.command_parser import interpolate_command\n"
-            "from flare import _flare_print as print, selector, _as, at, positioned, align, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
-            "from flare import fail, nbt, score, fixed, ref, getscore, storage, array, byte, boolean, short, long, double, compound, Objective\n"
-            "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray\n"
-            "from flare import round_, floor, ceil\n"
-            "from flare.math import *\n"
-            "from flare import dbg, export, namespace, tick, load, nostack")
-        exec(header_src, global_env)
+        pre_start = time.time()
+        setup_global_env(global_env)
+        pre_end = time.time()
 
-        global_env["range"] = flare_range
-        global_env["ord"] = flare_ord
-        global_env["bin"] = flare_bin
-        global_env["len"] = flare_len
-        global_env["re"] = re_patch
+        comp_start = time.time()
+        code_obj, tree = transform_source(source, abs_path)
 
         class FlareLoader(importlib.abc.Loader):
             def __init__(self, filename):
@@ -220,26 +192,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             def exec_module(self, module):
                 with open(self.filename, 'r', encoding='utf-8') as f:
                     mod_source = f.read()
-
-                mod_source = preprocess_minecraft_commands(mod_source)
-                mod_tree = ast.parse(mod_source, self.filename)
-
-                mod_analyzer = CallGraphAnalyzer()
-                mod_analyzer.visit(mod_tree)
-                context._recursive_functions.update(mod_analyzer.get_recursive_functions())
-
-                mod_transformer = FlareTransformer()
-                mod_tree = mod_transformer.visit(mod_tree)
-                ast.fix_missing_locations(mod_tree)
-
-                exec(header_src, module.__dict__)
-                module.__dict__["range"] = flare_range
-                module.__dict__["ord"] = flare_ord
-                module.__dict__["bin"] = flare_bin
-                module.__dict__["len"] = flare_len
-                module.__dict__["re"] = re_patch
-
-                exec(compile(mod_tree, self.filename, 'exec'), module.__dict__)
+                process_and_exec(mod_source, module.__dict__, self.filename)
 
         class FlareMetaFinder(importlib.abc.MetaPathFinder):
             def find_spec(self, fullname, path, target=None):
@@ -266,7 +219,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         sys.meta_path.insert(0, meta_finder)
 
         try:
-            exec(compile(tree, abs_path, "exec"), global_env)
+            exec(code_obj, global_env)
             context.evaluate_pending_exports()
         finally:
             sys.meta_path.remove(meta_finder)
@@ -290,7 +243,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
         if mod and getattr(mod, "__file__", None):
             mod_file = os.path.abspath(str(mod.__file__))
             if ((mod_file.endswith(".fl") or mod_file.endswith(
-                ".py")) and "site-packages" not in mod_file and "lib/python" not in mod_file):
+                    ".py")) and "site-packages" not in mod_file and "lib/python" not in mod_file):
                 watch_files.add(mod_file)
 
     _created_dirs = set()
@@ -363,7 +316,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
     write_if_changed(os.path.join(build_dir_str, "pack.mcmeta"), json.dumps({
         "pack": {"pack_format": config.get("pack_format", 15),
-            "description": config.get("description", "A Flare datapack"), }}, indent=4, ), )
+                 "description": config.get("description", "A Flare datapack"), }}, indent=4, ), )
 
     tags = {"tick": [], "load": []}
 
@@ -423,7 +376,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                 tag_funcs.sort(
                     key=lambda x: (0 if x.endswith(":__constants__") else 2 if x.endswith(":__init__") else 1, x))
             write_if_changed(os.path.join(tag_dir_str, f"{tag_name}.json"),
-                json.dumps({"values": tag_funcs}, indent=4), )
+                             json.dumps({"values": tag_funcs}, indent=4), )
 
     for t in unique_targets:
         t0 = time.perf_counter()
@@ -593,24 +546,24 @@ class EmulatorRunner:
 def main():
     parser = argparse.ArgumentParser(description="Flare CLI Datapack Compiler")
     parser.add_argument("target", nargs="?", default=".",
-        help="File to build or directory to init. Use 'init' to initialize in current directory.", )
+                        help="File to build or directory to init. Use 'init' to initialize in current directory.", )
     parser.add_argument("--watch", action="store_true", help="Watch for file changes and rebuild")
     parser.add_argument("--run", nargs="?", const="-1", default=None,
-        help="Run the compiled datapack in mcemu. Optionally specify a timeout in seconds.", )
+                        help="Run the compiled datapack in mcemu. Optionally specify a timeout in seconds.", )
     parser.add_argument("--nbt-schema-missing", choices=["error", "warning", "ignore"], default="error",
-        help="Action when indexing an NBT path that does not exist in the attached schema.", )
+                        help="Action when indexing an NBT path that does not exist in the attached schema.", )
     parser.add_argument("--namespace", type=str, default=None, help="Override the namespace for the datapack.", )
     parser.add_argument("--pack-format", type=str, default=None, help="Override the pack_format for the datapack.", )
     parser.add_argument("--description", type=str, default=None, help="Override the description for the datapack.", )
     parser.add_argument("--out-dir", type=str, default=None,
-        help="Override the output directory for the compiled datapack.", )
+                        help="Override the output directory for the compiled datapack.", )
     parser.add_argument("--validation", type=str, help="Set the validation level of the compiled datapack.", )
     parser.add_argument("--system-command-validation", type=str,
-        help="Set the validation level for internal system commands.", )
+                        help="Set the validation level for internal system commands.", )
     parser.add_argument("--no-cache", action="store_true", default=False,
-        help="Disable I/O cache, forcing all files to be rewritten.", )
+                        help="Disable I/O cache, forcing all files to be rewritten.", )
     parser.add_argument("--autoreload", nargs="?", const=True, default=None,
-        help="Specify a world URI (e.g. world://my_world) to setup autoreload. Requires --watch.", )
+                        help="Specify a world URI (e.g. world://my_world) to setup autoreload. Requires --watch.", )
 
     args, unknown_args = parser.parse_known_args()
 

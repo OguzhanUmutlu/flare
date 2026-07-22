@@ -802,9 +802,9 @@ def preprocess_minecraft_commands(source: str) -> str:
             if not rest:
                 if i + 1 < len(tokens):
                     next_tok = tokens[i + 1]
-                    if next_tok.string in ("~", "^", "+", "-", "$") or next_tok.type == tokenize.NUMBER:
+                    if next_tok.string in ("~", "^", "$") or next_tok.type == tokenize.NUMBER:
                         is_b_coord = True
-            elif rest.isdigit():
+            elif rest.startswith("~") or rest.startswith("^") or rest.isdigit():
                 is_b_coord = True
 
             if is_b_coord:
@@ -888,29 +888,30 @@ def preprocess_minecraft_commands(source: str) -> str:
                     else:
                         break
 
-                out_tokens.append((tokenize.NAME, "block"))
-                out_tokens.append((tokenize.OP, "("))
-                out_tokens.append((tokenize.NAME, "ref"))
-                out_tokens.append((tokenize.OP, "="))
-                out_tokens.append((tokenize.STRING, f'"{modifiers}"'))
-                out_tokens.append((tokenize.OP, ","))
-                out_tokens.append((tokenize.NAME, "v"))
-                out_tokens.append((tokenize.OP, "="))
-                out_tokens.append((tokenize.OP, "["))
-                for j, c in enumerate(coords):
-                    if j > 0:
-                        out_tokens.append((tokenize.OP, ","))
-                    if c.startswith("$("):
-                        out_tokens.append((tokenize.STRING, f'"{c}"'))
-                    elif c.replace('.', '', 1).replace('-', '', 1).replace('+', '', 1).isdigit():
-                        out_tokens.append((tokenize.NUMBER, c))
-                    else:
-                        out_tokens.append((tokenize.NAME, c))
-                out_tokens.append((tokenize.OP, "]"))
-                out_tokens.append((tokenize.OP, ")"))
+                if len(coords) >= 2:
+                    out_tokens.append((tokenize.NAME, "block"))
+                    out_tokens.append((tokenize.OP, "("))
+                    out_tokens.append((tokenize.NAME, "ref"))
+                    out_tokens.append((tokenize.OP, "="))
+                    out_tokens.append((tokenize.STRING, f'"{modifiers}"'))
+                    out_tokens.append((tokenize.OP, ","))
+                    out_tokens.append((tokenize.NAME, "v"))
+                    out_tokens.append((tokenize.OP, "="))
+                    out_tokens.append((tokenize.OP, "["))
+                    for j, c in enumerate(coords):
+                        if j > 0:
+                            out_tokens.append((tokenize.OP, ","))
+                        if c.startswith("$("):
+                            out_tokens.append((tokenize.STRING, f'"{c}"'))
+                        elif c.replace('.', '', 1).replace('-', '', 1).replace('+', '', 1).isdigit():
+                            out_tokens.append((tokenize.NUMBER, c))
+                        else:
+                            out_tokens.append((tokenize.NAME, c))
+                    out_tokens.append((tokenize.OP, "]"))
+                    out_tokens.append((tokenize.OP, ")"))
 
-                i += k
-                continue
+                    i += k
+                    continue
 
         if tok.type == tokenize.OP and tok.string in ("[", "{", "(", ","):
             seq = []
@@ -986,29 +987,31 @@ def preprocess_minecraft_commands(source: str) -> str:
                     else:
                         break
 
-                out_tokens.append((tokenize.NAME, "block"))
-                out_tokens.append((tokenize.OP, "("))
-                out_tokens.append((tokenize.NAME, "ref"))
-                out_tokens.append((tokenize.OP, "="))
-                out_tokens.append((tokenize.STRING, f'"{modifiers}"'))
-                out_tokens.append((tokenize.OP, ","))
-                out_tokens.append((tokenize.NAME, "v"))
-                out_tokens.append((tokenize.OP, "="))
-                out_tokens.append((tokenize.OP, "["))
-                for i_coord, c in enumerate(coords):
-                    if i_coord > 0:
-                        out_tokens.append((tokenize.OP, ","))
-                    if c.startswith("$("):
-                        out_tokens.append((tokenize.STRING, f'"{c}"'))
-                    elif c.replace('.', '', 1).replace('-', '', 1).replace('+', '', 1).isdigit():
-                        out_tokens.append((tokenize.NUMBER, c))
-                    else:
-                        out_tokens.append((tokenize.NAME, c))
-                out_tokens.append((tokenize.OP, "]"))
-                out_tokens.append((tokenize.OP, ")"))
+                if len(coords) >= 2:
+                    out_tokens.append(tok)
+                    out_tokens.append((tokenize.NAME, "block"))
+                    out_tokens.append((tokenize.OP, "("))
+                    out_tokens.append((tokenize.NAME, "ref"))
+                    out_tokens.append((tokenize.OP, "="))
+                    out_tokens.append((tokenize.STRING, f'"{modifiers}"'))
+                    out_tokens.append((tokenize.OP, ","))
+                    out_tokens.append((tokenize.NAME, "v"))
+                    out_tokens.append((tokenize.OP, "="))
+                    out_tokens.append((tokenize.OP, "["))
+                    for i_coord, c in enumerate(coords):
+                        if i_coord > 0:
+                            out_tokens.append((tokenize.OP, ","))
+                        if c.startswith("$("):
+                            out_tokens.append((tokenize.STRING, f'"{c}"'))
+                        elif c.replace('.', '', 1).replace('-', '', 1).replace('+', '', 1).isdigit():
+                            out_tokens.append((tokenize.NUMBER, c))
+                        else:
+                            out_tokens.append((tokenize.NAME, c))
+                    out_tokens.append((tokenize.OP, "]"))
+                    out_tokens.append((tokenize.OP, ")"))
 
-                i += 1 + k
-                continue
+                    i += 1 + k
+                    continue
 
         if tok.type == tokenize.NAME and tok.string == "as":
             is_func_or_attr = False
@@ -1106,3 +1109,45 @@ def preprocess_minecraft_commands(source: str) -> str:
         i += 1
 
     return tokenize.untokenize(out_tokens)
+
+
+HEADER_IMPORTS = (
+    "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_and, _flare_or, _flare_with, _flare_as_var, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin, _flare_enter_scope, _flare_exit_scope, _flare_alone\n"
+    "from flare import context as ctx\n"
+    "from flare.command_parser import interpolate_command\n"
+    "from flare import _flare_print as print, selector, _as, at, positioned, align, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
+    "from flare import fail, nbt, score, fixed, ref, getscore, storage, array, byte, boolean, short, long, double, compound, Objective\n"
+    "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray\n"
+    "from flare import round_, floor, ceil\n"
+    "from flare.math import *\n"
+    "from flare import dbg, export, namespace, tag, tick, load, nostack\n"
+    "from flare.variables.builtins import flare_range as range, flare_ord as ord, flare_bin as bin, flare_len as len\n"
+    "from flare.variables.regex import re_patch as re\n")
+
+
+def setup_global_env(global_env: dict) -> dict:
+    exec(HEADER_IMPORTS, global_env)
+    return global_env
+
+
+def transform_source(source: str, filename: str = "<compiled>"):
+    src = preprocess_minecraft_commands(source)
+    tree = ast.parse(src, filename)
+
+    analyzer = CallGraphAnalyzer()
+    analyzer.visit(tree)
+    flare.context._recursive_functions = analyzer.get_recursive_functions()
+
+    transformer = FlareTransformer()
+    tree = transformer.visit(tree)
+    ast.fix_missing_locations(tree)
+
+    code_obj = compile(tree, filename, "exec")
+    return code_obj, tree
+
+
+def process_and_exec(source: str, global_env: dict, filename: str = "<compiled>"):
+    setup_global_env(global_env)
+    code_obj, tree = transform_source(source, filename)
+    exec(code_obj, global_env)
+    return code_obj, tree
