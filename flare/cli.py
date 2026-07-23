@@ -292,9 +292,13 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None, bee
                 beet_ctx.assets.textures[name] = flare_tex.to_beet()
 
             total_time_ms = ((pre_end - pre_start) + (comp_end - comp_start)) * 1000
+            mcfunc_lines = sum(len(lines) for lines in context.files.values() if lines)
+            mc_unit = "line" if mcfunc_lines == 1 else "lines"
+
             print(f"\033[92mSuccessfully built assets for Beet!\033[0m \033[90m({total_time_ms:.2f}ms)\033[0m")
             print(f"\033[90m  Preprocessed in {(pre_end - pre_start) * 1000:.2f}ms\033[0m")
-            print(f"\033[90m  Compiled in {(comp_end - comp_start) * 1000:.2f}ms\033[0m")
+            print(
+                f"\033[90m  Compiled in {(comp_end - comp_start) * 1000:.2f}ms ({mcfunc_lines} {mc_unit} of mcfunction)\033[0m")
             return True, {os.path.abspath(file_path)}, None
 
         sys.path.pop(0)
@@ -520,9 +524,12 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None, bee
 
     io_time_sum = sum(c["time"] for c in target_caches.values())
     total_time_ms = ((pre_end - pre_start) + (comp_end - comp_start) + io_time_sum) * 1000
+    mcfunc_lines = sum(len(lines) for lines in context.files.values() if lines)
+    mc_unit = "line" if mcfunc_lines == 1 else "lines"
+
     print(f"\033[92mSuccessfully built datapack!\033[0m \033[90m({total_time_ms:.2f}ms)\033[0m")
     print(f"\033[90m  Preprocessed in {(pre_end - pre_start) * 1000:.2f}ms")
-    print(f"  Compiled in {(comp_end - comp_start) * 1000:.2f}ms")
+    print(f"  Compiled in {(comp_end - comp_start) * 1000:.2f}ms ({mcfunc_lines} {mc_unit} of mcfunction)")
     for i, t in enumerate(unique_targets):
         c = target_caches[t]
         total_files = max(0, len(c["new"]) - 1)
