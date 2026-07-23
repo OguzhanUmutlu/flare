@@ -98,78 +98,11 @@ When Beet runs the pipeline, the `flare.beet` plugin executes the following sequ
 4. **Direct Asset Injection:** Directly injects compiled `.mcfunction` files, tags, and JSON resources into Beet's `ctx.data` (DataPack) and resourcepack textures into `ctx.assets` (ResourcePack) completely in memory without intermediate disk writes or `dist` folders. (Empty `__init__.mcfunction` files are automatically omitted from output and the `minecraft:load` tag).
 5. **Beet Managed Export:** Beet's context manager handles writing out final data pack and resource pack files to the `build` output directory.
 
-## Resourcepack Images & Textures
+## Resourcepack Integration
 
-Flare includes native resourcepack image and texture manipulation APIs designed specifically for Beet integration. You can create, edit, transform, tint, scale, and composite PNG textures in single function calls inside your `.fl` or `.py` files.
+All textures created in Flare using `texture(...)` automatically integrate with Beet. During pipeline execution, Flare injects compiled textures directly into Beet's `ctx.assets.textures` container in memory.
 
-All created textures are automatically registered and injected directly into `ctx.assets.textures` in Beet.
-
-### Creating & Adding Textures
-
-Use `texture(name, ...)` or `add_texture(name, ...)` to create a texture in a single function call:
-
-```python
-from flare import texture
-
-# Solid color 16x16 texture
-texture("my_pack:item/ruby_sword", color="red", width=16, height=16)
-
-# Create texture from file path
-texture("my_pack:item/magic_wand", image="src/resourcepack/assets/my_pack/textures/item/base.png")
-
-# Hex color string
-texture("my_pack:block/crystal_block", color="#ff0044", width=32, height=32)
-```
-
-### Seamless Temporary & Sourced Textures
-
-`texture(...)` seamlessly creates temporary scratchpad layers when no resource pack name is specified (or when an image file / color / dimension is passed).
-
-When a texture path is provided without an explicit namespace (e.g. `texture("item/custom_sword")`), it automatically defaults to the current project namespace.
-
-```python
-from flare import texture
-
-# Temporary scratchpad layers (not saved to resource pack)
-shadow = texture(color="black", width=16, height=16).opacity(0.4)
-blade = texture("src/assets/blade.png").rotate(45)
-handle = texture("src/assets/handle.png")
-
-# Sourced item texture (saved to resource pack as <namespace>:item/custom_sword)
-sword = texture("item/custom_sword")
-sword.layer((shadow, (1, 1)), handle, blade)
-
-# Add a gold pixel-art outline around non-transparent pixels
-sword.outline("gold")
-```
-
-### Image Manipulation Methods
-
-| Method                                                              | Description                                                                                       |
-|---------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| `.fill(color)`                                                      | Fills image with a color string (`"red"`, `"#ff0000"`) or RGBA tuple.                             |
-| `.set_pixel(x, y, color)`                                           | Sets RGBA pixel color at `(x, y)`.                                                                |
-| `.get_pixel(x, y)`                                                  | Gets RGBA tuple at `(x, y)`.                                                                      |
-| `.resize(width, height)`                                            | Resizes texture using crisp pixel-art nearest-neighbor filtering.                                 |
-| `.scale(factor)`                                                    | Scales texture dimensions by factor (e.g. `2` doubles resolution).                                |
-| `.crop(left, top, right, bottom)`                                   | Crops image to target bounding box or `(x, y, w, h)`.                                             |
-| `.rotate(angle)`                                                    | Rotates image by angle in degrees.                                                                |
-| `.flip_horizontal()` / `.flip_vertical()`                           | Mirrors the texture horizontally or vertically.                                                   |
-| `.opacity(factor)` / `.alpha(factor)`                               | Adjusts translucency (e.g., `0.5` is 50% opacity).                                                |
-| `.brightness(factor)` / `.contrast(factor)` / `.saturation(factor)` | Adjusts brightness, contrast, or color saturation.                                                |
-| `.recolor(color_map_or_func)`                                       | Replaces colors using a dictionary `{old_color: new_color}` or function `(r,g,b,a) -> (r,g,b,a)`. |
-| `.tint(color, factor=0.5)`                                          | Tints non-transparent pixels toward target color.                                                 |
-| `.outline(color="black", width=1)`                                  | Draws a pixel-art outline around non-transparent pixels.                                          |
-| `.overlay(other_image, position=(0, 0))`                            | Composites another texture or image file on top with alpha blending.                              |
-| `.layer(*layers)`                                                   | Composites multiple layers in order, specifying optional `(layer, (x, y))` offsets.               |
-| `.animate(frametime=1, interpolate=False)`                          | Generates animation metadata (`.png.mcmeta`).                                                     |
-| `.save(name)`                                                       | Registers a temporary texture into the resource pack under `name`.                                |
-
-```python
-# Animated texture example
-lava = texture("my_pack:block/lava_lamp", color="orange", width=16, height=32)
-lava.animate(frametime=2, interpolate=True)
-```
+For the full guide on creating, layering, cropping, and animating textures, see the [Resource Pack & Textures Guide](/guide/resources/resourcepack).
 
 ## YAML Config Equivalent
 

@@ -73,12 +73,13 @@ def reward():
 
 ## Supported Features
 
-Flare supports 47 different resource features categorized into:
+Flare supports 48 different resource features categorized into:
 - [Gameplay Features](./gameplay.md) (Advancements, Recipes, Loot Tables, Predicates, Item Modifiers)
 - [Tags](./tags.md) (Block tags, Item tags, Entity Type tags, etc.)
 - [World Generation](./worldgen.md) (Biomes, Dimensions, Noise, Structures)
 - [Cosmetics & Visuals](./cosmetics.md) (Banner patterns, Trims, Paintings, Chat types)
 - [Entities & Spawners](./entities.md) (Trial spawners, Wolf variants, Trades, etc.)
+- [Resource Pack & Textures](./resourcepack.md) (PNG textures, scratchpads, layering, animations)
 
 ## Cross-Namespace Definitions
 

@@ -92,7 +92,8 @@ export default defineConfig({
                         {text: "Tags", link: "/guide/resources/tags"},
                         {text: "World Generation", link: "/guide/resources/worldgen"},
                         {text: "Cosmetics & Visuals", link: "/guide/resources/cosmetics"},
-                        {text: "Entities & Spawners", link: "/guide/resources/entities"}
+                        {text: "Entities & Spawners", link: "/guide/resources/entities"},
+                        {text: "Resource Pack & Textures", link: "/guide/resources/resourcepack"}
                     ]
                 },
                 {
