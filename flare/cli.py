@@ -65,8 +65,7 @@ def init_project(path: str):
         print("\nInitialization cancelled.")
         return
 
-    config = {"namespace": namespace, "pack_format": pack_format_val, "description": description,
-              "build_dir": ["dist"], }
+    config = {"namespace": namespace, "pack_format": pack_format_val, "description": description, "build_dir": ["dist"]}
 
     with open(json_path, "w") as f:
         json.dump(config, f, indent=4)
@@ -348,7 +347,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None, bee
                     cache = marshal.load(f)
             except Exception:
                 pass
-        target_caches[t] = {"path": cache_path, "old": cache, "new": {}, "written": 0, "time": 0.0, }
+        target_caches[t] = {"path": cache_path, "old": cache, "new": {}, "written": 0, "time": 0.0}
 
     if not use_cache:
         for target_dir_str in unique_targets:
@@ -411,7 +410,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None, bee
 
     write_if_changed(os.path.join(build_dir_str, "pack.mcmeta"), json.dumps({
         "pack": {"pack_format": config.get("pack_format", 15),
-                 "description": config.get("description", "A Flare datapack"), }}, indent=4, ), )
+                 "description": config.get("description", "A Flare datapack")}}, indent=4))
 
     tags = {"tick": [], "load": []}
 
@@ -483,8 +482,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None, bee
             if tag_name == "load":
                 tag_funcs.sort(
                     key=lambda x: (0 if x.endswith(":__constants__") else 2 if x.endswith(":__init__") else 1, x))
-            write_if_changed(os.path.join(tag_dir_str, f"{tag_name}.json"),
-                             json.dumps({"values": tag_funcs}, indent=4), )
+            write_if_changed(os.path.join(tag_dir_str, f"{tag_name}.json"), json.dumps({"values": tag_funcs}, indent=4))
 
     for t in unique_targets:
         t0 = time.perf_counter()
@@ -654,24 +652,24 @@ class EmulatorRunner:
 def main():
     parser = argparse.ArgumentParser(description="Flare CLI Datapack Compiler")
     parser.add_argument("target", nargs="?", default=".",
-                        help="File to build or directory to init. Use 'init' to initialize in current directory.", )
+                        help="File to build or directory to init. Use 'init' to initialize in current directory.")
     parser.add_argument("--watch", action="store_true", help="Watch for file changes and rebuild")
     parser.add_argument("--run", nargs="?", const="-1", default=None,
-                        help="Run the compiled datapack in mcemu. Optionally specify a timeout in seconds.", )
+                        help="Run the compiled datapack in mcemu. Optionally specify a timeout in seconds.")
     parser.add_argument("--nbt-schema-missing", choices=["error", "warning", "ignore"], default="error",
-                        help="Action when indexing an NBT path that does not exist in the attached schema.", )
-    parser.add_argument("--namespace", type=str, default=None, help="Override the namespace for the datapack.", )
-    parser.add_argument("--pack-format", type=str, default=None, help="Override the pack_format for the datapack.", )
-    parser.add_argument("--description", type=str, default=None, help="Override the description for the datapack.", )
+                        help="Action when indexing an NBT path that does not exist in the attached schema.")
+    parser.add_argument("--namespace", type=str, default=None, help="Override the namespace for the datapack.")
+    parser.add_argument("--pack-format", type=str, default=None, help="Override the pack_format for the datapack.")
+    parser.add_argument("--description", type=str, default=None, help="Override the description for the datapack.")
     parser.add_argument("--out-dir", type=str, default=None,
-                        help="Override the output directory for the compiled datapack.", )
-    parser.add_argument("--validation", type=str, help="Set the validation level of the compiled datapack.", )
+                        help="Override the output directory for the compiled datapack.")
+    parser.add_argument("--validation", type=str, help="Set the validation level of the compiled datapack.")
     parser.add_argument("--system-command-validation", type=str,
-                        help="Set the validation level for internal system commands.", )
+                        help="Set the validation level for internal system commands.")
     parser.add_argument("--no-cache", action="store_true", default=False,
-                        help="Disable I/O cache, forcing all files to be rewritten.", )
+                        help="Disable I/O cache, forcing all files to be rewritten.")
     parser.add_argument("--autoreload", nargs="?", const=True, default=None,
-                        help="Specify a world URI (e.g. world://my_world) to setup autoreload. Requires --watch.", )
+                        help="Specify a world URI (e.g. world://my_world) to setup autoreload. Requires --watch.")
 
     args, unknown_args = parser.parse_known_args()
 

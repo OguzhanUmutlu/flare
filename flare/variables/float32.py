@@ -122,7 +122,7 @@ class float32(FlareValue):
 
                 ScoreIfMatches(diff, (-2147483648, -1)).then(
                     lambda: [t_a._sign.__swap__(t_b._sign), t_a._exp.__swap__(t_b._exp), t_a._mant.__swap__(t_b._mant),
-                        diff.__imul__(-1)])
+                             diff.__imul__(-1)])
 
                 for p in reversed(range(0, 5)):
                     shift_v = 1 << p
@@ -446,7 +446,7 @@ class float32(FlareValue):
             cond_pi[:] = 0
             ScoreIfMatches(sub._sign, 1).then(
                 lambda: [is_neg.__iset__(1), cond_pi._sign.__iset__(pi._sign), cond_pi._exp.__iset__(pi._exp),
-                    cond_pi._mant.__iset__(pi._mant)])
+                         cond_pi._mant.__iset__(pi._mant)])
             x -= cond_pi
 
             half_pi = type(x)(math.pi / 2.0)
@@ -463,7 +463,7 @@ class float32(FlareValue):
 
             ScoreIfMatches(is_reflect, 1).then(
                 lambda: [x._sign.__iset__(x_reflected._sign), x._exp.__iset__(x_reflected._exp),
-                    x._mant.__iset__(x_reflected._mant)])
+                         x._mant.__iset__(x_reflected._mant)])
 
             x2 = type(x)(addr="#f32_sin_x2 __flare_stdlib__")
             x2[:] = x
@@ -902,7 +902,7 @@ class float32(FlareValue):
             frac = score(addr="#frac __flare_stdlib__")
             ScoreIfMatches(res._exp, (0, 22)).then(
                 lambda: [frac.__iset__(res._mant), frac.__imod__(pow2), res._mant.__idiv__(pow2),
-                    res._mant.__imul__(pow2)])
+                         res._mant.__imul__(pow2)])
 
             round_up = score(0, addr="#ru __flare_stdlib__")
             half = score(addr="#half __flare_stdlib__")
@@ -942,7 +942,7 @@ class float32(FlareValue):
             frac = score(addr="#frac __flare_stdlib__")
             ScoreIfMatches(res._exp, (0, 22)).then(
                 lambda: [frac.__iset__(res._mant), frac.__imod__(pow2), res._mant.__idiv__(pow2),
-                    res._mant.__imul__(pow2)])
+                         res._mant.__imul__(pow2)])
 
             (ScoreIfMatches(res._exp, (0, 22)) & ScoreIfMatches(res._sign, -1) & ScoreIfMatches(frac, (1, inf))).then(
                 lambda: res._mant.__isub__(pow2))
@@ -975,7 +975,7 @@ class float32(FlareValue):
             frac = score(addr="#frac __flare_stdlib__")
             ScoreIfMatches(res._exp, (0, 22)).then(
                 lambda: [frac.__iset__(res._mant), frac.__imod__(pow2), res._mant.__idiv__(pow2),
-                    res._mant.__imul__(pow2)])
+                         res._mant.__imul__(pow2)])
 
             (ScoreIfMatches(res._exp, (0, 22)) & ScoreIfMatches(res._sign, 1) & ScoreIfMatches(frac, (1, inf))).then(
                 lambda: res._mant.__iadd__(pow2))
@@ -1001,8 +1001,8 @@ class float32(FlareValue):
         exp_adj[:] = self._exp
         exp_adj -= score(23)
 
-        ScoreIfMatches(exp_adj, (1, 1000000)).while_then(lambda: [b.__imul__(2), exp_adj.__isub__(1), ])
-        ScoreIfMatches(exp_adj, (-1000000, -1)).while_then(lambda: [b.__idiv__(2), exp_adj.__iadd__(1), ])
+        ScoreIfMatches(exp_adj, (1, 1000000)).while_then(lambda: [b.__imul__(2), exp_adj.__isub__(1)])
+        ScoreIfMatches(exp_adj, (-1000000, -1)).while_then(lambda: [b.__idiv__(2), exp_adj.__iadd__(1)])
 
         comps = []
 

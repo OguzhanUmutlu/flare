@@ -8,7 +8,7 @@ from typing import Any
 
 from .core import is_lazy, addr, FlareValue
 from .. import context as ctx
-from ..context import (_runcmd, temp_obj, constant_obj, constants, vars_obj, )
+from ..context import (_runcmd, temp_obj, constant_obj, constants, vars_obj)
 
 INT32_LIMIT = (2 ** 31) - 1
 
@@ -32,7 +32,7 @@ nbt: Any = lambda *_, **__: Any()
 
 
 class score(FlareValue):
-    def __init__(self, value: Any = None, *, addr: str | True | None = None, multiplier: float = 1.0, ):
+    def __init__(self, value: Any = None, *, addr: str | True | None = None, multiplier: float = 1.0):
         global nbt
         from .nbt import nbt as _nbt
 
@@ -668,7 +668,7 @@ class score(FlareValue):
 
 
 class fixed(score):
-    def __init__(self, value: int | float | None = None, *, addr: str | True | None = None, multiplier: float = 1e-4, ):
+    def __init__(self, value: int | float | None = None, *, addr: str | True | None = None, multiplier: float = 1e-4):
         super().__init__(value, addr=addr, multiplier=multiplier)
 
     def __repr__(self):

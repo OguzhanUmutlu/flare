@@ -129,7 +129,7 @@ class float64(FlareValue):
 
                 (ScoreIfMatches(diff, (-2147483648, -1))).then(
                     lambda: [a._sign.__swap__(b._sign), a._exp.__swap__(b._exp), a._mant_hi.__swap__(b._mant_hi),
-                        a._mant_lo.__swap__(b._mant_lo), diff.__imul__(-1)])
+                             a._mant_lo.__swap__(b._mant_lo), diff.__imul__(-1)])
 
                 for p in reversed(range(0, 6)):
                     shift_v = 1 << p
@@ -137,12 +137,12 @@ class float64(FlareValue):
                     if shift_v >= 26:
                         arr.extend(
                             [lambda: b._mant_lo.__iset__(b._mant_hi), lambda: b._mant_lo.__idiv__(1 << (shift_v - 26)),
-                                lambda: b._mant_hi.__iset__(0)])
+                             lambda: b._mant_hi.__iset__(0)])
                     else:
                         cy = score(addr="#f64_add_cy __flare_stdlib__")
                         arr.extend([lambda: cy.__iset__(b._mant_hi), lambda: cy.__imod__(1 << shift_v),
-                            lambda: cy.__imul__(1 << (26 - shift_v)), lambda: b._mant_hi.__idiv__(1 << shift_v),
-                            lambda: b._mant_lo.__idiv__(1 << shift_v), lambda: b._mant_lo.__iadd__(cy)])
+                                    lambda: cy.__imul__(1 << (26 - shift_v)), lambda: b._mant_hi.__idiv__(1 << shift_v),
+                                    lambda: b._mant_lo.__idiv__(1 << shift_v), lambda: b._mant_lo.__iadd__(cy)])
                     arr.append(lambda: diff.__isub__(shift_v))
                     ScoreIfMatches(diff, (shift_v, 2147483647)).then(arr)
 
@@ -174,19 +174,21 @@ class float64(FlareValue):
 
                 ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, (134217728, 2147483647)).while_then(
                     lambda: [score(addr="#f64_add_cy2 __flare_stdlib__").__iset__(a._mant_hi),
-                        score(addr="#f64_add_cy2 __flare_stdlib__").__imod__(2),
-                        score(addr="#f64_add_cy2 __flare_stdlib__").__imul__(33554432), a._mant_hi.__idiv__(2),
-                        a._mant_lo.__idiv__(2), a._mant_lo.__iadd__(score(addr="#f64_add_cy2 __flare_stdlib__")),
-                        a._exp.__iadd__(1)], namespace="__flare_stdlib__")
+                             score(addr="#f64_add_cy2 __flare_stdlib__").__imod__(2),
+                             score(addr="#f64_add_cy2 __flare_stdlib__").__imul__(33554432), a._mant_hi.__idiv__(2),
+                             a._mant_lo.__idiv__(2), a._mant_lo.__iadd__(score(addr="#f64_add_cy2 __flare_stdlib__")),
+                             a._exp.__iadd__(1)], namespace="__flare_stdlib__")
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, 0)).then(
                     lambda: [a._mant_hi.__iset__(a._mant_lo), a._mant_lo.__iset__(0), a._exp.__isub__(26)])
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(a._mant_hi, (-2147483648, 67108863))).while_then(
                     lambda: [a._exp.__isub__(1), a._mant_hi.__imul__(2), a._mant_lo.__imul__(2),
-                        score(addr="#f64_add_cy3 __flare_stdlib__").__iset__(a._mant_lo),
-                        score(addr="#f64_add_cy3 __flare_stdlib__").__idiv__(67108864), a._mant_lo.__imod__(67108864),
-                        a._mant_hi.__iadd__(score(addr="#f64_add_cy3 __flare_stdlib__"))], namespace="__flare_stdlib__")
+                             score(addr="#f64_add_cy3 __flare_stdlib__").__iset__(a._mant_lo),
+                             score(addr="#f64_add_cy3 __flare_stdlib__").__idiv__(67108864),
+                             a._mant_lo.__imod__(67108864),
+                             a._mant_hi.__iadd__(score(addr="#f64_add_cy3 __flare_stdlib__"))],
+                    namespace="__flare_stdlib__")
 
                 res[:] = a
 
@@ -332,16 +334,18 @@ class float64(FlareValue):
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (134217728, 2147483647))).while_then(
                     lambda: [score(addr="#f64_mul_cy2 __flare_stdlib__").__iset__(res._mant_hi),
-                        score(addr="#f64_mul_cy2 __flare_stdlib__").__imod__(2),
-                        score(addr="#f64_mul_cy2 __flare_stdlib__").__imul__(33554432), res._mant_hi.__idiv__(2),
-                        res._mant_lo.__idiv__(2), res._mant_lo.__iadd__(score(addr="#f64_mul_cy2 __flare_stdlib__")),
-                        res._exp.__iadd__(1)], namespace="__flare_stdlib__")
+                             score(addr="#f64_mul_cy2 __flare_stdlib__").__imod__(2),
+                             score(addr="#f64_mul_cy2 __flare_stdlib__").__imul__(33554432), res._mant_hi.__idiv__(2),
+                             res._mant_lo.__idiv__(2),
+                             res._mant_lo.__iadd__(score(addr="#f64_mul_cy2 __flare_stdlib__")), res._exp.__iadd__(1)],
+                    namespace="__flare_stdlib__")
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (-2147483648, 67108863))).while_then(
                     lambda: [res._exp.__isub__(1), res._mant_hi.__imul__(2), res._mant_lo.__imul__(2),
-                        score(addr="#f64_mul_cy3 __flare_stdlib__").__iset__(res._mant_lo),
-                        score(addr="#f64_mul_cy3 __flare_stdlib__").__idiv__(67108864), res._mant_lo.__imod__(67108864),
-                        res._mant_hi.__iadd__(score(addr="#f64_mul_cy3 __flare_stdlib__"))],
+                             score(addr="#f64_mul_cy3 __flare_stdlib__").__iset__(res._mant_lo),
+                             score(addr="#f64_mul_cy3 __flare_stdlib__").__idiv__(67108864),
+                             res._mant_lo.__imod__(67108864),
+                             res._mant_hi.__iadd__(score(addr="#f64_mul_cy3 __flare_stdlib__"))],
                     namespace="__flare_stdlib__")
 
             _res = type(self)(addr=f"#f64_mul_{next_temp_id()}")
@@ -408,16 +412,18 @@ class float64(FlareValue):
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (134217728, 2147483647))).while_then(
                     lambda: [score(addr="#f64_div_cy2 __flare_stdlib__").__iset__(res._mant_hi),
-                        score(addr="#f64_div_cy2 __flare_stdlib__").__imod__(2),
-                        score(addr="#f64_div_cy2 __flare_stdlib__").__imul__(33554432), res._mant_hi.__idiv__(2),
-                        res._mant_lo.__idiv__(2), res._mant_lo.__iadd__(score(addr="#f64_div_cy2 __flare_stdlib__")),
-                        res._exp.__iadd__(1)], namespace="__flare_stdlib__")
+                             score(addr="#f64_div_cy2 __flare_stdlib__").__imod__(2),
+                             score(addr="#f64_div_cy2 __flare_stdlib__").__imul__(33554432), res._mant_hi.__idiv__(2),
+                             res._mant_lo.__idiv__(2),
+                             res._mant_lo.__iadd__(score(addr="#f64_div_cy2 __flare_stdlib__")), res._exp.__iadd__(1)],
+                    namespace="__flare_stdlib__")
 
                 (ScoreIfMatches(is_zero, 0) & ScoreIfMatches(res._mant_hi, (-2147483648, 67108863))).while_then(
                     lambda: [res._exp.__isub__(1), res._mant_hi.__imul__(2), res._mant_lo.__imul__(2),
-                        score(addr="#f64_div_cy3 __flare_stdlib__").__iset__(res._mant_lo),
-                        score(addr="#f64_div_cy3 __flare_stdlib__").__idiv__(67108864), res._mant_lo.__imod__(67108864),
-                        res._mant_hi.__iadd__(score(addr="#f64_div_cy3 __flare_stdlib__"))],
+                             score(addr="#f64_div_cy3 __flare_stdlib__").__iset__(res._mant_lo),
+                             score(addr="#f64_div_cy3 __flare_stdlib__").__idiv__(67108864),
+                             res._mant_lo.__imod__(67108864),
+                             res._mant_hi.__iadd__(score(addr="#f64_div_cy3 __flare_stdlib__"))],
                     namespace="__flare_stdlib__")
 
             _res = type(self)(addr=f"#f64_div_{next_temp_id()}")
@@ -450,12 +456,12 @@ class float64(FlareValue):
                 arr = []
                 if (1 << p) >= 26:
                     arr.extend([lambda: res._mant_lo.__iset__(res._mant_hi),
-                        lambda: res._mant_lo.__idiv__(1 << ((1 << p) - 26)), lambda: res._mant_hi.__iset__(0)])
+                                lambda: res._mant_lo.__idiv__(1 << ((1 << p) - 26)), lambda: res._mant_hi.__iset__(0)])
                 else:
                     cy = score(addr="#f64_flr_cy __flare_stdlib__")
                     arr.extend([lambda: cy.__iset__(res._mant_hi), lambda: cy.__imod__(1 << (1 << p)),
-                        lambda: cy.__imul__(1 << (26 - (1 << p))), lambda: res._mant_hi.__idiv__(1 << (1 << p)),
-                        lambda: res._mant_lo.__idiv__(1 << (1 << p)), lambda: res._mant_lo.__iadd__(cy)])
+                                lambda: cy.__imul__(1 << (26 - (1 << p))), lambda: res._mant_hi.__idiv__(1 << (1 << p)),
+                                lambda: res._mant_lo.__idiv__(1 << (1 << p)), lambda: res._mant_lo.__iadd__(cy)])
                 arr.append(lambda: shc.__isub__(1 << p))
                 (cond & ScoreIfMatches(shc, (1 << p, 2147483647))).then(arr)
 
@@ -465,15 +471,15 @@ class float64(FlareValue):
                 arr = []
                 if (1 << p) >= 26:
                     arr.extend([lambda: res._mant_hi.__iset__(res._mant_lo),
-                        lambda: res._mant_hi.__imul__(1 << ((1 << p) - 26)), lambda: res._mant_lo.__iset__(0)])
+                                lambda: res._mant_hi.__imul__(1 << ((1 << p) - 26)), lambda: res._mant_lo.__iset__(0)])
                 else:
                     cy2 = score(addr="#f64_flr_cy2 __flare_stdlib__")
                     cy3 = score(addr="#f64_flr_cy3 __flare_stdlib__")
                     arr.extend([lambda: cy2.__iset__(res._mant_lo), lambda: cy2.__idiv__(1 << (26 - (1 << p))),
-                        lambda: res._mant_hi.__imul__(1 << (1 << p)), lambda: res._mant_lo.__imul__(1 << (1 << p)),
-                        lambda: cy3.__iset__(res._mant_lo), lambda: cy3.__idiv__(67108864),
-                        lambda: res._mant_lo.__imod__(67108864), lambda: res._mant_hi.__iadd__(cy2),
-                        lambda: res._mant_hi.__iadd__(cy3)])
+                                lambda: res._mant_hi.__imul__(1 << (1 << p)),
+                                lambda: res._mant_lo.__imul__(1 << (1 << p)), lambda: cy3.__iset__(res._mant_lo),
+                                lambda: cy3.__idiv__(67108864), lambda: res._mant_lo.__imod__(67108864),
+                                lambda: res._mant_hi.__iadd__(cy2), lambda: res._mant_hi.__iadd__(cy3)])
                 arr.append(lambda: shc.__isub__(1 << p))
                 (cond & ScoreIfMatches(shc, (1 << p, 2147483647))).then(arr)
 
@@ -532,7 +538,7 @@ class float64(FlareValue):
             cond_pi[:] = 0
             ScoreIfMatches(sub._sign, 1).then(
                 lambda: [is_neg.__iset__(1), cond_pi._sign.__iset__(pi._sign), cond_pi._exp.__iset__(pi._exp),
-                    cond_pi._mant_hi.__iset__(pi._mant_hi), cond_pi._mant_lo.__iset__(pi._mant_lo)])
+                         cond_pi._mant_hi.__iset__(pi._mant_hi), cond_pi._mant_lo.__iset__(pi._mant_lo)])
             x -= cond_pi
 
             half_pi = type(x)(math.pi / 2.0)
@@ -549,7 +555,7 @@ class float64(FlareValue):
 
             ScoreIfMatches(is_reflect, 1).then(
                 lambda: [x._sign.__iset__(x_reflected._sign), x._exp.__iset__(x_reflected._exp),
-                    x._mant_hi.__iset__(x_reflected._mant_hi), x._mant_lo.__iset__(x_reflected._mant_lo)])
+                         x._mant_hi.__iset__(x_reflected._mant_hi), x._mant_lo.__iset__(x_reflected._mant_lo)])
 
             x2 = type(x)(addr="#f64_sin_x2 __flare_stdlib__")
             x2[:] = x
@@ -1056,8 +1062,8 @@ class float64(FlareValue):
         exp_adj[:] = self._exp
         exp_adj -= score(52)
 
-        ScoreIfMatches(exp_adj, (1, 1000000)).while_then(lambda: [b.__imul__(2), exp_adj.__isub__(1), ])
-        ScoreIfMatches(exp_adj, (-1000000, -1)).while_then(lambda: [b.__idiv__(2), exp_adj.__iadd__(1), ])
+        ScoreIfMatches(exp_adj, (1, 1000000)).while_then(lambda: [b.__imul__(2), exp_adj.__isub__(1)])
+        ScoreIfMatches(exp_adj, (-1000000, -1)).while_then(lambda: [b.__idiv__(2), exp_adj.__iadd__(1)])
 
         comps = []
 

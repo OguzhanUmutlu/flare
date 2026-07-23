@@ -84,7 +84,7 @@ def lazify(temp="#temp", datatype=None, self=True, copy=None):
                         t._addr = f"storage {ctx._current_namespace}:vars {varid}"
                     return t
 
-                return LazyOp(None, eval_func, alloc_temp, make_copy, op_name=func.__name__, op_args=(args, kwargs), )
+                return LazyOp(None, eval_func, alloc_temp, make_copy, op_name=func.__name__, op_args=(args, kwargs))
 
         return wrapper
 
@@ -498,7 +498,7 @@ class LazyOp(FlareValue):
         leaf = self._best_leaf()
         return getattr(leaf, "is_sequence", lambda: False)()
 
-    def __init__(self, operand, eval_fn, alloc_temp_fn=None, make_copy_fn=None, op_name=None, op_args=None, ):
+    def __init__(self, operand, eval_fn, alloc_temp_fn=None, make_copy_fn=None, op_name=None, op_args=None):
         self.operand = operand
         self.eval_fn = eval_fn
         self.alloc_temp_fn = alloc_temp_fn

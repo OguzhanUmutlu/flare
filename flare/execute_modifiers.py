@@ -238,7 +238,7 @@ class ExecuteChain:
 
 
 class StoreExecuteChain(ExecuteChain):
-    def __init__(self, fragments: list[str], target: "flare.variables.nbt", is_success: bool = False, ):
+    def __init__(self, fragments: list[str], target: "flare.variables.nbt", is_success: bool = False):
         super().__init__("")
         self.fragments = fragments
         self._target = target
@@ -351,7 +351,7 @@ def unless_block(pos: Union[str, tuple, list, "selector"], target: str) -> Execu
     return ExecuteChain().unless_block(pos, target)
 
 
-def store(target: Union["flare.variables.score", "flare.variables.nbt", str, Any], ) -> Union[
+def store(target: Union["flare.variables.score", "flare.variables.nbt", str, Any]) -> Union[
     ExecuteChain, "flare.variables.score", "_StoreCondition"]:
     from .variables.core import FlareValue
 
@@ -360,7 +360,7 @@ def store(target: Union["flare.variables.score", "flare.variables.nbt", str, Any
     return ExecuteChain().store(target)
 
 
-def store_success(target: Union["flare.variables.score", "flare.variables.nbt", str, Any], ) -> Union[
+def store_success(target: Union["flare.variables.score", "flare.variables.nbt", str, Any]) -> Union[
     ExecuteChain, "flare.variables.score"]:
     from .variables.core import FlareValue
 

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import io
+import random
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from PIL import Image, ImageColor, ImageEnhance, ImageFilter, ImageChops, ImageOps
 
@@ -12,12 +13,20 @@ from . import context as ctx
 ColorType = Union[str, Tuple[int, int, int], Tuple[int, int, int, int]]
 
 _temp_counter: int = 0
+_font_glyph_counter: int = 0xE000
 
 
 def _next_temp_name() -> str:
     global _temp_counter
     _temp_counter += 1
     return f"#temp_texture_{_temp_counter}"
+
+
+def _next_font_char() -> str:
+    global _font_glyph_counter
+    char = chr(_font_glyph_counter)
+    _font_glyph_counter += 1
+    return char
 
 
 def parse_color(color: ColorType) -> Tuple[int, int, int, int]:
@@ -31,11 +40,9 @@ def parse_color(color: ColorType) -> Tuple[int, int, int, int]:
 
 
 class FlareTexture:
-    """Represents a Minecraft resource pack texture with rich image editing and layering capabilities."""
-
     def __init__(self, name: Optional[str] = None, image: Optional[Union[str, bytes, Image.Image, FlareTexture]] = None,
-            *, width: int = 16, height: int = 16, color: Optional[ColorType] = None, mcmeta: Optional[dict] = None,
-            temp: bool = False, ):
+                 *, width: int = 16, height: int = 16, color: Optional[ColorType] = None, mcmeta: Optional[dict] = None,
+                 temp: bool = False):
         self.is_temp = temp or name is None
         if name is None:
             name = _next_temp_name()
@@ -124,7 +131,7 @@ class FlareTexture:
         return self
 
     def crop(self, box_or_left: Union[Tuple[int, int, int, int], int], top: Optional[int] = None,
-            right_or_width: Optional[int] = None, bottom_or_height: Optional[int] = None, ) -> FlareTexture:
+             right_or_width: Optional[int] = None, bottom_or_height: Optional[int] = None) -> FlareTexture:
         if isinstance(box_or_left, tuple):
             box = box_or_left
         elif top is not None and right_or_width is not None and bottom_or_height is not None:
@@ -174,7 +181,7 @@ class FlareTexture:
         return self
 
     def recolor(self, color_map_or_func: Union[
-        Dict[ColorType, ColorType], Callable[[int, int, int, int], Tuple[int, int, int, int]]], ) -> FlareTexture:
+        Dict[ColorType, ColorType], Callable[[int, int, int, int], Tuple[int, int, int, int]]]) -> FlareTexture:
         pixels = self.image.load()
         w, h = self.image.size
         if callable(color_map_or_func):
@@ -191,6 +198,12 @@ class FlareTexture:
                         pixels[x, y] = parsed_map[current]
         return self
 
+    def palette_swap(self, old_palette: List[ColorType], new_palette: List[ColorType]) -> FlareTexture:
+        if len(old_palette) != len(new_palette):
+            raise ValueError("old_palette and new_palette must have equal length.")
+        mapping = {parse_color(o): parse_color(n) for o, n in zip(old_palette, new_palette)}
+        return self.recolor(mapping)
+
     def tint(self, color: ColorType, factor: float = 0.5) -> FlareTexture:
         target_r, target_g, target_b, _ = parse_color(color)
         pixels = self.image.load()
@@ -205,6 +218,83 @@ class FlareTexture:
                     pixels[x, y] = (new_r, new_g, new_b, a)
         return self
 
+    def gradient(self, start_color: ColorType, end_color: ColorType, direction: str = "vertical") -> FlareTexture:
+        c1 = parse_color(start_color)
+        c2 = parse_color(end_color)
+        w, h = self.image.size
+        new_img = Image.new("RGBA", (w, h))
+
+        for x in range(w):
+            for y in range(h):
+                if direction == "horizontal":
+                    t = x / max(1, w - 1)
+                elif direction == "diagonal":
+                    t = (x + y) / max(1, (w - 1) + (h - 1))
+                else:
+                    t = y / max(1, h - 1)
+
+                r = int(c1[0] * (1 - t) + c2[0] * t)
+                g = int(c1[1] * (1 - t) + c2[1] * t)
+                b = int(c1[2] * (1 - t) + c2[2] * t)
+                a = int(c1[3] * (1 - t) + c2[3] * t)
+                new_img.putpixel((x, y), (r, g, b, a))
+
+        self.image = new_img
+        return self
+
+    def noise(self, intensity: float = 0.1, monochromatic: bool = True) -> FlareTexture:
+        pixels = self.image.load()
+        w, h = self.image.size
+        max_delta = int(255 * intensity)
+        if max_delta <= 0:
+            return self
+
+        for x in range(w):
+            for y in range(h):
+                r, g, b, a = pixels[x, y]
+                if a > 0:
+                    if monochromatic:
+                        delta = random.randint(-max_delta, max_delta)
+                        nr = max(0, min(255, r + delta))
+                        ng = max(0, min(255, g + delta))
+                        nb = max(0, min(255, b + delta))
+                    else:
+                        nr = max(0, min(255, r + random.randint(-max_delta, max_delta)))
+                        ng = max(0, min(255, g + random.randint(-max_delta, max_delta)))
+                        nb = max(0, min(255, b + random.randint(-max_delta, max_delta)))
+                    pixels[x, y] = (nr, ng, nb, a)
+        return self
+
+    def nine_slice(self, corner_size: int = 4, target_width: int = 64, target_height: int = 64) -> FlareTexture:
+        w, h = self.image.size
+        c = corner_size
+        if target_width <= 2 * c or target_height <= 2 * c:
+            raise ValueError(f"Target dimensions must be larger than 2 * corner_size ({2 * c}).")
+
+        res = Image.new("RGBA", (target_width, target_height))
+
+        res.paste(self.image.crop((0, 0, c, c)), (0, 0))
+        res.paste(self.image.crop((w - c, 0, w, c)), (target_width - c, 0))
+        res.paste(self.image.crop((0, h - c, c, h)), (0, target_height - c))
+        res.paste(self.image.crop((w - c, h - c, w, h)), (target_width - c, target_height - c))
+
+        top_e = self.image.crop((c, 0, w - c, c)).resize((target_width - 2 * c, c), Image.NEAREST)
+        bot_e = self.image.crop((c, h - c, w - c, h)).resize((target_width - 2 * c, c), Image.NEAREST)
+        left_e = self.image.crop((0, c, c, h - c)).resize((c, target_height - 2 * c), Image.NEAREST)
+        right_e = self.image.crop((w - c, c, w, h - c)).resize((c, target_height - 2 * c), Image.NEAREST)
+
+        res.paste(top_e, (c, 0))
+        res.paste(bot_e, (c, target_height - c))
+        res.paste(left_e, (0, c))
+        res.paste(right_e, (target_width - c, c))
+
+        center = self.image.crop((c, c, w - c, h - c)).resize((target_width - 2 * c, target_height - 2 * c),
+                                                              Image.NEAREST)
+        res.paste(center, (c, c))
+
+        self.image = res
+        return self
+
     def outline(self, color: ColorType = "black", width: int = 1) -> FlareTexture:
         rgba = parse_color(color)
         alpha = self.image.split()[3]
@@ -217,7 +307,7 @@ class FlareTexture:
         return self
 
     def overlay(self, other: Union[FlareTexture, Image.Image, str, Path],
-            position: Tuple[int, int] = (0, 0)) -> FlareTexture:
+                position: Tuple[int, int] = (0, 0)) -> FlareTexture:
         if isinstance(other, FlareTexture):
             other_img = other.image
         elif isinstance(other, Image.Image):
@@ -242,6 +332,31 @@ class FlareTexture:
             self.overlay(target_layer, position=pos)
         return self
 
+    def append_frame(self, *frames: Union[FlareTexture, Image.Image, str, Path]) -> FlareTexture:
+        frame_imgs = [self.image]
+        for f in frames:
+            if isinstance(f, FlareTexture):
+                frame_imgs.append(f.image)
+            elif isinstance(f, Image.Image):
+                frame_imgs.append(f.convert("RGBA"))
+            elif isinstance(f, (str, Path)):
+                frame_imgs.append(Image.open(f).convert("RGBA"))
+
+        target_width = self.image.width
+        total_height = sum(img.height for img in frame_imgs)
+
+        sheet = Image.new("RGBA", (target_width, total_height))
+        current_y = 0
+        for img in frame_imgs:
+            resized_img = img.resize((target_width, img.height), Image.NEAREST) if img.width != target_width else img
+            sheet.paste(resized_img, (0, current_y))
+            current_y += img.height
+
+        self.image = sheet
+        if self.mcmeta is None or "animation" not in self.mcmeta:
+            self.animate(frametime=1)
+        return self
+
     def animate(self, frametime: int = 1, interpolate: bool = False, frames: Optional[list] = None) -> FlareTexture:
         anim_dict: dict = {"frametime": frametime, "interpolate": interpolate}
         if frames is not None:
@@ -250,6 +365,47 @@ class FlareTexture:
             self.mcmeta = {}
         self.mcmeta["animation"] = anim_dict
         return self
+
+    def to_font_glyph(self, char: Optional[str] = None, height: int = 8, ascent: int = 7, font: str = "default") -> str:
+        if self.is_temp:
+            raise RuntimeError("Cannot register a temporary texture as a font glyph. Call .save('name') first.")
+
+        if char is None:
+            char = _next_font_char()
+
+        if ":" in font:
+            ns, path = font.split(":", 1)
+        else:
+            ns, path = str(ctx._current_namespace), font
+
+        font_json_path = f"assets/{ns}/font/{path}.json"
+
+        font_data = ctx.json_files.get(font_json_path, {"providers": []})
+        if "providers" not in font_data:
+            font_data["providers"] = []
+
+        font_data["providers"].append(
+            {"type": "bitmap", "file": self.name, "height": height, "ascent": ascent, "chars": [char]})
+
+        ctx.json_files[font_json_path] = font_data
+        return char
+
+    def to_item_model(self, parent: str = "minecraft:item/generated") -> str:
+        if self.is_temp:
+            raise RuntimeError("Cannot register a temporary texture as an item model. Call .save('name') first.")
+
+        if ":" in self.name:
+            ns, path = self.name.split(":", 1)
+        else:
+            ns, path = str(ctx._current_namespace), self.name
+
+        item_name = path.split("/")[-1]
+        model_json_path = f"assets/{ns}/items/{item_name}.json"
+
+        item_data = {"model": {"type": "minecraft:model", "model": parent, "textures": {"layer0": self.name}}}
+
+        ctx.json_files[model_json_path] = item_data
+        return f"{ns}:{item_name}"
 
     def to_beet(self):
         try:
@@ -261,20 +417,14 @@ class FlareTexture:
 
 
 def temp_texture(image: Optional[Union[str, bytes, Image.Image, FlareTexture]] = None, *, width: int = 16,
-        height: int = 16, color: Optional[ColorType] = None, mcmeta: Optional[dict] = None, ) -> FlareTexture:
-    """Creates a temporary, non-sourced texture (not saved to resourcepack unless explicitly saved or layered)."""
+                 height: int = 16, color: Optional[ColorType] = None, mcmeta: Optional[dict] = None) -> FlareTexture:
     return FlareTexture(name=None, image=image, width=width, height=height, color=color, mcmeta=mcmeta, temp=True)
 
 
 def texture(name_or_image: Optional[Union[str, bytes, Image.Image, FlareTexture, ColorType]] = None,
-        image: Optional[Union[str, bytes, Image.Image, FlareTexture]] = None, *, width: int = 16, height: int = 16,
-        color: Optional[ColorType] = None, mcmeta: Optional[dict] = None,
-        temp: Optional[bool] = None, ) -> FlareTexture:
-    """Creates or fetches a texture seamlessly.
-
-    - If no resourcepack name is given (or an image, color, dimensions, or temp=True is specified without a texture path), returns a temporary non-sourced texture.
-    - If a resourcepack texture path is provided (e.g. 'item/custom_sword'), returns a sourced texture registered in the resource pack.
-    """
+            image: Optional[Union[str, bytes, Image.Image, FlareTexture]] = None, *, width: int = 16, height: int = 16,
+            color: Optional[ColorType] = None, mcmeta: Optional[dict] = None,
+            temp: Optional[bool] = None) -> FlareTexture:
     if temp is True:
         if isinstance(name_or_image, str) and ("/" in name_or_image or ":" in name_or_image) and not (
                 Path(name_or_image).exists() or name_or_image.endswith((".png", ".jpg", ".jpeg", ".webp", ".tga"))):
@@ -324,7 +474,7 @@ def texture(name_or_image: Optional[Union[str, bytes, Image.Image, FlareTexture,
 
 
 def add_texture(name: str, image: Optional[Union[str, bytes, Image.Image, FlareTexture]] = None,
-        **kwargs, ) -> FlareTexture:
+                **kwargs) -> FlareTexture:
     return FlareTexture(name, image=image, **kwargs)
 
 
@@ -344,4 +494,4 @@ def get_texture(name: str) -> Optional[FlareTexture]:
     return ctx.resourcepack_textures.get(name)
 
 
-__all__ = ["FlareTexture", "texture", "temp_texture", "add_texture", "edit_texture", "get_texture", ]
+__all__ = ["FlareTexture", "texture", "temp_texture", "add_texture", "edit_texture", "get_texture"]

@@ -867,7 +867,7 @@ def _flare_aug_assign(var_name, op_name, value, _locals, _globals):
         else:
             raise NameError(f"name '{var_name}' is not defined")
 
-    op_map = {"Add": "__iadd__", "Sub": "__isub__", "Mult": "__imul__", "Div": "__itruediv__", "Mod": "__imod__", }
+    op_map = {"Add": "__iadd__", "Sub": "__isub__", "Mult": "__imul__", "Div": "__itruediv__", "Mod": "__imod__"}
     method_name = op_map.get(op_name)
 
     if hasattr(var, method_name):
