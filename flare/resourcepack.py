@@ -416,22 +416,20 @@ class FlareTexture:
             raise RuntimeError("Beet package is required to convert FlareTexture to beet.Texture.")
 
 
-def temp_texture(image: Optional[Union[str, bytes, Image.Image, FlareTexture]] = None, *, width: int = 16,
-                 height: int = 16, color: Optional[ColorType] = None, mcmeta: Optional[dict] = None) -> FlareTexture:
-    return FlareTexture(name=None, image=image, width=width, height=height, color=color, mcmeta=mcmeta, temp=True)
-
-
 def texture(name_or_image: Optional[Union[str, bytes, Image.Image, FlareTexture, ColorType]] = None,
             image: Optional[Union[str, bytes, Image.Image, FlareTexture]] = None, *, width: int = 16, height: int = 16,
             color: Optional[ColorType] = None, mcmeta: Optional[dict] = None,
             temp: Optional[bool] = None) -> FlareTexture:
+    def _create_temp(img=None, col=None):
+        return FlareTexture(name=None, image=img, width=width, height=height, color=col, mcmeta=mcmeta, temp=True)
+
     if temp is True:
         if isinstance(name_or_image, str) and ("/" in name_or_image or ":" in name_or_image) and not (
                 Path(name_or_image).exists() or name_or_image.endswith((".png", ".jpg", ".jpeg", ".webp", ".tga"))):
             return FlareTexture(name_or_image, image=image, width=width, height=height, color=color, mcmeta=mcmeta,
                                 temp=True)
         img_val = image if image is not None else name_or_image
-        return temp_texture(image=img_val, width=width, height=height, color=color, mcmeta=mcmeta)
+        return _create_temp(img=img_val, col=color)
 
     if temp is False:
         name_str = str(name_or_image) if name_or_image is not None else None
@@ -439,23 +437,23 @@ def texture(name_or_image: Optional[Union[str, bytes, Image.Image, FlareTexture,
 
     if name_or_image is None:
         if image is not None:
-            return temp_texture(image=image, width=width, height=height, color=color, mcmeta=mcmeta)
-        return temp_texture(width=width, height=height, color=color, mcmeta=mcmeta)
+            return _create_temp(img=image, col=color)
+        return _create_temp(col=color)
 
     if isinstance(name_or_image, (Image.Image, bytes, FlareTexture)):
-        return temp_texture(image=name_or_image, width=width, height=height, color=color, mcmeta=mcmeta)
+        return _create_temp(img=name_or_image, col=color)
 
     if isinstance(name_or_image, tuple):
-        return temp_texture(width=width, height=height, color=name_or_image, mcmeta=mcmeta)
+        return _create_temp(col=name_or_image)
 
     if isinstance(name_or_image, str):
         if Path(name_or_image).exists() or name_or_image.endswith((".png", ".jpg", ".jpeg", ".webp", ".tga")):
-            return temp_texture(image=name_or_image, width=width, height=height, color=color, mcmeta=mcmeta)
+            return _create_temp(img=name_or_image, col=color)
 
         if color is None and image is None and "/" not in name_or_image and ":" not in name_or_image:
             try:
                 ImageColor.getcolor(name_or_image, "RGBA")
-                return temp_texture(width=width, height=height, color=name_or_image, mcmeta=mcmeta)
+                return _create_temp(col=name_or_image)
             except Exception:
                 pass
 
@@ -470,7 +468,7 @@ def texture(name_or_image: Optional[Union[str, bytes, Image.Image, FlareTexture,
         return FlareTexture(name_or_image, image=image, width=width, height=height, color=color, mcmeta=mcmeta,
                             temp=False)
 
-    return temp_texture(image=name_or_image, width=width, height=height, color=color, mcmeta=mcmeta)
+    return _create_temp(img=name_or_image, col=color)
 
 
 def add_texture(name: str, image: Optional[Union[str, bytes, Image.Image, FlareTexture]] = None,
@@ -494,4 +492,4 @@ def get_texture(name: str) -> Optional[FlareTexture]:
     return ctx.resourcepack_textures.get(name)
 
 
-__all__ = ["FlareTexture", "texture", "temp_texture", "add_texture", "edit_texture", "get_texture"]
+__all__ = ["FlareTexture", "texture", "add_texture", "edit_texture", "get_texture"]

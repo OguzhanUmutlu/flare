@@ -1123,7 +1123,7 @@ HEADER_IMPORTS = (
     "from flare import dbg, export, namespace, tag, tick, load, nostack\n"
     "from flare.variables.builtins import flare_range as range, flare_ord as ord, flare_bin as bin, flare_len as len\n"
     "from flare.variables.regex import re_patch as re\n"
-    "from flare.resourcepack import FlareTexture, texture, temp_texture, add_texture, edit_texture, get_texture\n")
+    "from flare.resourcepack import FlareTexture, texture, add_texture, edit_texture, get_texture\n")
 
 
 def setup_global_env(global_env: dict) -> dict:

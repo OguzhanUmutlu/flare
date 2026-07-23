@@ -21,7 +21,7 @@ from .math import round_, floor, ceil, sin, cos, tan, asin, acos, atan, atan2, e
     asec, acot, sinh, cosh, tanh, asinh, acosh, atanh, csch, sech, coth, acsch, asech, acoth, sqrt, fastsin, fastsqrt, \
     rsqrt, min_, max_
 from .print import translate, keybind, click_event, hover_event
-from .resourcepack import FlareTexture, texture, temp_texture, add_texture, edit_texture, get_texture
+from .resourcepack import FlareTexture, texture, add_texture, edit_texture, get_texture
 from .resources import *
 from .types import NBTType, byte, boolean, short, long, double, array
 from .variables import score, nbt, fixed, ref, getscore, storage, nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, \
@@ -45,7 +45,7 @@ __all__ = ["round_", "floor", "ceil", "namespace", "export", "tag", "tick", "loa
            "Function", "true", "false", "_flare_assign", "_flare_aug_assign", "_flare_if", "_flare_while", "_flare_for",
            "_flare_not", "_flare_and", "_flare_or", "_flare_with", "_flare_as_var", "runcommand", "_flare_return",
            "_flare_break", "_flare_continue", "_flare_in", "_flare_notin", "_flare_enter_scope", "_flare_exit_scope",
-           "_flare_alone", "interpolate_command", "FlareTexture", "texture", "temp_texture", "add_texture",
+           "_flare_alone", "interpolate_command", "FlareTexture", "texture", "add_texture",
            "edit_texture", "get_texture"]
 
 from .resources import __all__ as _dd_all

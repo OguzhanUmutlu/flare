@@ -11,7 +11,6 @@ Textures created in Flare automatically integrate with pipeline tools like **Bee
 The following methods can be called on a `FlareTexture` instance to modify or transform it in-place:
 
 - [`texture()`](#texture)
-- [`temp_texture()`](#temp-texture)
 - [`.fill()`](#fill)
 - [`.set_pixel()`](#set-pixel)
 - [`.get_pixel()`](#get-pixel)
@@ -68,16 +67,6 @@ blade = texture("src/assets/blade.png")
 
 # Sourced texture saved to resource pack
 sword = texture("item/ruby_sword", color="red")
-```
-
-### `temp_texture()`
-
-Creates an explicit temporary non-sourced texture that is not registered in the resource pack unless saved or layered onto another texture.
-
-```python
-from flare import temp_texture
-
-icon = temp_texture(color="gold", width=16, height=16)
 ```
 
 ### `fill()`
