@@ -39,10 +39,8 @@ def flare(ctx: Context, opts: FlareOptions) -> None:
         entry = _find_entry(ctx)
 
     if not entry.exists():
-        raise FileNotFoundError(
-            f"Flare entry-point not found: {entry}\n"
-            "Add a load path to data_pack.load, or set 'path' under meta.flare."
-        )
+        raise FileNotFoundError(f"Flare entry-point not found: {entry}\n"
+                                "Add a load path to data_pack.load, or set 'path' under meta.flare.")
 
     cli_overrides: dict = {}
     if ctx.project_name:
@@ -71,27 +69,21 @@ def flare(ctx: Context, opts: FlareOptions) -> None:
     extra_opts = {}
     for key, value in opts.dict(exclude_unset=True).items():
         if key not in ("path", "namespace", "pack_format", "description", "validation", "system_command_validation",
-                       "minecraft_version",
-                       "nbt_schema_missing"):
+                       "minecraft_version", "nbt_schema_missing"):
             extra_opts[key] = value
 
     for key, value in extra_opts.items():
         if key != "run":
             cli_overrides[key] = value
 
-    output_dir: Path = ctx.cache["flare"].directory / "dist"
-    cli_overrides["out_dir"] = str(output_dir)
+    success, _watch_files, _ = build_datapack(str(entry), cli_overrides, beet_ctx=ctx)
 
-    success, _watch_files, build_dir = build_datapack(str(entry), cli_overrides)
-
-    if not success or build_dir is None:
+    if not success:
         raise RuntimeError(f"Flare compilation failed for entry-point: {entry}")
-
-    ctx.data.load(build_dir)
 
     if "run" in extra_opts:
         run_val = extra_opts["run"]
-        runner = EmulatorRunner(build_dir, run_val)
+        runner = EmulatorRunner(str(entry), run_val)
         if runner.start():
             runner.wait()
 

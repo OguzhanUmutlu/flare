@@ -9,6 +9,7 @@ from .command_parser import interpolate_command
 _current_namespace: str = "flare"
 files = {f"{_current_namespace}:__init__": []}
 json_files = {}
+resourcepack_textures = {}
 current_file = f"{_current_namespace}:__init__"
 functions = {}
 constants = {}
@@ -112,6 +113,7 @@ def reset_context():
     global current_file, _current_namespace, _temp_id, _func_id, _objective_offset, _constant_offset, validation_level, system_command_validation, minecraft_version, nbt_schema_missing, _in_recursive_context, _logical_func, memoized_math
     files.clear()
     json_files.clear()
+    resourcepack_textures.clear()
     files[f"{_current_namespace}:__init__"] = []
     current_file = f"{_current_namespace}:__init__"
     _current_namespace = "flare"

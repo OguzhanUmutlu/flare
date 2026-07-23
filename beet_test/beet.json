@@ -1,11 +1,24 @@
 {
-    "pipeline": [
-        "flare.beet"
-    ],
-    "meta": {
-        "flare": {
-            "path": "src/flare/main.fl",
-            "namespace": "test"
-        }
+  "id": "beet_test",
+  "name": "beet_test",
+  "description": "Flare Beet Test Project",
+  "version": "1.0.0",
+  "require": [
+    "flare"
+  ],
+  "data_pack": {
+    "load": [
+      "src"
+    ]
+  },
+  "pipeline": [
+    "flare.beet"
+  ],
+  "output": "build",
+  "meta": {
+    "flare": {
+      "path": "src/main.py",
+      "namespace": "example"
     }
+  }
 }

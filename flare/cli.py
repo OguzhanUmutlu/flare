@@ -3,6 +3,7 @@ import hashlib
 import importlib.abc
 import importlib.machinery
 import importlib.util
+import io
 import json
 import marshal
 import os
@@ -26,8 +27,7 @@ except ImportError:
     HAS_WATCHDOG = False
 
 from . import context
-from .preprocessor import (setup_global_env,
-                           transform_source, process_and_exec)
+from .preprocessor import (setup_global_env, transform_source, process_and_exec)
 from .utils import resolve_build_targets, resolve_uri
 from .setup_autoreload import setup_autoreload
 
@@ -73,7 +73,7 @@ def init_project(path: str):
     print(f"Created {json_path.absolute()}")
 
 
-def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
+def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None, beet_ctx: Any | None = None):
     from flare.utils import minecraft_version_to_pack_format
 
     p = Path(file_path).parent
@@ -204,10 +204,10 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                 if spec is None:
                     search_paths = path if path is not None else sys.path
                     module_name = fullname.split('.')[-1]
-                    for p in search_paths:
-                        if not isinstance(p, str):
+                    for p_path in search_paths:
+                        if not isinstance(p_path, str):
                             continue
-                        fl_path = os.path.join(p, module_name + '.fl')
+                        fl_path = os.path.join(p_path, module_name + '.fl')
                         if os.path.exists(fl_path):
                             loader = FlareLoader(fl_path)
                             spec = importlib.util.spec_from_file_location(fullname, fl_path, loader=loader)
@@ -225,6 +225,79 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
             sys.meta_path.remove(meta_finder)
 
         comp_end = time.time()
+
+        if beet_ctx is not None:
+            sys.path.pop(0)
+            sys.path.pop(0)
+            try:
+                from beet import Function, JsonFile, FunctionTag
+            except ImportError:
+                raise RuntimeError("Beet package is required when beet_ctx is provided.")
+
+            load_key = f"{context._current_namespace}:__init__"
+            ns_str = str(context._current_namespace)
+
+            tags = {"tick": [], "load": []}
+
+            for filename, lines in context.files.items():
+                if not lines:
+                    continue
+
+                if filename.endswith(":tick"):
+                    tags["tick"].append(filename)
+                elif filename.endswith(":load") or filename.endswith(":__init__") or filename.endswith(
+                        ":__constants__"):
+                    tags["load"].append(filename)
+
+                if ":" in filename:
+                    ns, name = filename.split(":", 1)
+                    func_key = f"{ns}:{name}"
+                    is_top_level = (
+                            "generated_" not in name and "while_" not in name and "with_" not in name and name not in (
+                        "load", "__init__", "__constants__"))
+                else:
+                    func_key = f"{ns_str}:{filename}"
+                    is_top_level = (
+                            "generated_" not in filename and "while_" not in filename and "with_" not in filename and filename not in (
+                        "load", "__init__", "__constants__"))
+
+                lines_copy = list(lines)
+                if is_top_level and lines_copy and lines_copy[-1] in ("return 1", "return 0"):
+                    lines_copy.pop()
+
+                beet_ctx.data.functions[func_key] = Function("\n".join(lines_copy) + "\n")
+
+            for filename, json_content in context.json_files.items():
+                if ":" in filename:
+                    ns, path = filename.split(":", 1)
+                else:
+                    ns, path = ns_str, filename
+                beet_ctx.data[f"data/{ns}/{path}"] = JsonFile(json_content)
+
+            for tick_f in context.tick_funcs:
+                if tick_f not in tags["tick"]:
+                    tags["tick"].append(tick_f)
+            for load_f in context.load_funcs:
+                if load_f not in tags["load"]:
+                    tags["load"].append(load_f)
+
+            for tag_name, tag_funcs in tags.items():
+                if tag_funcs:
+                    if tag_name == "load":
+                        tag_funcs.sort(
+                            key=lambda x: (0 if x.endswith(":__constants__") else 2 if x.endswith(":__init__") else 1,
+                                           x))
+                    beet_ctx.data.function_tags[f"minecraft:{tag_name}"] = FunctionTag({"values": tag_funcs})
+
+            for name, flare_tex in context.resourcepack_textures.items():
+                beet_ctx.assets.textures[name] = flare_tex.to_beet()
+
+            total_time_ms = ((pre_end - pre_start) + (comp_end - comp_start)) * 1000
+            print(f"\033[92mSuccessfully built assets for Beet!\033[0m \033[90m({total_time_ms:.2f}ms)\033[0m")
+            print(f"\033[90m  Preprocessed in {(pre_end - pre_start) * 1000:.2f}ms\033[0m")
+            print(f"\033[90m  Compiled in {(comp_end - comp_start) * 1000:.2f}ms\033[0m")
+            return True, {os.path.abspath(file_path)}, None
+
         sys.path.pop(0)
         sys.path.pop(0)
     except Exception as e:
@@ -247,7 +320,6 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                 watch_files.add(mod_file)
 
     _created_dirs = set()
-    io_start = time.time()
 
     use_cache = not config.get("no_cache", False)
     build_dir_str = str(build_dir)
@@ -312,6 +384,29 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
                 pass
             c["time"] += time.perf_counter() - t0
 
+    def write_if_changed_bytes(file_path_str, raw_bytes):
+        content_hash = hashlib.md5(raw_bytes).hexdigest()
+        rel_path = os.path.relpath(file_path_str, build_dir_str)
+
+        for t in unique_targets:
+            t0 = time.perf_counter()
+            c = target_caches[t]
+            c["new"][rel_path] = content_hash
+            tgt_path = os.path.abspath(os.path.join(t, rel_path))
+
+            if c["old"].get(rel_path) == content_hash and os.path.exists(tgt_path):
+                c["time"] += time.perf_counter() - t0
+                continue
+
+            _ensure_parent(tgt_path)
+            try:
+                with open(tgt_path, "wb") as f:
+                    f.write(raw_bytes)
+                c["written"] += 1
+            except Exception:
+                pass
+            c["time"] += time.perf_counter() - t0
+
     os.makedirs(build_dir_str, exist_ok=True)
 
     write_if_changed(os.path.join(build_dir_str, "pack.mcmeta"), json.dumps({
@@ -326,7 +421,7 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
     ns_str = str(context._current_namespace)
 
     for filename, lines in context.files.items():
-        if not lines and filename != load_key:
+        if not lines:
             continue
 
         if filename.endswith(":tick"):
@@ -360,6 +455,19 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
 
         file_p = os.path.join(build_dir_str, "data", ns, path)
         write_if_changed(file_p, json.dumps(json_content, indent=4))
+
+    for name, flare_tex in context.resourcepack_textures.items():
+        if ":" in name:
+            ns, path = name.split(":", 1)
+        else:
+            ns, path = ns_str, name
+        tex_file_p = os.path.join(build_dir_str, "assets", ns, "textures", f"{path}.png")
+        buf = io.BytesIO()
+        flare_tex.image.save(buf, format="PNG")
+        write_if_changed_bytes(tex_file_p, buf.getvalue())
+        if flare_tex.mcmeta:
+            meta_file_p = os.path.join(build_dir_str, "assets", ns, "textures", f"{path}.png.mcmeta")
+            write_if_changed(meta_file_p, json.dumps(flare_tex.mcmeta, indent=4))
 
     for tick_f in context.tick_funcs:
         if tick_f not in tags["tick"]:
@@ -454,10 +562,10 @@ def _build_datapack_inner(file_path: str, cli_overrides: dict | None = None):
     return True, watch_files, build_dir
 
 
-def build_datapack(file_path: str, cli_overrides: dict | None = None):
+def build_datapack(file_path: str, cli_overrides: dict | None = None, beet_ctx: Any | None = None):
     with build_lock:
         try:
-            return _build_datapack_inner(file_path, cli_overrides)
+            return _build_datapack_inner(file_path, cli_overrides, beet_ctx=beet_ctx)
         except Exception as e:
             print(f"\033[91mBuild failed: {e}\033[0m")
             tb_str = traceback.format_exc()
