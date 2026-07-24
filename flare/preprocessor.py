@@ -1111,19 +1111,12 @@ def preprocess_minecraft_commands(source: str) -> str:
     return tokenize.untokenize(out_tokens)
 
 
-HEADER_IMPORTS = (
-    "from flare import _flare_assign, _flare_aug_assign, _flare_if, _flare_while, _flare_for, _flare_not, _flare_and, _flare_or, _flare_with, _flare_as_var, runcommand, _flare_return, _flare_break, _flare_continue, _flare_in, _flare_notin, _flare_enter_scope, _flare_exit_scope, _flare_alone\n"
-    "from flare import context as ctx\n"
-    "from flare.command_parser import interpolate_command\n"
-    "from flare import _flare_print as print, selector, _as, at, positioned, align, facing, anchored, rotated, dimension, applyon, on, summon, store\n"
-    "from flare import fail, nbt, score, fixed, ref, getscore, storage, array, byte, boolean, short, long, double, compound, Objective\n"
-    "from flare import nbtbyte, nbtbool, nbtshort, nbtint, nbtlong, nbtfloat, nbtdouble, nbtstr, nbtlist, nbtcompound, nbtbytearray, nbtintarray, nbtlongarray\n"
-    "from flare import round_, floor, ceil\n"
-    "from flare.math import *\n"
-    "from flare import dbg, export, namespace, tag, tick, load, nostack\n"
-    "from flare.variables.builtins import flare_range as range, flare_ord as ord, flare_bin as bin, flare_len as len\n"
-    "from flare.variables.regex import re_patch as re\n"
-    "from flare.resourcepack import FlareTexture, texture, add_texture, edit_texture, get_texture\n")
+HEADER_IMPORTS = ("from flare import *\n"
+                  "from flare import context as ctx\n"
+                  "from flare.command_parser import interpolate_command\n"
+                  "from flare import _flare_print as print\n"
+                  "from flare.variables.builtins import flare_range as range, flare_ord as ord, flare_bin as bin, flare_len as len\n"
+                  "from flare.variables.regex import re_patch as re\n")
 
 
 def setup_global_env(global_env: dict) -> dict:
